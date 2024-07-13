@@ -47,17 +47,17 @@ type StatusNode[S common.Enumer, T any] struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (sn *StatusNode[S, T]) Iterator() common.Iterater[Noder] {
+func (tn *StatusNode[S, T]) Iterator() common.Iterater[Noder] {
 	return &StatusNodeIterator[S, T]{
-		parent: sn,
-		current: sn.FirstChild,
+		parent: tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (sn *StatusNode[S, T]) String() string {
+func (tn *StatusNode[S, T]) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", sn.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -65,28 +65,28 @@ func (sn *StatusNode[S, T]) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (sn *StatusNode[S, T]) Copy() common.Copier {
+func (tn *StatusNode[S, T]) Copy() common.Copier {
 	var child_copy []Noder	
 
-	for c := sn.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
 	}
 
 	// Copy here the data of the node.
 
-	sn_copy := &StatusNode[S, T]{
+	tn_copy := &StatusNode[S, T]{
 	 	// Add here the copied data of the node.
 	}
 
-	sn_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return sn_copy
+	return tn_copy
 }
 
 // SetParent implements the Noder interface.
-func (sn *StatusNode[S, T]) SetParent(parent Noder) bool {
+func (tn *StatusNode[S, T]) SetParent(parent Noder) bool {
 	if parent == nil {
-		sn.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -95,20 +95,20 @@ func (sn *StatusNode[S, T]) SetParent(parent Noder) bool {
 		return false
 	}
 
-	sn.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the Noder interface.
-func (sn *StatusNode[S, T]) GetParent() Noder {
-	return sn.Parent
+func (tn *StatusNode[S, T]) GetParent() Noder {
+	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
 // Children that are not of type *StatusNode[S, T] or nil are ignored.
-func (sn *StatusNode[S, T]) LinkChildren(children []Noder) {
+func (tn *StatusNode[S, T]) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
@@ -122,7 +122,7 @@ func (sn *StatusNode[S, T]) LinkChildren(children []Noder) {
 
 		c, ok := child.(*StatusNode[S, T])
 		if ok {
-			c.Parent = sn
+			c.Parent = tn
 			valid_children = append(valid_children, c)
 		}		
 	}
@@ -146,7 +146,7 @@ func (sn *StatusNode[S, T]) LinkChildren(children []Noder) {
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	sn.FirstChild, sn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the Noder interface.
@@ -158,11 +158,11 @@ func (sn *StatusNode[S, T]) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (sn *StatusNode[S, T]) GetLeaves() []Noder {
+func (tn *StatusNode[S, T]) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](sn)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -195,7 +195,7 @@ func (sn *StatusNode[S, T]) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (sn *StatusNode[S, T]) Cleanup() {
+func (tn *StatusNode[S, T]) Cleanup() {
 	type Helper struct {
 		previous, current *StatusNode[S, T]
 	}
@@ -203,7 +203,7 @@ func (sn *StatusNode[S, T]) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := sn.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
 			previous:	c.PrevSibling,
 			current: 	c,
@@ -212,9 +212,9 @@ func (sn *StatusNode[S, T]) Cleanup() {
 		stack.Push(h)
 	}
 
-	sn.FirstChild = nil
-	sn.LastChild = nil
-	sn.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -240,8 +240,8 @@ func (sn *StatusNode[S, T]) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := sn.PrevSibling
-	next := sn.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -251,8 +251,8 @@ func (sn *StatusNode[S, T]) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	sn.PrevSibling = nil
-	sn.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the Noder interface.
@@ -264,10 +264,10 @@ func (sn *StatusNode[S, T]) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (sn *StatusNode[S, T]) GetAncestors() []Noder {
+func (tn *StatusNode[S, T]) GetAncestors() []Noder {
 	var ancestors []Noder
 
-	for node := sn; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -277,24 +277,24 @@ func (sn *StatusNode[S, T]) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (sn *StatusNode[S, T]) IsLeaf() bool {
-	return sn.FirstChild == nil
+func (tn *StatusNode[S, T]) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (sn *StatusNode[S, T]) IsSingleton() bool {
-	return sn.FirstChild != nil && sn.FirstChild == sn.LastChild
+func (tn *StatusNode[S, T]) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (sn *StatusNode[S, T]) GetFirstChild() Noder {
-	return sn.FirstChild
+func (tn *StatusNode[S, T]) GetFirstChild() Noder {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (sn *StatusNode[S, T]) DeleteChild(target Noder) []Noder {
+func (tn *StatusNode[S, T]) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
@@ -304,7 +304,7 @@ func (sn *StatusNode[S, T]) DeleteChild(target Noder) []Noder {
 		return nil
 	}
 
-	children := sn.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -318,8 +318,8 @@ func (sn *StatusNode[S, T]) DeleteChild(target Noder) []Noder {
 		c.Parent = nil
 	}
 
-	sn.FirstChild = nil
-	sn.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -332,11 +332,11 @@ func (sn *StatusNode[S, T]) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (sn *StatusNode[S, T]) Size() int {
+func (tn *StatusNode[S, T]) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(sn)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -364,7 +364,7 @@ func (sn *StatusNode[S, T]) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func (sn *StatusNode[S, T]) AddChild(child Noder) {
+func (tn *StatusNode[S, T]) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
@@ -377,17 +377,17 @@ func (sn *StatusNode[S, T]) AddChild(child Noder) {
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := sn.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		sn.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = sn
-	sn.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -417,19 +417,19 @@ func (sn *StatusNode[S, T]) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (sn *StatusNode[S, T]) RemoveNode() []Noder {
-	prev := sn.PrevSibling
-	next := sn.NextSibling
-	parent := sn.Parent
+func (tn *StatusNode[S, T]) RemoveNode() []Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []Noder
 
 	if parent == nil {
-		for c := sn.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child(sn)
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -448,9 +448,9 @@ func (sn *StatusNode[S, T]) RemoveNode() []Noder {
 		parent.Parent.LastChild = prev
 	}
 
-	sn.Parent = nil
-	sn.PrevSibling = nil
-	sn.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -464,8 +464,8 @@ func (sn *StatusNode[S, T]) RemoveNode() []Noder {
 		c.Parent = nil
 	}
 
-	sn.FirstChild = nil
-	sn.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -496,14 +496,14 @@ func NewStatusNode[S common.Enumer, T any](data T, status S) *StatusNode[S, T] {
 //
 // Returns:
 //   - *StatusNode[S, T]: A pointer to the last sibling.
-func (sn *StatusNode[S, T]) GetLastSibling() *StatusNode[S, T] {
-	if sn.Parent != nil {
-		return sn.Parent.LastChild
-	} else if sn.NextSibling == nil {
-		return sn
+func (tn *StatusNode[S, T]) GetLastSibling() *StatusNode[S, T] {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := sn
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -521,14 +521,14 @@ func (sn *StatusNode[S, T]) GetLastSibling() *StatusNode[S, T] {
 //
 // Returns:
 //   - *StatusNode[S, T]: A pointer to the first sibling.
-func (sn *StatusNode[S, T]) GetFirstSibling() *StatusNode[S, T] {
-	if sn.Parent != nil {
-		return sn.Parent.FirstChild
-	} else if sn.PrevSibling == nil {
-		return sn
+func (tn *StatusNode[S, T]) GetFirstSibling() *StatusNode[S, T] {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := sn
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -541,8 +541,8 @@ func (sn *StatusNode[S, T]) GetFirstSibling() *StatusNode[S, T] {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (sn *StatusNode[S, T]) IsRoot() bool {
-	return sn.Parent == nil
+func (tn *StatusNode[S, T]) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -551,7 +551,7 @@ func (sn *StatusNode[S, T]) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func (sn *StatusNode[S, T]) AddChildren(children []*StatusNode[S, T]) {
+func (tn *StatusNode[S, T]) AddChildren(children []*StatusNode[S, T]) {
 	if len(children) == 0 {
 		return
 	}
@@ -578,17 +578,17 @@ func (sn *StatusNode[S, T]) AddChildren(children []*StatusNode[S, T]) {
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := sn.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		sn.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = sn
-	sn.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -597,12 +597,12 @@ func (sn *StatusNode[S, T]) AddChildren(children []*StatusNode[S, T]) {
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := sn.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = sn
-		sn.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -613,10 +613,10 @@ func (sn *StatusNode[S, T]) AddChildren(children []*StatusNode[S, T]) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (sn *StatusNode[S, T]) GetChildren() []Noder {
+func (tn *StatusNode[S, T]) GetChildren() []Noder {
 	var children []Noder
 
-	for c := sn.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -632,12 +632,12 @@ func (sn *StatusNode[S, T]) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (sn *StatusNode[S, T]) HasChild(target *StatusNode[S, T]) bool {
-	if target == nil || sn.FirstChild == nil {
+func (tn *StatusNode[S, T]) HasChild(target *StatusNode[S, T]) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := sn.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -655,8 +655,8 @@ func (sn *StatusNode[S, T]) HasChild(target *StatusNode[S, T]) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (sn *StatusNode[S, T]) delete_child(target *StatusNode[S, T]) []Noder {
-	ok := sn.HasChild(target)
+func (tn *StatusNode[S, T]) delete_child(target *StatusNode[S, T]) []Noder {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -672,14 +672,14 @@ func (sn *StatusNode[S, T]) delete_child(target *StatusNode[S, T]) []Noder {
 		next.PrevSibling = prev
 	}
 
-	if target == sn.FirstChild {
-		sn.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			sn.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == sn.LastChild {
-		sn.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -699,14 +699,14 @@ func (sn *StatusNode[S, T]) delete_child(target *StatusNode[S, T]) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (sn *StatusNode[S, T]) IsChildOf(target *StatusNode[S, T]) bool {
+func (tn *StatusNode[S, T]) IsChildOf(target *StatusNode[S, T]) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := sn; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := Noder(node.Parent)
 
 		ok := slices.Contains(parents, parent)

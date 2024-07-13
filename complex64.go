@@ -46,17 +46,17 @@ type Complex64 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (c1 *Complex64) Iterator() common.Iterater[Noder] {
+func (tn *Complex64) Iterator() common.Iterater[Noder] {
 	return &Complex64Iterator{
-		parent: c1,
-		current: c1.FirstChild,
+		parent: tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (c1 *Complex64) String() string {
+func (tn *Complex64) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", c1.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -64,28 +64,28 @@ func (c1 *Complex64) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (c1 *Complex64) Copy() common.Copier {
+func (tn *Complex64) Copy() common.Copier {
 	var child_copy []Noder	
 
-	for c := c1.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
 	}
 
 	// Copy here the data of the node.
 
-	c1_copy := &Complex64{
+	tn_copy := &Complex64{
 	 	// Add here the copied data of the node.
 	}
 
-	c1_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return c1_copy
+	return tn_copy
 }
 
 // SetParent implements the Noder interface.
-func (c1 *Complex64) SetParent(parent Noder) bool {
+func (tn *Complex64) SetParent(parent Noder) bool {
 	if parent == nil {
-		c1.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -94,20 +94,20 @@ func (c1 *Complex64) SetParent(parent Noder) bool {
 		return false
 	}
 
-	c1.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the Noder interface.
-func (c1 *Complex64) GetParent() Noder {
-	return c1.Parent
+func (tn *Complex64) GetParent() Noder {
+	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
 // Children that are not of type *Complex64 or nil are ignored.
-func (c1 *Complex64) LinkChildren(children []Noder) {
+func (tn *Complex64) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
@@ -121,7 +121,7 @@ func (c1 *Complex64) LinkChildren(children []Noder) {
 
 		c, ok := child.(*Complex64)
 		if ok {
-			c.Parent = c1
+			c.Parent = tn
 			valid_children = append(valid_children, c)
 		}		
 	}
@@ -145,7 +145,7 @@ func (c1 *Complex64) LinkChildren(children []Noder) {
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	c1.FirstChild, c1.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the Noder interface.
@@ -157,11 +157,11 @@ func (c1 *Complex64) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (c1 *Complex64) GetLeaves() []Noder {
+func (tn *Complex64) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](c1)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -194,7 +194,7 @@ func (c1 *Complex64) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (c1 *Complex64) Cleanup() {
+func (tn *Complex64) Cleanup() {
 	type Helper struct {
 		previous, current *Complex64
 	}
@@ -202,7 +202,7 @@ func (c1 *Complex64) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := c1.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
 			previous:	c.PrevSibling,
 			current: 	c,
@@ -211,9 +211,9 @@ func (c1 *Complex64) Cleanup() {
 		stack.Push(h)
 	}
 
-	c1.FirstChild = nil
-	c1.LastChild = nil
-	c1.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -239,8 +239,8 @@ func (c1 *Complex64) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := c1.PrevSibling
-	next := c1.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -250,8 +250,8 @@ func (c1 *Complex64) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	c1.PrevSibling = nil
-	c1.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the Noder interface.
@@ -263,10 +263,10 @@ func (c1 *Complex64) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (c1 *Complex64) GetAncestors() []Noder {
+func (tn *Complex64) GetAncestors() []Noder {
 	var ancestors []Noder
 
-	for node := c1; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -276,24 +276,24 @@ func (c1 *Complex64) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (c1 *Complex64) IsLeaf() bool {
-	return c1.FirstChild == nil
+func (tn *Complex64) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (c1 *Complex64) IsSingleton() bool {
-	return c1.FirstChild != nil && c1.FirstChild == c1.LastChild
+func (tn *Complex64) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (c1 *Complex64) GetFirstChild() Noder {
-	return c1.FirstChild
+func (tn *Complex64) GetFirstChild() Noder {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (c1 *Complex64) DeleteChild(target Noder) []Noder {
+func (tn *Complex64) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
@@ -303,7 +303,7 @@ func (c1 *Complex64) DeleteChild(target Noder) []Noder {
 		return nil
 	}
 
-	children := c1.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -317,8 +317,8 @@ func (c1 *Complex64) DeleteChild(target Noder) []Noder {
 		c.Parent = nil
 	}
 
-	c1.FirstChild = nil
-	c1.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -331,11 +331,11 @@ func (c1 *Complex64) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (c1 *Complex64) Size() int {
+func (tn *Complex64) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(c1)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -363,7 +363,7 @@ func (c1 *Complex64) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func (c1 *Complex64) AddChild(child Noder) {
+func (tn *Complex64) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
@@ -376,17 +376,17 @@ func (c1 *Complex64) AddChild(child Noder) {
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := c1.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		c1.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = c1
-	c1.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -416,19 +416,19 @@ func (c1 *Complex64) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (c1 *Complex64) RemoveNode() []Noder {
-	prev := c1.PrevSibling
-	next := c1.NextSibling
-	parent := c1.Parent
+func (tn *Complex64) RemoveNode() []Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []Noder
 
 	if parent == nil {
-		for c := c1.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child(c1)
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -447,9 +447,9 @@ func (c1 *Complex64) RemoveNode() []Noder {
 		parent.Parent.LastChild = prev
 	}
 
-	c1.Parent = nil
-	c1.PrevSibling = nil
-	c1.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -463,8 +463,8 @@ func (c1 *Complex64) RemoveNode() []Noder {
 		c.Parent = nil
 	}
 
-	c1.FirstChild = nil
-	c1.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -492,14 +492,14 @@ func NewComplex64(data complex64) *Complex64 {
 //
 // Returns:
 //   - *Complex64: A pointer to the last sibling.
-func (c1 *Complex64) GetLastSibling() *Complex64 {
-	if c1.Parent != nil {
-		return c1.Parent.LastChild
-	} else if c1.NextSibling == nil {
-		return c1
+func (tn *Complex64) GetLastSibling() *Complex64 {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := c1
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -517,14 +517,14 @@ func (c1 *Complex64) GetLastSibling() *Complex64 {
 //
 // Returns:
 //   - *Complex64: A pointer to the first sibling.
-func (c1 *Complex64) GetFirstSibling() *Complex64 {
-	if c1.Parent != nil {
-		return c1.Parent.FirstChild
-	} else if c1.PrevSibling == nil {
-		return c1
+func (tn *Complex64) GetFirstSibling() *Complex64 {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := c1
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -537,8 +537,8 @@ func (c1 *Complex64) GetFirstSibling() *Complex64 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (c1 *Complex64) IsRoot() bool {
-	return c1.Parent == nil
+func (tn *Complex64) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -547,7 +547,7 @@ func (c1 *Complex64) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func (c1 *Complex64) AddChildren(children []*Complex64) {
+func (tn *Complex64) AddChildren(children []*Complex64) {
 	if len(children) == 0 {
 		return
 	}
@@ -574,17 +574,17 @@ func (c1 *Complex64) AddChildren(children []*Complex64) {
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := c1.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		c1.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = c1
-	c1.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -593,12 +593,12 @@ func (c1 *Complex64) AddChildren(children []*Complex64) {
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := c1.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = c1
-		c1.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -609,10 +609,10 @@ func (c1 *Complex64) AddChildren(children []*Complex64) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (c1 *Complex64) GetChildren() []Noder {
+func (tn *Complex64) GetChildren() []Noder {
 	var children []Noder
 
-	for c := c1.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -628,12 +628,12 @@ func (c1 *Complex64) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (c1 *Complex64) HasChild(target *Complex64) bool {
-	if target == nil || c1.FirstChild == nil {
+func (tn *Complex64) HasChild(target *Complex64) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := c1.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -651,8 +651,8 @@ func (c1 *Complex64) HasChild(target *Complex64) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (c1 *Complex64) delete_child(target *Complex64) []Noder {
-	ok := c1.HasChild(target)
+func (tn *Complex64) delete_child(target *Complex64) []Noder {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -668,14 +668,14 @@ func (c1 *Complex64) delete_child(target *Complex64) []Noder {
 		next.PrevSibling = prev
 	}
 
-	if target == c1.FirstChild {
-		c1.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			c1.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == c1.LastChild {
-		c1.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -695,14 +695,14 @@ func (c1 *Complex64) delete_child(target *Complex64) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (c1 *Complex64) IsChildOf(target *Complex64) bool {
+func (tn *Complex64) IsChildOf(target *Complex64) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := c1; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := Noder(node.Parent)
 
 		ok := slices.Contains(parents, parent)

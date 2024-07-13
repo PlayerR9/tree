@@ -22,9 +22,6 @@ type generator struct {
 	// type_name is the name of the type.
 	type_name string
 
-	// variable_name is the name of the variable.
-	variable_name string
-
 	// fields is the fields to generate the code for.
 	fields map[string]string
 }
@@ -152,7 +149,6 @@ func make_assignment_list(fields map[string]string) (map[string]string, error) {
 func (g *generator) Generate() ([]byte, error) {
 	uc.Assert(g.package_name != "", "package name must be set")
 	uc.Assert(g.type_name != "", "type name must be set")
-	uc.Assert(g.variable_name != "", "variable name must be set")
 
 	t := template.Must(
 		template.New("").Parse(templ),
@@ -162,7 +158,6 @@ func (g *generator) Generate() ([]byte, error) {
 		PackageName   string
 		TypeName      string
 		TypeSig       string
-		VariableName  string
 		Fields        map[string]string
 		IteratorName  string
 		IteratorSig   string
@@ -206,7 +201,6 @@ func (g *generator) Generate() ([]byte, error) {
 		PackageName:   g.package_name,
 		TypeName:      g.type_name,
 		TypeSig:       tn_type_sig,
-		VariableName:  g.variable_name,
 		Fields:        g.fields,
 		IteratorName:  g.type_name + "Iterator",
 		IteratorSig:   tn_iterator_sig,
@@ -228,7 +222,7 @@ func (g *generator) Generate() ([]byte, error) {
 	return result, nil
 }
 
-func NewGenerator(type_name, var_name string, dest string) (*generator, error) {
+func NewGenerator(type_name string, dest string) (*generator, error) {
 	if dest != "" {
 		left := filepath.Dir(dest)
 		_, right := filepath.Split(left)
@@ -250,10 +244,9 @@ func NewGenerator(type_name, var_name string, dest string) (*generator, error) {
 	}
 
 	g := &generator{
-		package_name:  pkg_name,
-		type_name:     type_name,
-		variable_name: var_name,
-		fields:        FieldsFlag.fields,
+		package_name: pkg_name,
+		type_name:    type_name,
+		fields:       FieldsFlag.fields,
 	}
 
 	return g, nil
@@ -303,7 +296,6 @@ func (iter *{{ .IteratorSig }}) Restart() {
 type {{ .TypeName }}{{ .Generics }} struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *{{ .TypeSig }}
 
-
 	{{- range $key, $value := .Fields }}
 	{{ $key }} {{ $value }}
 	{{- end }}
@@ -313,17 +305,17 @@ type {{ .TypeName }}{{ .Generics }} struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func ({{ .VariableName }} *{{ .TypeSig }}) Iterator() common.Iterater[{{ .Noder }}] {
+func (tn *{{ .TypeSig }}) Iterator() common.Iterater[{{ .Noder }}] {
 	return &{{ .IteratorSig }}{
-		parent: {{ .VariableName }},
-		current: {{ .VariableName }}.FirstChild,
+		parent: tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) String() string {
+func (tn *{{ .TypeSig }}) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", {{ .VariableName }}.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -331,28 +323,28 @@ func ({{ .VariableName }} *{{ .TypeSig }}) String() string {
 // Copy implements the {{ .Noder }} interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func ({{ .VariableName }} *{{ .TypeSig }}) Copy() common.Copier {
+func (tn *{{ .TypeSig }}) Copy() common.Copier {
 	var child_copy []{{ .Noder }}	
 
-	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().({{ .Noder }}))
 	}
 
 	// Copy here the data of the node.
 
-	{{ .VariableName}}_copy := &{{ .TypeSig }}{
+	tn_copy := &{{ .TypeSig }}{
 	 	// Add here the copied data of the node.
 	}
 
-	{{ .VariableName }}_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return {{ .VariableName }}_copy
+	return tn_copy
 }
 
 // SetParent implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) SetParent(parent {{ .Noder }}) bool {
+func (tn *{{ .TypeSig }}) SetParent(parent {{ .Noder }}) bool {
 	if parent == nil {
-		{{ .VariableName }}.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -361,20 +353,20 @@ func ({{ .VariableName }} *{{ .TypeSig }}) SetParent(parent {{ .Noder }}) bool {
 		return false
 	}
 
-	{{ .VariableName }}.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetParent() {{ .Noder }} {
-	return {{ .VariableName }}.Parent
+func (tn *{{ .TypeSig }}) GetParent() {{ .Noder }} {
+	return tn.Parent
 }
 
 // LinkWithParent implements the {{ .Noder }} interface.
 //
 // Children that are not of type *{{ .TypeSig }} or nil are ignored.
-func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }}) {
+func (tn *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }}) {
 	if len(children) == 0 {
 		return
 	}
@@ -388,7 +380,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }})
 
 		c, ok := child.(*{{ .TypeSig }})
 		if ok {
-			c.Parent = {{ .VariableName }}
+			c.Parent = tn
 			valid_children = append(valid_children, c)
 		}		
 	}
@@ -412,7 +404,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }})
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	{{ .VariableName }}.FirstChild, {{ .VariableName }}.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the {{ .Noder }} interface.
@@ -424,11 +416,11 @@ func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }})
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetLeaves() []{{ .Noder }} {
+func (tn *{{ .TypeSig }}) GetLeaves() []{{ .Noder }} {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[{{ .Noder }}]({{ .VariableName }})
+	stack := Stacker.NewLinkedStack[{{ .Noder }}](tn)
 
 	var leaves []{{ .Noder }}
 
@@ -461,7 +453,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetLeaves() []{{ .Noder }} {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
+func (tn *{{ .TypeSig }}) Cleanup() {
 	type Helper struct {
 		previous, current *{{ .TypeSig }}
 	}
@@ -469,7 +461,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
 			previous:	c.PrevSibling,
 			current: 	c,
@@ -478,9 +470,9 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 		stack.Push(h)
 	}
 
-	{{ .VariableName }}.FirstChild = nil
-	{{ .VariableName }}.LastChild = nil
-	{{ .VariableName }}.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -506,8 +498,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := {{ .VariableName }}.PrevSibling
-	next := {{ .VariableName }}.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -517,8 +509,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	{{ .VariableName }}.PrevSibling = nil
-	{{ .VariableName }}.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the {{ .Noder }} interface.
@@ -530,10 +522,10 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetAncestors() []{{ .Noder }} {
+func (tn *{{ .TypeSig }}) GetAncestors() []{{ .Noder }} {
 	var ancestors []{{ .Noder }}
 
-	for node := {{ .VariableName }}; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -543,24 +535,24 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetAncestors() []{{ .Noder }} {
 }
 
 // IsLeaf implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) IsLeaf() bool {
-	return {{ .VariableName }}.FirstChild == nil
+func (tn *{{ .TypeSig }}) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) IsSingleton() bool {
-	return {{ .VariableName }}.FirstChild != nil && {{ .VariableName }}.FirstChild == {{ .VariableName }}.LastChild
+func (tn *{{ .TypeSig }}) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the {{ .Noder }} interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetFirstChild() {{ .Noder }} {
-	return {{ .VariableName }}.FirstChild
+func (tn *{{ .TypeSig }}) GetFirstChild() {{ .Noder }} {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the {{ .Noder }} interface.
 //
 // No nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{ .Noder }} {
+func (tn *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{ .Noder }} {
 	if target == nil {
 		return nil
 	}
@@ -570,7 +562,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{
 		return nil
 	}
 
-	children := {{ .VariableName }}.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -584,8 +576,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{
 		c.Parent = nil
 	}
 
-	{{ .VariableName }}.FirstChild = nil
-	{{ .VariableName }}.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -598,11 +590,11 @@ func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func ({{ .VariableName }} *{{ .TypeSig }}) Size() int {
+func (tn *{{ .TypeSig }}) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack({{ .VariableName }})
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -630,7 +622,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
+func (tn *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
 	if child == nil {
 		return
 	}
@@ -643,17 +635,17 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := {{ .VariableName }}.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		{{ .VariableName }}.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = {{ .VariableName }}
-	{{ .VariableName }}.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -683,19 +675,19 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
 //	└── 4
 //	└── 5
 //	└── 6
-func ({{ .VariableName }} *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
-	prev := {{ .VariableName }}.PrevSibling
-	next := {{ .VariableName }}.NextSibling
-	parent := {{ .VariableName }}.Parent
+func (tn *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []{{ .Noder }}
 
 	if parent == nil {
-		for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child({{ .VariableName }})
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -714,9 +706,9 @@ func ({{ .VariableName }} *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
 		parent.Parent.LastChild = prev
 	}
 
-	{{ .VariableName }}.Parent = nil
-	{{ .VariableName }}.PrevSibling = nil
-	{{ .VariableName }}.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -730,8 +722,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
 		c.Parent = nil
 	}
 
-	{{ .VariableName }}.FirstChild = nil
-	{{ .VariableName }}.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -776,14 +768,14 @@ func New{{ .TypeName }}{{ .Generics }}({{ .ParamList }}) *{{ .TypeSig }} {
 //
 // Returns:
 //   - *{{ .TypeSig }}: A pointer to the last sibling.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetLastSibling() *{{ .TypeSig }} {
-	if {{ .VariableName }}.Parent != nil {
-		return {{ .VariableName }}.Parent.LastChild
-	} else if {{ .VariableName }}.NextSibling == nil {
-		return {{ .VariableName }}
+func (tn *{{ .TypeSig }}) GetLastSibling() *{{ .TypeSig }} {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := {{ .VariableName }}
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -801,14 +793,14 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetLastSibling() *{{ .TypeSig }} {
 //
 // Returns:
 //   - *{{ .TypeSig }}: A pointer to the first sibling.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetFirstSibling() *{{ .TypeSig }} {
-	if {{ .VariableName }}.Parent != nil {
-		return {{ .VariableName }}.Parent.FirstChild
-	} else if {{ .VariableName }}.PrevSibling == nil {
-		return {{ .VariableName }}
+func (tn *{{ .TypeSig }}) GetFirstSibling() *{{ .TypeSig }} {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := {{ .VariableName }}
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -821,8 +813,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetFirstSibling() *{{ .TypeSig }} {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func ({{ .VariableName }} *{{ .TypeSig }}) IsRoot() bool {
-	return {{ .VariableName }}.Parent == nil
+func (tn *{{ .TypeSig }}) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -831,7 +823,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func ({{ .VariableName }} *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }}) {
+func (tn *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }}) {
 	if len(children) == 0 {
 		return
 	}
@@ -858,17 +850,17 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := {{ .VariableName }}.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		{{ .VariableName }}.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = {{ .VariableName }}
-	{{ .VariableName }}.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -877,12 +869,12 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := {{ .VariableName }}.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = {{ .VariableName }}
-		{{ .VariableName }}.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -893,10 +885,10 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }
 //
 // Returns:
 //   - []{{ .Noder }}: A slice of pointers to the children of the node.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetChildren() []{{ .Noder }} {
+func (tn *{{ .TypeSig }}) GetChildren() []{{ .Noder }} {
 	var children []{{ .Noder }}
 
-	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -912,12 +904,12 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetChildren() []{{ .Noder }} {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func ({{ .VariableName }} *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
-	if target == nil || {{ .VariableName }}.FirstChild == nil {
+func (tn *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -935,8 +927,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool
 //
 // Returns:
 //   - []{{ .Noder }}: A slice of pointers to the children of the node.
-func ({{ .VariableName }} *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []{{ .Noder }} {
-	ok := {{ .VariableName }}.HasChild(target)
+func (tn *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []{{ .Noder }} {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -952,14 +944,14 @@ func ({{ .VariableName }} *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) 
 		next.PrevSibling = prev
 	}
 
-	if target == {{ .VariableName }}.FirstChild {
-		{{ .VariableName }}.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			{{ .VariableName }}.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == {{ .VariableName }}.LastChild {
-		{{ .VariableName }}.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -979,14 +971,14 @@ func ({{ .VariableName }} *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) 
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func ({{ .VariableName }} *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
+func (tn *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := {{ .VariableName }}; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := {{ .Noder }}(node.Parent)
 
 		ok := slices.Contains(parents, parent)

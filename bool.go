@@ -46,17 +46,17 @@ type Bool struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (b *Bool) Iterator() common.Iterater[Noder] {
+func (tn *Bool) Iterator() common.Iterater[Noder] {
 	return &BoolIterator{
-		parent: b,
-		current: b.FirstChild,
+		parent: tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (b *Bool) String() string {
+func (tn *Bool) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", b.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -64,28 +64,28 @@ func (b *Bool) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (b *Bool) Copy() common.Copier {
+func (tn *Bool) Copy() common.Copier {
 	var child_copy []Noder	
 
-	for c := b.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
 	}
 
 	// Copy here the data of the node.
 
-	b_copy := &Bool{
+	tn_copy := &Bool{
 	 	// Add here the copied data of the node.
 	}
 
-	b_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return b_copy
+	return tn_copy
 }
 
 // SetParent implements the Noder interface.
-func (b *Bool) SetParent(parent Noder) bool {
+func (tn *Bool) SetParent(parent Noder) bool {
 	if parent == nil {
-		b.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -94,20 +94,20 @@ func (b *Bool) SetParent(parent Noder) bool {
 		return false
 	}
 
-	b.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the Noder interface.
-func (b *Bool) GetParent() Noder {
-	return b.Parent
+func (tn *Bool) GetParent() Noder {
+	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
 // Children that are not of type *Bool or nil are ignored.
-func (b *Bool) LinkChildren(children []Noder) {
+func (tn *Bool) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
@@ -121,7 +121,7 @@ func (b *Bool) LinkChildren(children []Noder) {
 
 		c, ok := child.(*Bool)
 		if ok {
-			c.Parent = b
+			c.Parent = tn
 			valid_children = append(valid_children, c)
 		}		
 	}
@@ -145,7 +145,7 @@ func (b *Bool) LinkChildren(children []Noder) {
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	b.FirstChild, b.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the Noder interface.
@@ -157,11 +157,11 @@ func (b *Bool) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (b *Bool) GetLeaves() []Noder {
+func (tn *Bool) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](b)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -194,7 +194,7 @@ func (b *Bool) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (b *Bool) Cleanup() {
+func (tn *Bool) Cleanup() {
 	type Helper struct {
 		previous, current *Bool
 	}
@@ -202,7 +202,7 @@ func (b *Bool) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := b.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
 			previous:	c.PrevSibling,
 			current: 	c,
@@ -211,9 +211,9 @@ func (b *Bool) Cleanup() {
 		stack.Push(h)
 	}
 
-	b.FirstChild = nil
-	b.LastChild = nil
-	b.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -239,8 +239,8 @@ func (b *Bool) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := b.PrevSibling
-	next := b.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -250,8 +250,8 @@ func (b *Bool) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	b.PrevSibling = nil
-	b.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the Noder interface.
@@ -263,10 +263,10 @@ func (b *Bool) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (b *Bool) GetAncestors() []Noder {
+func (tn *Bool) GetAncestors() []Noder {
 	var ancestors []Noder
 
-	for node := b; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -276,24 +276,24 @@ func (b *Bool) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (b *Bool) IsLeaf() bool {
-	return b.FirstChild == nil
+func (tn *Bool) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (b *Bool) IsSingleton() bool {
-	return b.FirstChild != nil && b.FirstChild == b.LastChild
+func (tn *Bool) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (b *Bool) GetFirstChild() Noder {
-	return b.FirstChild
+func (tn *Bool) GetFirstChild() Noder {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (b *Bool) DeleteChild(target Noder) []Noder {
+func (tn *Bool) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
@@ -303,7 +303,7 @@ func (b *Bool) DeleteChild(target Noder) []Noder {
 		return nil
 	}
 
-	children := b.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -317,8 +317,8 @@ func (b *Bool) DeleteChild(target Noder) []Noder {
 		c.Parent = nil
 	}
 
-	b.FirstChild = nil
-	b.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -331,11 +331,11 @@ func (b *Bool) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (b *Bool) Size() int {
+func (tn *Bool) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(b)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -363,7 +363,7 @@ func (b *Bool) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func (b *Bool) AddChild(child Noder) {
+func (tn *Bool) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
@@ -376,17 +376,17 @@ func (b *Bool) AddChild(child Noder) {
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := b.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		b.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = b
-	b.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -416,19 +416,19 @@ func (b *Bool) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (b *Bool) RemoveNode() []Noder {
-	prev := b.PrevSibling
-	next := b.NextSibling
-	parent := b.Parent
+func (tn *Bool) RemoveNode() []Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []Noder
 
 	if parent == nil {
-		for c := b.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child(b)
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -447,9 +447,9 @@ func (b *Bool) RemoveNode() []Noder {
 		parent.Parent.LastChild = prev
 	}
 
-	b.Parent = nil
-	b.PrevSibling = nil
-	b.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -463,8 +463,8 @@ func (b *Bool) RemoveNode() []Noder {
 		c.Parent = nil
 	}
 
-	b.FirstChild = nil
-	b.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -492,14 +492,14 @@ func NewBool(data bool) *Bool {
 //
 // Returns:
 //   - *Bool: A pointer to the last sibling.
-func (b *Bool) GetLastSibling() *Bool {
-	if b.Parent != nil {
-		return b.Parent.LastChild
-	} else if b.NextSibling == nil {
-		return b
+func (tn *Bool) GetLastSibling() *Bool {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := b
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -517,14 +517,14 @@ func (b *Bool) GetLastSibling() *Bool {
 //
 // Returns:
 //   - *Bool: A pointer to the first sibling.
-func (b *Bool) GetFirstSibling() *Bool {
-	if b.Parent != nil {
-		return b.Parent.FirstChild
-	} else if b.PrevSibling == nil {
-		return b
+func (tn *Bool) GetFirstSibling() *Bool {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := b
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -537,8 +537,8 @@ func (b *Bool) GetFirstSibling() *Bool {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (b *Bool) IsRoot() bool {
-	return b.Parent == nil
+func (tn *Bool) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -547,7 +547,7 @@ func (b *Bool) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func (b *Bool) AddChildren(children []*Bool) {
+func (tn *Bool) AddChildren(children []*Bool) {
 	if len(children) == 0 {
 		return
 	}
@@ -574,17 +574,17 @@ func (b *Bool) AddChildren(children []*Bool) {
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := b.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		b.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = b
-	b.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -593,12 +593,12 @@ func (b *Bool) AddChildren(children []*Bool) {
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := b.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = b
-		b.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -609,10 +609,10 @@ func (b *Bool) AddChildren(children []*Bool) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (b *Bool) GetChildren() []Noder {
+func (tn *Bool) GetChildren() []Noder {
 	var children []Noder
 
-	for c := b.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -628,12 +628,12 @@ func (b *Bool) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (b *Bool) HasChild(target *Bool) bool {
-	if target == nil || b.FirstChild == nil {
+func (tn *Bool) HasChild(target *Bool) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := b.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -651,8 +651,8 @@ func (b *Bool) HasChild(target *Bool) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (b *Bool) delete_child(target *Bool) []Noder {
-	ok := b.HasChild(target)
+func (tn *Bool) delete_child(target *Bool) []Noder {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -668,14 +668,14 @@ func (b *Bool) delete_child(target *Bool) []Noder {
 		next.PrevSibling = prev
 	}
 
-	if target == b.FirstChild {
-		b.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			b.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == b.LastChild {
-		b.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -695,14 +695,14 @@ func (b *Bool) delete_child(target *Bool) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (b *Bool) IsChildOf(target *Bool) bool {
+func (tn *Bool) IsChildOf(target *Bool) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := b; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := Noder(node.Parent)
 
 		ok := slices.Contains(parents, parent)

@@ -73,46 +73,15 @@ import (
 	"log"
 	"os"
 
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	utgo "github.com/PlayerR9/MyGoLib/Utility/Go"
 	pkg "github.com/PlayerR9/treenode/cmd/treenode/pkg"
 )
 
 var (
-	// InvalidVarNames is a list of invalid variable names.
-	InvalidVarNames []string
-
 	// Logger is the logger for the package.
 	Logger *log.Logger
 )
 
 func init() {
-	InvalidVarNames = []string{
-		"common",
-		"err",
-		"c",
-		"child",
-		"parent",
-		"p",
-		"ok",
-		"children",
-		"stack",
-		"leaves",
-		"top",
-		"node",
-		"h",
-		"prev",
-		"next",
-		"ancestors",
-		"slices",
-		"target",
-		"n",
-		"size",
-		"parents",
-		"i",
-		"treenode",
-	}
-
 	Logger = log.New(os.Stderr, "[treenode]: ", log.LstdFlags)
 }
 
@@ -122,18 +91,8 @@ func main() {
 		Logger.Fatalf("Could not parse flags: %s", err.Error())
 	}
 
-	// Check if the type name is valid.
-
-	var_name, err := utgo.MakeVariableName(type_name)
-	if err != nil {
-		Logger.Fatalf("Could not make variable name: %s", err.Error())
-	}
-
-	var_name, ok := utgo.FixVarNameIncremental(var_name, InvalidVarNames, 2, 1)
-	uc.Assert(ok, "FixVarNameIncremental should not return false")
-
 	// Generate the code.
-	g, err := pkg.NewGenerator(type_name, var_name, filename)
+	g, err := pkg.NewGenerator(type_name, filename)
 	if err != nil {
 		Logger.Fatal(err.Error())
 	}

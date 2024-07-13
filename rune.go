@@ -3,8 +3,8 @@
 package treenode
 
 import (
-	"slices"
 	"fmt"
+	"slices"
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
@@ -39,24 +39,24 @@ func (iter *RuneIterator) Restart() {
 // Rune is a node in a tree.
 type Rune struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Rune
-	Data rune
+	Data                                                    rune
 }
 
 // Iterator implements the Noder interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (r *Rune) Iterator() common.Iterater[Noder] {
+func (tn *Rune) Iterator() common.Iterater[Noder] {
 	return &RuneIterator{
-		parent: r,
-		current: r.FirstChild,
+		parent:  tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (r *Rune) String() string {
+func (tn *Rune) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", r.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -64,28 +64,28 @@ func (r *Rune) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (r *Rune) Copy() common.Copier {
-	var child_copy []Noder	
+func (tn *Rune) Copy() common.Copier {
+	var child_copy []Noder
 
-	for c := r.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
 	}
 
 	// Copy here the data of the node.
 
-	r_copy := &Rune{
-	 	// Add here the copied data of the node.
+	tn_copy := &Rune{
+		// Add here the copied data of the node.
 	}
 
-	r_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return r_copy
+	return tn_copy
 }
 
 // SetParent implements the Noder interface.
-func (r *Rune) SetParent(parent Noder) bool {
+func (tn *Rune) SetParent(parent Noder) bool {
 	if parent == nil {
-		r.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -94,20 +94,20 @@ func (r *Rune) SetParent(parent Noder) bool {
 		return false
 	}
 
-	r.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the Noder interface.
-func (r *Rune) GetParent() Noder {
-	return r.Parent
+func (tn *Rune) GetParent() Noder {
+	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
 // Children that are not of type *Rune or nil are ignored.
-func (r *Rune) LinkChildren(children []Noder) {
+func (tn *Rune) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
@@ -121,11 +121,11 @@ func (r *Rune) LinkChildren(children []Noder) {
 
 		c, ok := child.(*Rune)
 		if ok {
-			c.Parent = r
+			c.Parent = tn
 			valid_children = append(valid_children, c)
-		}		
+		}
 	}
-	
+
 	if len(valid_children) == 0 {
 		return
 	}
@@ -145,7 +145,7 @@ func (r *Rune) LinkChildren(children []Noder) {
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	r.FirstChild, r.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the Noder interface.
@@ -157,11 +157,11 @@ func (r *Rune) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (r *Rune) GetLeaves() []Noder {
+func (tn *Rune) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](r)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -194,7 +194,7 @@ func (r *Rune) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (r *Rune) Cleanup() {
+func (tn *Rune) Cleanup() {
 	type Helper struct {
 		previous, current *Rune
 	}
@@ -202,18 +202,18 @@ func (r *Rune) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := r.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
-			previous:	c.PrevSibling,
-			current: 	c,
+			previous: c.PrevSibling,
+			current:  c,
 		}
 
 		stack.Push(h)
 	}
 
-	r.FirstChild = nil
-	r.LastChild = nil
-	r.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -224,8 +224,8 @@ func (r *Rune) Cleanup() {
 
 		for c := h.current.FirstChild; c != nil; c = c.NextSibling {
 			h := &Helper{
-				previous:	c.PrevSibling,
-				current: 	c,
+				previous: c.PrevSibling,
+				current:  c,
 			}
 
 			stack.Push(h)
@@ -239,8 +239,8 @@ func (r *Rune) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := r.PrevSibling
-	next := r.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -250,8 +250,8 @@ func (r *Rune) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	r.PrevSibling = nil
-	r.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the Noder interface.
@@ -263,10 +263,10 @@ func (r *Rune) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (r *Rune) GetAncestors() []Noder {
+func (tn *Rune) GetAncestors() []Noder {
 	var ancestors []Noder
 
-	for node := r; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -276,24 +276,24 @@ func (r *Rune) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (r *Rune) IsLeaf() bool {
-	return r.FirstChild == nil
+func (tn *Rune) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (r *Rune) IsSingleton() bool {
-	return r.FirstChild != nil && r.FirstChild == r.LastChild
+func (tn *Rune) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (r *Rune) GetFirstChild() Noder {
-	return r.FirstChild
+func (tn *Rune) GetFirstChild() Noder {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (r *Rune) DeleteChild(target Noder) []Noder {
+func (tn *Rune) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
@@ -303,7 +303,7 @@ func (r *Rune) DeleteChild(target Noder) []Noder {
 		return nil
 	}
 
-	children := r.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -317,8 +317,8 @@ func (r *Rune) DeleteChild(target Noder) []Noder {
 		c.Parent = nil
 	}
 
-	r.FirstChild = nil
-	r.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -331,11 +331,11 @@ func (r *Rune) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (r *Rune) Size() int {
+func (tn *Rune) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(r)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -363,7 +363,7 @@ func (r *Rune) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func (r *Rune) AddChild(child Noder) {
+func (tn *Rune) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
@@ -372,21 +372,21 @@ func (r *Rune) AddChild(child Noder) {
 	if !ok {
 		return
 	}
-	
+
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := r.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		r.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = r
-	r.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -416,19 +416,19 @@ func (r *Rune) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (r *Rune) RemoveNode() []Noder {
-	prev := r.PrevSibling
-	next := r.NextSibling
-	parent := r.Parent
+func (tn *Rune) RemoveNode() []Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []Noder
 
 	if parent == nil {
-		for c := r.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child(r)
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -447,9 +447,9 @@ func (r *Rune) RemoveNode() []Noder {
 		parent.Parent.LastChild = prev
 	}
 
-	r.Parent = nil
-	r.PrevSibling = nil
-	r.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -463,8 +463,8 @@ func (r *Rune) RemoveNode() []Noder {
 		c.Parent = nil
 	}
 
-	r.FirstChild = nil
-	r.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -476,7 +476,7 @@ func (r *Rune) RemoveNode() []Noder {
 //
 // Returns:
 //   - *Rune: A pointer to the newly created node. It is
-//   never nil.
+//     never nil.
 func NewRune(data rune) *Rune {
 	return &Rune{
 		Data: data,
@@ -492,14 +492,14 @@ func NewRune(data rune) *Rune {
 //
 // Returns:
 //   - *Rune: A pointer to the last sibling.
-func (r *Rune) GetLastSibling() *Rune {
-	if r.Parent != nil {
-		return r.Parent.LastChild
-	} else if r.NextSibling == nil {
-		return r
+func (tn *Rune) GetLastSibling() *Rune {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := r
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -517,14 +517,14 @@ func (r *Rune) GetLastSibling() *Rune {
 //
 // Returns:
 //   - *Rune: A pointer to the first sibling.
-func (r *Rune) GetFirstSibling() *Rune {
-	if r.Parent != nil {
-		return r.Parent.FirstChild
-	} else if r.PrevSibling == nil {
-		return r
+func (tn *Rune) GetFirstSibling() *Rune {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := r
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -537,8 +537,8 @@ func (r *Rune) GetFirstSibling() *Rune {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (r *Rune) IsRoot() bool {
-	return r.Parent == nil
+func (tn *Rune) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -547,11 +547,11 @@ func (r *Rune) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func (r *Rune) AddChildren(children []*Rune) {
+func (tn *Rune) AddChildren(children []*Rune) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -574,17 +574,17 @@ func (r *Rune) AddChildren(children []*Rune) {
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := r.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		r.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = r
-	r.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -593,12 +593,12 @@ func (r *Rune) AddChildren(children []*Rune) {
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := r.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = r
-		r.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -609,10 +609,10 @@ func (r *Rune) AddChildren(children []*Rune) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (r *Rune) GetChildren() []Noder {
+func (tn *Rune) GetChildren() []Noder {
 	var children []Noder
 
-	for c := r.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -628,12 +628,12 @@ func (r *Rune) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (r *Rune) HasChild(target *Rune) bool {
-	if target == nil || r.FirstChild == nil {
+func (tn *Rune) HasChild(target *Rune) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := r.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -651,8 +651,8 @@ func (r *Rune) HasChild(target *Rune) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (r *Rune) delete_child(target *Rune) []Noder {
-	ok := r.HasChild(target)
+func (tn *Rune) delete_child(target *Rune) []Noder {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -668,14 +668,14 @@ func (r *Rune) delete_child(target *Rune) []Noder {
 		next.PrevSibling = prev
 	}
 
-	if target == r.FirstChild {
-		r.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			r.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == r.LastChild {
-		r.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -695,14 +695,14 @@ func (r *Rune) delete_child(target *Rune) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (r *Rune) IsChildOf(target *Rune) bool {
+func (tn *Rune) IsChildOf(target *Rune) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := r; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := Noder(node.Parent)
 
 		ok := slices.Contains(parents, parent)

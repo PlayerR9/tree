@@ -46,17 +46,17 @@ type Float32 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (f *Float32) Iterator() common.Iterater[Noder] {
+func (tn *Float32) Iterator() common.Iterater[Noder] {
 	return &Float32Iterator{
-		parent: f,
-		current: f.FirstChild,
+		parent: tn,
+		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (f *Float32) String() string {
+func (tn *Float32) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", f.Data)
+	str := fmt.Sprintf("%v", tn.Data)
 
 	return str
 }
@@ -64,28 +64,28 @@ func (f *Float32) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (f *Float32) Copy() common.Copier {
+func (tn *Float32) Copy() common.Copier {
 	var child_copy []Noder	
 
-	for c := f.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
 	}
 
 	// Copy here the data of the node.
 
-	f_copy := &Float32{
+	tn_copy := &Float32{
 	 	// Add here the copied data of the node.
 	}
 
-	f_copy.LinkChildren(child_copy)
+	tn_copy.LinkChildren(child_copy)
 
-	return f_copy
+	return tn_copy
 }
 
 // SetParent implements the Noder interface.
-func (f *Float32) SetParent(parent Noder) bool {
+func (tn *Float32) SetParent(parent Noder) bool {
 	if parent == nil {
-		f.Parent = nil
+		tn.Parent = nil
 		return true
 	}
 
@@ -94,20 +94,20 @@ func (f *Float32) SetParent(parent Noder) bool {
 		return false
 	}
 
-	f.Parent = p
+	tn.Parent = p
 
 	return true
 }
 
 // GetParent implements the Noder interface.
-func (f *Float32) GetParent() Noder {
-	return f.Parent
+func (tn *Float32) GetParent() Noder {
+	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
 // Children that are not of type *Float32 or nil are ignored.
-func (f *Float32) LinkChildren(children []Noder) {
+func (tn *Float32) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
@@ -121,7 +121,7 @@ func (f *Float32) LinkChildren(children []Noder) {
 
 		c, ok := child.(*Float32)
 		if ok {
-			c.Parent = f
+			c.Parent = tn
 			valid_children = append(valid_children, c)
 		}		
 	}
@@ -145,7 +145,7 @@ func (f *Float32) LinkChildren(children []Noder) {
 		valid_children[i].PrevSibling = valid_children[i-1]
 	}
 
-	f.FirstChild, f.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // GetLeaves implements the Noder interface.
@@ -157,11 +157,11 @@ func (f *Float32) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (f *Float32) GetLeaves() []Noder {
+func (tn *Float32) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](f)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -194,7 +194,7 @@ func (f *Float32) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (f *Float32) Cleanup() {
+func (tn *Float32) Cleanup() {
 	type Helper struct {
 		previous, current *Float32
 	}
@@ -202,7 +202,7 @@ func (f *Float32) Cleanup() {
 	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
-	for c := f.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
 			previous:	c.PrevSibling,
 			current: 	c,
@@ -211,9 +211,9 @@ func (f *Float32) Cleanup() {
 		stack.Push(h)
 	}
 
-	f.FirstChild = nil
-	f.LastChild = nil
-	f.Parent = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
 
 	// Free the rest of the nodes.
 	for {
@@ -239,8 +239,8 @@ func (f *Float32) Cleanup() {
 		h.current.Parent = nil
 	}
 
-	prev := f.PrevSibling
-	next := f.NextSibling
+	prev := tn.PrevSibling
+	next := tn.NextSibling
 
 	if prev != nil {
 		prev.NextSibling = next
@@ -250,8 +250,8 @@ func (f *Float32) Cleanup() {
 		next.PrevSibling = prev
 	}
 
-	f.PrevSibling = nil
-	f.NextSibling = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
 // GetAncestors implements the Noder interface.
@@ -263,10 +263,10 @@ func (f *Float32) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (f *Float32) GetAncestors() []Noder {
+func (tn *Float32) GetAncestors() []Noder {
 	var ancestors []Noder
 
-	for node := f; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
 	}
 
@@ -276,24 +276,24 @@ func (f *Float32) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (f *Float32) IsLeaf() bool {
-	return f.FirstChild == nil
+func (tn *Float32) IsLeaf() bool {
+	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (f *Float32) IsSingleton() bool {
-	return f.FirstChild != nil && f.FirstChild == f.LastChild
+func (tn *Float32) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (f *Float32) GetFirstChild() Noder {
-	return f.FirstChild
+func (tn *Float32) GetFirstChild() Noder {
+	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (f *Float32) DeleteChild(target Noder) []Noder {
+func (tn *Float32) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
@@ -303,7 +303,7 @@ func (f *Float32) DeleteChild(target Noder) []Noder {
 		return nil
 	}
 
-	children := f.delete_child(n)
+	children := tn.delete_child(n)
 
 	if len(children) == 0 {
 		return children
@@ -317,8 +317,8 @@ func (f *Float32) DeleteChild(target Noder) []Noder {
 		c.Parent = nil
 	}
 
-	f.FirstChild = nil
-	f.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return children
 }
@@ -331,11 +331,11 @@ func (f *Float32) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (f *Float32) Size() int {
+func (tn *Float32) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(f)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
@@ -363,7 +363,7 @@ func (f *Float32) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func (f *Float32) AddChild(child Noder) {
+func (tn *Float32) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
@@ -376,17 +376,17 @@ func (f *Float32) AddChild(child Noder) {
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
-	last_child := f.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		f.FirstChild = c
+		tn.FirstChild = c
 	} else {
 		last_child.NextSibling = c
 		c.PrevSibling = last_child
 	}
 
-	c.Parent = f
-	f.LastChild = c
+	c.Parent = tn
+	tn.LastChild = c
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -416,19 +416,19 @@ func (f *Float32) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (f *Float32) RemoveNode() []Noder {
-	prev := f.PrevSibling
-	next := f.NextSibling
-	parent := f.Parent
+func (tn *Float32) RemoveNode() []Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
 
 	var sub_roots []Noder
 
 	if parent == nil {
-		for c := f.FirstChild; c != nil; c = c.NextSibling {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			sub_roots = append(sub_roots, c)
 		}
 	} else {
-		children := parent.delete_child(f)
+		children := parent.delete_child(tn)
 
 		for _, child := range children {
 			child.SetParent(parent)
@@ -447,9 +447,9 @@ func (f *Float32) RemoveNode() []Noder {
 		parent.Parent.LastChild = prev
 	}
 
-	f.Parent = nil
-	f.PrevSibling = nil
-	f.NextSibling = nil
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
 		return sub_roots
@@ -463,8 +463,8 @@ func (f *Float32) RemoveNode() []Noder {
 		c.Parent = nil
 	}
 
-	f.FirstChild = nil
-	f.LastChild = nil
+	tn.FirstChild = nil
+	tn.LastChild = nil
 
 	return sub_roots
 }
@@ -492,14 +492,14 @@ func NewFloat32(data float32) *Float32 {
 //
 // Returns:
 //   - *Float32: A pointer to the last sibling.
-func (f *Float32) GetLastSibling() *Float32 {
-	if f.Parent != nil {
-		return f.Parent.LastChild
-	} else if f.NextSibling == nil {
-		return f
+func (tn *Float32) GetLastSibling() *Float32 {
+	if tn.Parent != nil {
+		return tn.Parent.LastChild
+	} else if tn.NextSibling == nil {
+		return tn
 	}
 
-	last_sibling := f
+	last_sibling := tn
 
 	for last_sibling.NextSibling != nil {
 		last_sibling = last_sibling.NextSibling
@@ -517,14 +517,14 @@ func (f *Float32) GetLastSibling() *Float32 {
 //
 // Returns:
 //   - *Float32: A pointer to the first sibling.
-func (f *Float32) GetFirstSibling() *Float32 {
-	if f.Parent != nil {
-		return f.Parent.FirstChild
-	} else if f.PrevSibling == nil {
-		return f
+func (tn *Float32) GetFirstSibling() *Float32 {
+	if tn.Parent != nil {
+		return tn.Parent.FirstChild
+	} else if tn.PrevSibling == nil {
+		return tn
 	}
 
-	first_sibling := f
+	first_sibling := tn
 
 	for first_sibling.PrevSibling != nil {
 		first_sibling = first_sibling.PrevSibling
@@ -537,8 +537,8 @@ func (f *Float32) GetFirstSibling() *Float32 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (f *Float32) IsRoot() bool {
-	return f.Parent == nil
+func (tn *Float32) IsRoot() bool {
+	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -547,7 +547,7 @@ func (f *Float32) IsRoot() bool {
 //
 // Parameters:
 //   - children: The children to add.
-func (f *Float32) AddChildren(children []*Float32) {
+func (tn *Float32) AddChildren(children []*Float32) {
 	if len(children) == 0 {
 		return
 	}
@@ -574,17 +574,17 @@ func (f *Float32) AddChildren(children []*Float32) {
 	first_child.NextSibling = nil
 	first_child.PrevSibling = nil
 
-	last_child := f.LastChild
+	last_child := tn.LastChild
 
 	if last_child == nil {
-		f.FirstChild = first_child
+		tn.FirstChild = first_child
 	} else {
 		last_child.NextSibling = first_child
 		first_child.PrevSibling = last_child
 	}
 
-	first_child.Parent = f
-	f.LastChild = first_child
+	first_child.Parent = tn
+	tn.LastChild = first_child
 
 	// Deal with the rest of the children
 	for i := 1; i < len(children); i++ {
@@ -593,12 +593,12 @@ func (f *Float32) AddChildren(children []*Float32) {
 		child.NextSibling = nil
 		child.PrevSibling = nil
 
-		last_child := f.LastChild
+		last_child := tn.LastChild
 		last_child.NextSibling = child
 		child.PrevSibling = last_child
 
-		child.Parent = f
-		f.LastChild = child
+		child.Parent = tn
+		tn.LastChild = child
 	}
 }
 
@@ -609,10 +609,10 @@ func (f *Float32) AddChildren(children []*Float32) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (f *Float32) GetChildren() []Noder {
+func (tn *Float32) GetChildren() []Noder {
 	var children []Noder
 
-	for c := f.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
 	}
 
@@ -628,12 +628,12 @@ func (f *Float32) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (f *Float32) HasChild(target *Float32) bool {
-	if target == nil || f.FirstChild == nil {
+func (tn *Float32) HasChild(target *Float32) bool {
+	if target == nil || tn.FirstChild == nil {
 		return false
 	}
 
-	for c := f.FirstChild; c != nil; c = c.NextSibling {
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		if c == target {
 			return true
 		}
@@ -651,8 +651,8 @@ func (f *Float32) HasChild(target *Float32) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (f *Float32) delete_child(target *Float32) []Noder {
-	ok := f.HasChild(target)
+func (tn *Float32) delete_child(target *Float32) []Noder {
+	ok := tn.HasChild(target)
 	if !ok {
 		return nil
 	}
@@ -668,14 +668,14 @@ func (f *Float32) delete_child(target *Float32) []Noder {
 		next.PrevSibling = prev
 	}
 
-	if target == f.FirstChild {
-		f.FirstChild = next
+	if target == tn.FirstChild {
+		tn.FirstChild = next
 
 		if next == nil {
-			f.LastChild = nil
+			tn.LastChild = nil
 		}
-	} else if target == f.LastChild {
-		f.LastChild = prev
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
 	}
 
 	target.Parent = nil
@@ -695,14 +695,14 @@ func (f *Float32) delete_child(target *Float32) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (f *Float32) IsChildOf(target *Float32) bool {
+func (tn *Float32) IsChildOf(target *Float32) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := target.GetAncestors()
 
-	for node := f; node.Parent != nil; node = node.Parent {
+	for node := tn; node.Parent != nil; node = node.Parent {
 		parent := Noder(node.Parent)
 
 		ok := slices.Contains(parents, parent)
