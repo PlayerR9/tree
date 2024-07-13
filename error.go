@@ -6,8 +6,8 @@ import (
 	"slices"
 	"fmt"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 // ErrorIterator is a pull-based iterator that iterates
@@ -22,7 +22,7 @@ type ErrorIterator struct {
 // node is never nil.
 func (iter *ErrorIterator) Consume() (Noder, error) {
 	if iter.current == nil {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, common.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -42,11 +42,11 @@ type Error struct {
 	Data error
 }
 
-// Iterator implements the Tree.Noder interface.
+// Iterator implements the Noder interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (e *Error) Iterator() uc.Iterater[Noder] {
+func (e *Error) Iterator() common.Iterater[Noder] {
 	return &ErrorIterator{
 		parent: e,
 		current: e.FirstChild,
@@ -64,7 +64,7 @@ func (e *Error) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (e *Error) Copy() uc.Copier {
+func (e *Error) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := e.FirstChild; c != nil; c = c.NextSibling {
@@ -161,7 +161,7 @@ func (e *Error) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack[Noder](e)
+	stack := Stacker.NewLinkedStack[Noder](e)
 
 	var leaves []Noder
 
@@ -199,7 +199,7 @@ func (e *Error) Cleanup() {
 		previous, current *Error
 	}
 
-	stack := lls.NewLinkedStack[*Helper]()
+	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := e.FirstChild; c != nil; c = c.NextSibling {
@@ -335,7 +335,7 @@ func (e *Error) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack(e)
+	stack := Stacker.NewLinkedStack(e)
 
 	var size int
 

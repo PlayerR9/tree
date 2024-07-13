@@ -28,7 +28,7 @@ Once imported, you can use the tool to generate tree nodes for your own types. L
 ```go
 import _ "github.com/PlayerR9/treenode"
 
-//go:generate treenode -type=Foo -fields=value/int
+//go:generate go run github.com/PlayerR9/treenode/cmd/treenode -type=Foo -fields=value/int
 ```
 
 This will generate a tree node with the name "Foo" that contains, among other things, the field "value" of type "int."
@@ -43,7 +43,7 @@ This command generates a tree node with the given fields that uses first child/n
 
 To use it, run the following command:
 
-//go:generate treenode -type=<type_name> -fields=<field_list> [ -g=<generics>] [ -output=<output_file> ]
+//go:generate go run github.com/PlayerR9/treenode -type=<type_name> -fields=<field_list> [ -g=<generics>] [ -output=<output_file> ]
 
 **Flag: Type Name**
 

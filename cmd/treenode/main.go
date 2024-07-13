@@ -2,7 +2,7 @@
 //
 // To use it, run the following command:
 //
-// //go:generate treenode -type=<type_name> -fields=<field_list> [ -g=<generics>] [ -output=<output_file> ]
+// //go:generate go run github.com/PlayerR9/treenode/cmd/treenode -type=<type_name> -fields=<field_list> [ -g=<generics>] [ -output=<output_file> ]
 //
 // **Flag: Type Name**
 //
@@ -88,11 +88,7 @@ var (
 
 func init() {
 	InvalidVarNames = []string{
-		"ffs",
-		"lls",
-		"uc",
-		"us",
-		"trav",
+		"common",
 		"err",
 		"c",
 		"child",
@@ -114,9 +110,10 @@ func init() {
 		"size",
 		"parents",
 		"i",
+		"treenode",
 	}
 
-	Logger = log.New(os.Stderr, "[TreeNode]: ", log.LstdFlags)
+	Logger = log.New(os.Stderr, "[treenode]: ", log.LstdFlags)
 }
 
 func main() {

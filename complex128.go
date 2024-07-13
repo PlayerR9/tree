@@ -6,8 +6,8 @@ import (
 	"slices"
 	"fmt"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 // Complex128Iterator is a pull-based iterator that iterates
@@ -22,7 +22,7 @@ type Complex128Iterator struct {
 // node is never nil.
 func (iter *Complex128Iterator) Consume() (Noder, error) {
 	if iter.current == nil {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, common.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -42,11 +42,11 @@ type Complex128 struct {
 	Data complex128
 }
 
-// Iterator implements the Tree.Noder interface.
+// Iterator implements the Noder interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (c1 *Complex128) Iterator() uc.Iterater[Noder] {
+func (c1 *Complex128) Iterator() common.Iterater[Noder] {
 	return &Complex128Iterator{
 		parent: c1,
 		current: c1.FirstChild,
@@ -64,7 +64,7 @@ func (c1 *Complex128) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (c1 *Complex128) Copy() uc.Copier {
+func (c1 *Complex128) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := c1.FirstChild; c != nil; c = c.NextSibling {
@@ -161,7 +161,7 @@ func (c1 *Complex128) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack[Noder](c1)
+	stack := Stacker.NewLinkedStack[Noder](c1)
 
 	var leaves []Noder
 
@@ -199,7 +199,7 @@ func (c1 *Complex128) Cleanup() {
 		previous, current *Complex128
 	}
 
-	stack := lls.NewLinkedStack[*Helper]()
+	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := c1.FirstChild; c != nil; c = c.NextSibling {
@@ -335,7 +335,7 @@ func (c1 *Complex128) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack(c1)
+	stack := Stacker.NewLinkedStack(c1)
 
 	var size int
 

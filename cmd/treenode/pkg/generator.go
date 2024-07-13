@@ -169,6 +169,7 @@ func (g *generator) Generate() ([]byte, error) {
 		ParamList     string
 		AssignmentMap map[string]string
 		Generics      string
+		Noder         string
 	}
 
 	tn_type_sig := make_output_type(g.type_name, "", GenericsFlag)
@@ -193,6 +194,14 @@ func (g *generator) Generate() ([]byte, error) {
 		generics = GenericsFlag.String()
 	}
 
+	var noder string
+
+	if g.package_name == "treenode" {
+		noder = "Noder"
+	} else {
+		noder = "treenode.Noder"
+	}
+
 	data := GenData{
 		PackageName:   g.package_name,
 		TypeName:      g.type_name,
@@ -204,6 +213,7 @@ func (g *generator) Generate() ([]byte, error) {
 		ParamList:     param_list,
 		AssignmentMap: assignment_map,
 		Generics:      generics,
+		Noder:         noder,
 	}
 
 	var buf bytes.Buffer
@@ -258,8 +268,9 @@ import (
 	"slices"
 	"fmt"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/MyGoLib/Units/common"
+	{{- if ne .PackageName "treenode" }} "github.com/PlayerR9/treenode" {{- end }}
 )
 
 // {{ .IteratorName }} is a pull-based iterator that iterates
@@ -272,9 +283,9 @@ type {{ .IteratorName }}{{ .Generics }} struct {
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *{{ .IteratorSig }}) Consume() (Noder, error) {
+func (iter *{{ .IteratorSig }}) Consume() ({{ .Noder }}, error) {
 	if iter.current == nil {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, common.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -298,18 +309,18 @@ type {{ .TypeName }}{{ .Generics }} struct {
 	{{- end }}
 }
 
-// Iterator implements the Tree.Noder interface.
+// Iterator implements the {{ .Noder }} interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func ({{ .VariableName }} *{{ .TypeSig }}) Iterator() uc.Iterater[Noder] {
+func ({{ .VariableName }} *{{ .TypeSig }}) Iterator() common.Iterater[{{ .Noder }}] {
 	return &{{ .IteratorSig }}{
 		parent: {{ .VariableName }},
 		current: {{ .VariableName }}.FirstChild,
 	}
 }
 
-// String implements the Noder interface.
+// String implements the {{ .Noder }} interface.
 func ({{ .VariableName }} *{{ .TypeSig }}) String() string {
 	// WARNING: Implement this function.
 	str := fmt.Sprintf("%v", {{ .VariableName }}.Data)
@@ -317,14 +328,14 @@ func ({{ .VariableName }} *{{ .TypeSig }}) String() string {
 	return str
 }
 
-// Copy implements the Noder interface.
+// Copy implements the {{ .Noder }} interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func ({{ .VariableName }} *{{ .TypeSig }}) Copy() uc.Copier {
-	var child_copy []Noder	
+func ({{ .VariableName }} *{{ .TypeSig }}) Copy() common.Copier {
+	var child_copy []{{ .Noder }}	
 
 	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(Noder))
+		child_copy = append(child_copy, c.Copy().({{ .Noder }}))
 	}
 
 	// Copy here the data of the node.
@@ -338,8 +349,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Copy() uc.Copier {
 	return {{ .VariableName }}_copy
 }
 
-// SetParent implements the Noder interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) SetParent(parent Noder) bool {
+// SetParent implements the {{ .Noder }} interface.
+func ({{ .VariableName }} *{{ .TypeSig }}) SetParent(parent {{ .Noder }}) bool {
 	if parent == nil {
 		{{ .VariableName }}.Parent = nil
 		return true
@@ -355,15 +366,15 @@ func ({{ .VariableName }} *{{ .TypeSig }}) SetParent(parent Noder) bool {
 	return true
 }
 
-// GetParent implements the Noder interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetParent() Noder {
+// GetParent implements the {{ .Noder }} interface.
+func ({{ .VariableName }} *{{ .TypeSig }}) GetParent() {{ .Noder }} {
 	return {{ .VariableName }}.Parent
 }
 
-// LinkWithParent implements the Noder interface.
+// LinkWithParent implements the {{ .Noder }} interface.
 //
 // Children that are not of type *{{ .TypeSig }} or nil are ignored.
-func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []Noder) {
+func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }}) {
 	if len(children) == 0 {
 		return
 	}
@@ -404,7 +415,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []Noder) {
 	{{ .VariableName }}.FirstChild, {{ .VariableName }}.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
-// GetLeaves implements the Noder interface.
+// GetLeaves implements the {{ .Noder }} interface.
 //
 // This is expensive as leaves are not stored and so, every time this function is called,
 // it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
@@ -413,13 +424,13 @@ func ({{ .VariableName }} *{{ .TypeSig }}) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetLeaves() []Noder {
+func ({{ .VariableName }} *{{ .TypeSig }}) GetLeaves() []{{ .Noder }} {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack[Noder]({{ .VariableName }})
+	stack := Stacker.NewLinkedStack[{{ .Noder }}]({{ .VariableName }})
 
-	var leaves []Noder
+	var leaves []{{ .Noder }}
 
 	for {
 		top, ok := stack.Pop()
@@ -440,7 +451,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetLeaves() []Noder {
 	return leaves
 }
 
-// Cleanup implements the Noder interface.
+// Cleanup implements the {{ .Noder }} interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
 // by one. While this is useful for freeing up memory, for large enough trees, it is
@@ -455,7 +466,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 		previous, current *{{ .TypeSig }}
 	}
 
-	stack := lls.NewLinkedStack[*Helper]()
+	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
@@ -510,7 +521,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 	{{ .VariableName }}.NextSibling = nil
 }
 
-// GetAncestors implements the Noder interface.
+// GetAncestors implements the {{ .Noder }} interface.
 //
 // This is expensive since ancestors are not stored and so, every time this
 // function is called, it has to traverse the tree to find the ancestors. Thus, it is
@@ -519,8 +530,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetAncestors() []Noder {
-	var ancestors []Noder
+func ({{ .VariableName }} *{{ .TypeSig }}) GetAncestors() []{{ .Noder }} {
+	var ancestors []{{ .Noder }}
 
 	for node := {{ .VariableName }}; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
@@ -531,25 +542,25 @@ func ({{ .VariableName }} *{{ .TypeSig }}) GetAncestors() []Noder {
 	return ancestors
 }
 
-// IsLeaf implements the Noder interface.
+// IsLeaf implements the {{ .Noder }} interface.
 func ({{ .VariableName }} *{{ .TypeSig }}) IsLeaf() bool {
 	return {{ .VariableName }}.FirstChild == nil
 }
 
-// IsSingleton implements the Noder interface.
+// IsSingleton implements the {{ .Noder }} interface.
 func ({{ .VariableName }} *{{ .TypeSig }}) IsSingleton() bool {
 	return {{ .VariableName }}.FirstChild != nil && {{ .VariableName }}.FirstChild == {{ .VariableName }}.LastChild
 }
 
-// GetFirstChild implements the Noder interface.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetFirstChild() Noder {
+// GetFirstChild implements the {{ .Noder }} interface.
+func ({{ .VariableName }} *{{ .TypeSig }}) GetFirstChild() {{ .Noder }} {
 	return {{ .VariableName }}.FirstChild
 }
 
-// DeleteChild implements the Noder interface.
+// DeleteChild implements the {{ .Noder }} interface.
 //
 // No nil nodes are returned.
-func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target Noder) []Noder {
+func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{ .Noder }} {
 	if target == nil {
 		return nil
 	}
@@ -579,7 +590,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) DeleteChild(target Noder) []Noder {
 	return children
 }
 
-// Size implements the Noder interface.
+// Size implements the {{ .Noder }} interface.
 //
 // This is expensive as it has to traverse the whole tree to find the size of the tree.
 // Thus, it is recommended to call this function once and then store the size somewhere if needed.
@@ -591,7 +602,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack({{ .VariableName }})
+	stack := Stacker.NewLinkedStack({{ .VariableName }})
 
 	var size int
 
@@ -619,7 +630,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) Size() int {
 //
 // Parameters:
 //   - child: The child to add.
-func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child Noder) {
+func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
 	if child == nil {
 		return
 	}
@@ -652,7 +663,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child Noder) {
 // is removed.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node iff the node is the root.
+//   - []{{ .Noder }}: A slice of pointers to the children of the node iff the node is the root.
 //     Nil otherwise.
 //
 // Example:
@@ -672,12 +683,12 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func ({{ .VariableName }} *{{ .TypeSig }}) RemoveNode() []Noder {
+func ({{ .VariableName }} *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
 	prev := {{ .VariableName }}.PrevSibling
 	next := {{ .VariableName }}.NextSibling
 	parent := {{ .VariableName }}.Parent
 
-	var sub_roots []Noder
+	var sub_roots []{{ .Noder }}
 
 	if parent == nil {
 		for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
@@ -881,9 +892,9 @@ func ({{ .VariableName }} *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }
 // nodes will modify the tree.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func ({{ .VariableName }} *{{ .TypeSig }}) GetChildren() []Noder {
-	var children []Noder
+//   - []{{ .Noder }}: A slice of pointers to the children of the node.
+func ({{ .VariableName }} *{{ .TypeSig }}) GetChildren() []{{ .Noder }} {
+	var children []{{ .Noder }}
 
 	for c := {{ .VariableName }}.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -923,8 +934,8 @@ func ({{ .VariableName }} *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func ({{ .VariableName }} *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []Noder {
+//   - []{{ .Noder }}: A slice of pointers to the children of the node.
+func ({{ .VariableName }} *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []{{ .Noder }} {
 	ok := {{ .VariableName }}.HasChild(target)
 	if !ok {
 		return nil
@@ -976,7 +987,7 @@ func ({{ .VariableName }} *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) boo
 	parents := target.GetAncestors()
 
 	for node := {{ .VariableName }}; node.Parent != nil; node = node.Parent {
-		parent := Noder(node.Parent)
+		parent := {{ .Noder }}(node.Parent)
 
 		ok := slices.Contains(parents, parent)
 		if ok {

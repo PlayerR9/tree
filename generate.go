@@ -19,5 +19,5 @@
 //go:generate go run cmd/treenode/main.go -type=Uint32 -fields=Data/uint32 -output=uint32.go
 //go:generate go run cmd/treenode/main.go -type=Uint64 -fields=Data/uint64 -output=uint64.go
 //go:generate go run cmd/treenode/main.go -type=Uintptr -fields=Data/uintptr -output=uintptr.go
-//go:generate go run cmd/treenode/main.go -type=StatusNode -fields=Status/S,Data/T -g=S/uc.Enumer,T/any -output=status.go
+//go:generate go run cmd/treenode/main.go -type=StatusNode -fields=Status/S,Data/T -g=S/common.Enumer,T/any -output=status.go
 package treenode

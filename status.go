@@ -6,13 +6,13 @@ import (
 	"slices"
 	"fmt"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 // StatusNodeIterator is a pull-based iterator that iterates
 // over the children of a StatusNode.
-type StatusNodeIterator[S uc.Enumer, T any] struct {
+type StatusNodeIterator[S common.Enumer, T any] struct {
 	parent, current *StatusNode[S, T]
 }
 
@@ -22,7 +22,7 @@ type StatusNodeIterator[S uc.Enumer, T any] struct {
 // node is never nil.
 func (iter *StatusNodeIterator[S, T]) Consume() (Noder, error) {
 	if iter.current == nil {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, common.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -37,17 +37,17 @@ func (iter *StatusNodeIterator[S, T]) Restart() {
 }
 
 // StatusNode is a node in a tree.
-type StatusNode[S uc.Enumer, T any] struct {
+type StatusNode[S common.Enumer, T any] struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *StatusNode[S, T]
 	Data T
 	Status S
 }
 
-// Iterator implements the Tree.Noder interface.
+// Iterator implements the Noder interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (sn *StatusNode[S, T]) Iterator() uc.Iterater[Noder] {
+func (sn *StatusNode[S, T]) Iterator() common.Iterater[Noder] {
 	return &StatusNodeIterator[S, T]{
 		parent: sn,
 		current: sn.FirstChild,
@@ -65,7 +65,7 @@ func (sn *StatusNode[S, T]) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (sn *StatusNode[S, T]) Copy() uc.Copier {
+func (sn *StatusNode[S, T]) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := sn.FirstChild; c != nil; c = c.NextSibling {
@@ -162,7 +162,7 @@ func (sn *StatusNode[S, T]) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack[Noder](sn)
+	stack := Stacker.NewLinkedStack[Noder](sn)
 
 	var leaves []Noder
 
@@ -200,7 +200,7 @@ func (sn *StatusNode[S, T]) Cleanup() {
 		previous, current *StatusNode[S, T]
 	}
 
-	stack := lls.NewLinkedStack[*Helper]()
+	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := sn.FirstChild; c != nil; c = c.NextSibling {
@@ -336,7 +336,7 @@ func (sn *StatusNode[S, T]) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack(sn)
+	stack := Stacker.NewLinkedStack(sn)
 
 	var size int
 
@@ -480,7 +480,7 @@ func (sn *StatusNode[S, T]) RemoveNode() []Noder {
 // Returns:
 //   - *StatusNode[S, T]: A pointer to the newly created node. It is
 //   never nil.
-func NewStatusNode[S uc.Enumer, T any](data T, status S) *StatusNode[S, T] {
+func NewStatusNode[S common.Enumer, T any](data T, status S) *StatusNode[S, T] {
 	return &StatusNode[S, T]{
 		Data: data,
 		Status: status,

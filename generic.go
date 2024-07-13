@@ -6,8 +6,8 @@ import (
 	"slices"
 	"fmt"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 // TreeNodeIterator is a pull-based iterator that iterates
@@ -22,7 +22,7 @@ type TreeNodeIterator[T any] struct {
 // node is never nil.
 func (iter *TreeNodeIterator[T]) Consume() (Noder, error) {
 	if iter.current == nil {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, common.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -42,11 +42,11 @@ type TreeNode[T any] struct {
 	Data T
 }
 
-// Iterator implements the Tree.Noder interface.
+// Iterator implements the Noder interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *TreeNode[T]) Iterator() uc.Iterater[Noder] {
+func (tn *TreeNode[T]) Iterator() common.Iterater[Noder] {
 	return &TreeNodeIterator[T]{
 		parent: tn,
 		current: tn.FirstChild,
@@ -64,7 +64,7 @@ func (tn *TreeNode[T]) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *TreeNode[T]) Copy() uc.Copier {
+func (tn *TreeNode[T]) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -161,7 +161,7 @@ func (tn *TreeNode[T]) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack[Noder](tn)
+	stack := Stacker.NewLinkedStack[Noder](tn)
 
 	var leaves []Noder
 
@@ -199,7 +199,7 @@ func (tn *TreeNode[T]) Cleanup() {
 		previous, current *TreeNode[T]
 	}
 
-	stack := lls.NewLinkedStack[*Helper]()
+	stack := Stacker.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -335,7 +335,7 @@ func (tn *TreeNode[T]) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := lls.NewLinkedStack(tn)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var size int
 
