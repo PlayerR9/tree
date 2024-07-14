@@ -26,6 +26,7 @@ type generator struct {
 	fields map[string]string
 }
 
+// Remove this once MyGoLib is updated
 func make_output_type(type_name string, suffix string, gv *GenericsValue) string {
 	uc.AssertParam("gv", gv != nil, errors.New("generics must be set"))
 	uc.AssertParam("type_name", type_name != "", errors.New("type_name must be set"))
@@ -141,6 +142,24 @@ func make_assignment_list(fields map[string]string) (map[string]string, error) {
 	return assignment_map, nil
 }
 
+type GenData struct {
+	PackageName   string
+	TypeName      string
+	TypeSig       string
+	Fields        map[string]string
+	IteratorName  string
+	IteratorSig   string
+	ParamList     string
+	AssignmentMap map[string]string
+	Generics      string
+	Noder         string
+}
+
+func (g GenData) SetPackageName(pkg_name string) GenData {
+	g.PackageName = pkg_name
+	return g
+}
+
 // Generate generates the code for the tree node.
 //
 // Returns:
@@ -153,19 +172,6 @@ func (g *generator) Generate() ([]byte, error) {
 	t := template.Must(
 		template.New("").Parse(templ),
 	)
-
-	type GenData struct {
-		PackageName   string
-		TypeName      string
-		TypeSig       string
-		Fields        map[string]string
-		IteratorName  string
-		IteratorSig   string
-		ParamList     string
-		AssignmentMap map[string]string
-		Generics      string
-		Noder         string
-	}
 
 	tn_type_sig := make_output_type(g.type_name, "", GenericsFlag)
 	tn_iterator_sig := make_output_type(g.type_name, "Iterator", GenericsFlag)
@@ -198,7 +204,6 @@ func (g *generator) Generate() ([]byte, error) {
 	}
 
 	data := GenData{
-		PackageName:   g.package_name,
 		TypeName:      g.type_name,
 		TypeSig:       tn_type_sig,
 		Fields:        g.fields,
@@ -206,7 +211,7 @@ func (g *generator) Generate() ([]byte, error) {
 		IteratorSig:   tn_iterator_sig,
 		ParamList:     param_list,
 		AssignmentMap: assignment_map,
-		Generics:      generics,
+		Generics:      generics, //
 		Noder:         noder,
 	}
 
