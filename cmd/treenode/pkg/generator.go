@@ -223,6 +223,13 @@ func (g *generator) Generate() ([]byte, error) {
 }
 
 func NewGenerator(type_name string, dest string) (*generator, error) {
+	// Remove this section once MyGoLib is updated
+	//
+	// pkg_name, err := utgo.FixImportDir(dest)
+	// if err != nil {
+	//    err := fmt.Errorf("could not import directory: %w", err)
+	// 	return nil, err
+	// }
 	if dest != "" {
 		left := filepath.Dir(dest)
 		_, right := filepath.Split(left)
@@ -259,7 +266,6 @@ package {{ .PackageName }}
 
 import (
 	"slices"
-	"fmt"
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
@@ -315,7 +321,7 @@ func (tn *{{ .TypeSig }}) Iterator() common.Iterater[{{ .Noder }}] {
 // String implements the {{ .Noder }} interface.
 func (tn *{{ .TypeSig }}) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", tn.Data)
+	str := common.StringOf(tn.Data)
 
 	return str
 }

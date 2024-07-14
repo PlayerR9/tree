@@ -3,7 +3,6 @@
 package treenode
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
@@ -39,7 +38,7 @@ func (iter *RuneIterator) Restart() {
 // Rune is a node in a tree.
 type Rune struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Rune
-	Data                                                    rune
+	Data rune
 }
 
 // Iterator implements the Noder interface.
@@ -48,7 +47,7 @@ type Rune struct {
 // and never returns nil.
 func (tn *Rune) Iterator() common.Iterater[Noder] {
 	return &RuneIterator{
-		parent:  tn,
+		parent: tn,
 		current: tn.FirstChild,
 	}
 }
@@ -56,7 +55,7 @@ func (tn *Rune) Iterator() common.Iterater[Noder] {
 // String implements the Noder interface.
 func (tn *Rune) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", tn.Data)
+	str := common.StringOf(tn.Data)
 
 	return str
 }
@@ -65,7 +64,7 @@ func (tn *Rune) String() string {
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
 func (tn *Rune) Copy() common.Copier {
-	var child_copy []Noder
+	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		child_copy = append(child_copy, c.Copy().(Noder))
@@ -74,7 +73,7 @@ func (tn *Rune) Copy() common.Copier {
 	// Copy here the data of the node.
 
 	tn_copy := &Rune{
-		// Add here the copied data of the node.
+	 	// Add here the copied data of the node.
 	}
 
 	tn_copy.LinkChildren(child_copy)
@@ -123,9 +122,9 @@ func (tn *Rune) LinkChildren(children []Noder) {
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
-		}
+		}		
 	}
-
+	
 	if len(valid_children) == 0 {
 		return
 	}
@@ -204,8 +203,8 @@ func (tn *Rune) Cleanup() {
 	// Free the first node.
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		h := &Helper{
-			previous: c.PrevSibling,
-			current:  c,
+			previous:	c.PrevSibling,
+			current: 	c,
 		}
 
 		stack.Push(h)
@@ -224,8 +223,8 @@ func (tn *Rune) Cleanup() {
 
 		for c := h.current.FirstChild; c != nil; c = c.NextSibling {
 			h := &Helper{
-				previous: c.PrevSibling,
-				current:  c,
+				previous:	c.PrevSibling,
+				current: 	c,
 			}
 
 			stack.Push(h)
@@ -372,7 +371,7 @@ func (tn *Rune) AddChild(child Noder) {
 	if !ok {
 		return
 	}
-
+	
 	c.NextSibling = nil
 	c.PrevSibling = nil
 
@@ -476,7 +475,7 @@ func (tn *Rune) RemoveNode() []Noder {
 //
 // Returns:
 //   - *Rune: A pointer to the newly created node. It is
-//     never nil.
+//   never nil.
 func NewRune(data rune) *Rune {
 	return &Rune{
 		Data: data,
@@ -551,7 +550,7 @@ func (tn *Rune) AddChildren(children []*Rune) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {

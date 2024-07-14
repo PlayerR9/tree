@@ -11,12 +11,15 @@ import (
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	utgo "github.com/PlayerR9/MyGoLib/Utility/Go"
+	// Add the following when MyGoLib is updated
+	// ggen "github.com/PlayerR9/MyGoLib/go_generator"
 )
 
 var (
 	// TypeNameFlag is the flag for the type name.
 	TypeNameFlag *string
 
+	// Remove this once MyGoLib is updated
 	// OutputFileFlag is the flag for the output file.
 	OutputFileFlag *string
 
@@ -33,10 +36,14 @@ func init() {
 			" Must start with an upper case letter and must be a valid Go identifier.",
 	)
 
+	// Remove this once MyGoLib is updated
 	OutputFileFlag = flag.String("output", "",
 		"The output file to write the generated code to. If not set, the default file name is used."+
 			" That is \"<type_name>_treenode.go\".",
 	)
+
+	// Add this once MyGoLib is updated
+	// ggen.SetOutputFlag("<type_name>_treenode.go", false)
 
 	FieldsFlag = NewFieldsValue()
 
@@ -54,12 +61,24 @@ func init() {
 }
 
 func ParseFlags() (string, string, error) {
+	// Remove these assertions once MyGoLib is updated
+	uc.Assert(TypeNameFlag != nil, "TypeNameFlag must not be nil")
+	uc.Assert(FieldsFlag != nil, "FieldsFlag must not be nil")
+	uc.Assert(GenericsFlag != nil, "GenericsFlag must not be nil")
+
+	// Add these assertions once MyGoLib is updated
+	// type_name := uc.AssertNil(TypeNameFlag, "TypeNameFlag")
+	// fields_value := uc.AssertNil(FieldsFlag, "FieldsFlag")
+	// generics_value := uc.AssertNil(GenericsFlag, "GenericsFlag")
+
 	flag.Parse()
 
+	// Remove this once MyGoLib is updated
 	if *TypeNameFlag == "" {
 		return "", "", errors.New("the type name must be set")
 	}
 
+	// Remove this once MyGoLib is updated
 	type_name := *TypeNameFlag
 
 	var filename string

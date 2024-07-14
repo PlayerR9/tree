@@ -4,7 +4,6 @@ package treenode
 
 import (
 	"slices"
-	"fmt"
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
@@ -56,7 +55,7 @@ func (tn *Byte) Iterator() common.Iterater[Noder] {
 // String implements the Noder interface.
 func (tn *Byte) String() string {
 	// WARNING: Implement this function.
-	str := fmt.Sprintf("%v", tn.Data)
+	str := common.StringOf(tn.Data)
 
 	return str
 }
