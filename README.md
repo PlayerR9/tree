@@ -18,7 +18,7 @@ A Go package used for generating first child/next sibling tree nodes. It also fe
 
 To install the tool, run the following command:
 ```
-go get -u github.com/PlayerR9/treenode/cmd/treenode
+go get -u github.com/PlayerR9/treenode/cmd
 ```
 
 
@@ -28,7 +28,7 @@ Once imported, you can use the tool to generate tree nodes for your own types. L
 ```go
 import _ "github.com/PlayerR9/treenode"
 
-//go:generate go run github.com/PlayerR9/treenode/cmd/treenode -name=Foo -fields=value/int
+//go:generate go run github.com/PlayerR9/treenode/cmd -name=Foo -fields=value/int
 ```
 
 This will generate a tree node with the name "Foo" that contains, among other things, the field "value" of type "int."
