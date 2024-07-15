@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// Int8Iterator is a pull-based iterator that iterates
-// over the children of a Int8.
-type Int8Iterator struct {
-	parent, current *Int8
+// Int8NodeIterator is a pull-based iterator that iterates
+// over the children of a Int8Node.
+type Int8NodeIterator struct {
+	parent, current *Int8Node
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *Int8Iterator) Consume() (Noder, error) {
+func (iter *Int8NodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *Int8Iterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *Int8Iterator) Restart() {
+func (iter *Int8NodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Int8 is a node in a tree.
-type Int8 struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int8
+// Int8Node is a node in a tree.
+type Int8Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int8Node
 	Data int8
 }
 
@@ -45,15 +45,15 @@ type Int8 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Int8) Iterator() common.Iterater[Noder] {
-	return &Int8Iterator{
+func (tn *Int8Node) Iterator() common.Iterater[Noder] {
+	return &Int8NodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Int8) String() string {
+func (tn *Int8Node) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Int8) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Int8) Copy() common.Copier {
+func (tn *Int8Node) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Int8) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Int8{
+	tn_copy := &Int8Node{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Int8) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Int8) SetParent(parent Noder) bool {
+func (tn *Int8Node) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Int8)
+	p, ok := parent.(*Int8Node)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Int8) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Int8) GetParent() Noder {
+func (tn *Int8Node) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Int8 or nil are ignored.
-func (tn *Int8) LinkChildren(children []Noder) {
+// Children that are not of type *Int8Node or nil are ignored.
+func (tn *Int8Node) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Int8
+	var valid_children []*Int8Node
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Int8)
+		c, ok := child.(*Int8Node)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Int8) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Int8) GetLeaves() []Noder {
+func (tn *Int8Node) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Int8) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Int8)
+		node := top.(*Int8Node)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Int8) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Int8) Cleanup() {
+func (tn *Int8Node) Cleanup() {
 	type Helper struct {
-		previous, current *Int8
+		previous, current *Int8Node
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Int8) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Int8) GetAncestors() []Noder {
+func (tn *Int8Node) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Int8) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Int8) IsLeaf() bool {
+func (tn *Int8Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Int8) IsSingleton() bool {
+func (tn *Int8Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Int8) GetFirstChild() Noder {
+func (tn *Int8Node) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Int8) DeleteChild(target Noder) []Noder {
+func (tn *Int8Node) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Int8)
+	n, ok := target.(*Int8Node)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Int8) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Int8)
+		c := child.(*Int8Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Int8) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Int8) Size() int {
+func (tn *Int8Node) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Int8) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Int8, it does nothing.
+// *Int8Node, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Int8) AddChild(child Noder) {
+func (tn *Int8Node) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Int8)
+	c, ok := child.(*Int8Node)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Int8) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Int8) RemoveNode() []Noder {
+func (tn *Int8Node) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Int8) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Int8)
+		c := child.(*Int8Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Int8) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewInt8 creates a new node with the given data.
+// NewInt8Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Int8: A pointer to the newly created node. It is
+//   - *Int8Node: A pointer to the newly created node. It is
 //   never nil.
-func NewInt8(data int8) *Int8 {
-	return &Int8{
+func NewInt8Node(data int8) *Int8Node {
+	return &Int8Node{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewInt8(data int8) *Int8 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Int8: A pointer to the last sibling.
-func (tn *Int8) GetLastSibling() *Int8 {
+//   - *Int8Node: A pointer to the last sibling.
+func (tn *Int8Node) GetLastSibling() *Int8Node {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Int8) GetLastSibling() *Int8 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Int8: A pointer to the first sibling.
-func (tn *Int8) GetFirstSibling() *Int8 {
+//   - *Int8Node: A pointer to the first sibling.
+func (tn *Int8Node) GetFirstSibling() *Int8Node {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Int8) GetFirstSibling() *Int8 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Int8) IsRoot() bool {
+func (tn *Int8Node) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Int8.AddChild function.
+// same as the behaviors of the Int8Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Int8) AddChildren(children []*Int8) {
+func (tn *Int8Node) AddChildren(children []*Int8Node) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Int8) AddChildren(children []*Int8) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Int8) GetChildren() []Noder {
+func (tn *Int8Node) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Int8) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Int8) HasChild(target *Int8) bool {
+func (tn *Int8Node) HasChild(target *Int8Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Int8) HasChild(target *Int8) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Int8) delete_child(target *Int8) []Noder {
+func (tn *Int8Node) delete_child(target *Int8Node) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Int8) delete_child(target *Int8) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Int8) IsChildOf(target *Int8) bool {
+func (tn *Int8Node) IsChildOf(target *Int8Node) bool {
 	if target == nil {
 		return false
 	}

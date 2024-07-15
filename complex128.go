@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// Complex128Iterator is a pull-based iterator that iterates
-// over the children of a Complex128.
-type Complex128Iterator struct {
-	parent, current *Complex128
+// Complex128NodeIterator is a pull-based iterator that iterates
+// over the children of a Complex128Node.
+type Complex128NodeIterator struct {
+	parent, current *Complex128Node
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *Complex128Iterator) Consume() (Noder, error) {
+func (iter *Complex128NodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *Complex128Iterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *Complex128Iterator) Restart() {
+func (iter *Complex128NodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Complex128 is a node in a tree.
-type Complex128 struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Complex128
+// Complex128Node is a node in a tree.
+type Complex128Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Complex128Node
 	Data complex128
 }
 
@@ -45,15 +45,15 @@ type Complex128 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Complex128) Iterator() common.Iterater[Noder] {
-	return &Complex128Iterator{
+func (tn *Complex128Node) Iterator() common.Iterater[Noder] {
+	return &Complex128NodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Complex128) String() string {
+func (tn *Complex128Node) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Complex128) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Complex128) Copy() common.Copier {
+func (tn *Complex128Node) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Complex128) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Complex128{
+	tn_copy := &Complex128Node{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Complex128) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Complex128) SetParent(parent Noder) bool {
+func (tn *Complex128Node) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Complex128)
+	p, ok := parent.(*Complex128Node)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Complex128) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Complex128) GetParent() Noder {
+func (tn *Complex128Node) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Complex128 or nil are ignored.
-func (tn *Complex128) LinkChildren(children []Noder) {
+// Children that are not of type *Complex128Node or nil are ignored.
+func (tn *Complex128Node) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Complex128
+	var valid_children []*Complex128Node
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Complex128)
+		c, ok := child.(*Complex128Node)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Complex128) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Complex128) GetLeaves() []Noder {
+func (tn *Complex128Node) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Complex128) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Complex128)
+		node := top.(*Complex128Node)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Complex128) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Complex128) Cleanup() {
+func (tn *Complex128Node) Cleanup() {
 	type Helper struct {
-		previous, current *Complex128
+		previous, current *Complex128Node
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Complex128) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Complex128) GetAncestors() []Noder {
+func (tn *Complex128Node) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Complex128) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Complex128) IsLeaf() bool {
+func (tn *Complex128Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Complex128) IsSingleton() bool {
+func (tn *Complex128Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Complex128) GetFirstChild() Noder {
+func (tn *Complex128Node) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Complex128) DeleteChild(target Noder) []Noder {
+func (tn *Complex128Node) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Complex128)
+	n, ok := target.(*Complex128Node)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Complex128) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Complex128)
+		c := child.(*Complex128Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Complex128) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Complex128) Size() int {
+func (tn *Complex128Node) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Complex128) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Complex128, it does nothing.
+// *Complex128Node, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Complex128) AddChild(child Noder) {
+func (tn *Complex128Node) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Complex128)
+	c, ok := child.(*Complex128Node)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Complex128) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Complex128) RemoveNode() []Noder {
+func (tn *Complex128Node) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Complex128) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Complex128)
+		c := child.(*Complex128Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Complex128) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewComplex128 creates a new node with the given data.
+// NewComplex128Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Complex128: A pointer to the newly created node. It is
+//   - *Complex128Node: A pointer to the newly created node. It is
 //   never nil.
-func NewComplex128(data complex128) *Complex128 {
-	return &Complex128{
+func NewComplex128Node(data complex128) *Complex128Node {
+	return &Complex128Node{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewComplex128(data complex128) *Complex128 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Complex128: A pointer to the last sibling.
-func (tn *Complex128) GetLastSibling() *Complex128 {
+//   - *Complex128Node: A pointer to the last sibling.
+func (tn *Complex128Node) GetLastSibling() *Complex128Node {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Complex128) GetLastSibling() *Complex128 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Complex128: A pointer to the first sibling.
-func (tn *Complex128) GetFirstSibling() *Complex128 {
+//   - *Complex128Node: A pointer to the first sibling.
+func (tn *Complex128Node) GetFirstSibling() *Complex128Node {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Complex128) GetFirstSibling() *Complex128 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Complex128) IsRoot() bool {
+func (tn *Complex128Node) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Complex128.AddChild function.
+// same as the behaviors of the Complex128Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Complex128) AddChildren(children []*Complex128) {
+func (tn *Complex128Node) AddChildren(children []*Complex128Node) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Complex128) AddChildren(children []*Complex128) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Complex128) GetChildren() []Noder {
+func (tn *Complex128Node) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Complex128) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Complex128) HasChild(target *Complex128) bool {
+func (tn *Complex128Node) HasChild(target *Complex128Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Complex128) HasChild(target *Complex128) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Complex128) delete_child(target *Complex128) []Noder {
+func (tn *Complex128Node) delete_child(target *Complex128Node) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Complex128) delete_child(target *Complex128) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Complex128) IsChildOf(target *Complex128) bool {
+func (tn *Complex128Node) IsChildOf(target *Complex128Node) bool {
 	if target == nil {
 		return false
 	}

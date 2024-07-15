@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// ErrorIterator is a pull-based iterator that iterates
-// over the children of a Error.
-type ErrorIterator struct {
-	parent, current *Error
+// ErrorNodeIterator is a pull-based iterator that iterates
+// over the children of a ErrorNode.
+type ErrorNodeIterator struct {
+	parent, current *ErrorNode
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *ErrorIterator) Consume() (Noder, error) {
+func (iter *ErrorNodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *ErrorIterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *ErrorIterator) Restart() {
+func (iter *ErrorNodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Error is a node in a tree.
-type Error struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Error
+// ErrorNode is a node in a tree.
+type ErrorNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *ErrorNode
 	Data error
 }
 
@@ -45,15 +45,15 @@ type Error struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Error) Iterator() common.Iterater[Noder] {
-	return &ErrorIterator{
+func (tn *ErrorNode) Iterator() common.Iterater[Noder] {
+	return &ErrorNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Error) String() string {
+func (tn *ErrorNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Error) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Error) Copy() common.Copier {
+func (tn *ErrorNode) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Error) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Error{
+	tn_copy := &ErrorNode{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Error) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Error) SetParent(parent Noder) bool {
+func (tn *ErrorNode) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Error)
+	p, ok := parent.(*ErrorNode)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Error) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Error) GetParent() Noder {
+func (tn *ErrorNode) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Error or nil are ignored.
-func (tn *Error) LinkChildren(children []Noder) {
+// Children that are not of type *ErrorNode or nil are ignored.
+func (tn *ErrorNode) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Error
+	var valid_children []*ErrorNode
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Error)
+		c, ok := child.(*ErrorNode)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Error) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Error) GetLeaves() []Noder {
+func (tn *ErrorNode) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Error) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Error)
+		node := top.(*ErrorNode)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Error) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Error) Cleanup() {
+func (tn *ErrorNode) Cleanup() {
 	type Helper struct {
-		previous, current *Error
+		previous, current *ErrorNode
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Error) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Error) GetAncestors() []Noder {
+func (tn *ErrorNode) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Error) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Error) IsLeaf() bool {
+func (tn *ErrorNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Error) IsSingleton() bool {
+func (tn *ErrorNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Error) GetFirstChild() Noder {
+func (tn *ErrorNode) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Error) DeleteChild(target Noder) []Noder {
+func (tn *ErrorNode) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Error)
+	n, ok := target.(*ErrorNode)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Error) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Error)
+		c := child.(*ErrorNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Error) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Error) Size() int {
+func (tn *ErrorNode) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Error) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Error, it does nothing.
+// *ErrorNode, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Error) AddChild(child Noder) {
+func (tn *ErrorNode) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Error)
+	c, ok := child.(*ErrorNode)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Error) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Error) RemoveNode() []Noder {
+func (tn *ErrorNode) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Error) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Error)
+		c := child.(*ErrorNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Error) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewError creates a new node with the given data.
+// NewErrorNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Error: A pointer to the newly created node. It is
+//   - *ErrorNode: A pointer to the newly created node. It is
 //   never nil.
-func NewError(data error) *Error {
-	return &Error{
+func NewErrorNode(data error) *ErrorNode {
+	return &ErrorNode{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewError(data error) *Error {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Error: A pointer to the last sibling.
-func (tn *Error) GetLastSibling() *Error {
+//   - *ErrorNode: A pointer to the last sibling.
+func (tn *ErrorNode) GetLastSibling() *ErrorNode {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Error) GetLastSibling() *Error {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Error: A pointer to the first sibling.
-func (tn *Error) GetFirstSibling() *Error {
+//   - *ErrorNode: A pointer to the first sibling.
+func (tn *ErrorNode) GetFirstSibling() *ErrorNode {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Error) GetFirstSibling() *Error {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Error) IsRoot() bool {
+func (tn *ErrorNode) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Error.AddChild function.
+// same as the behaviors of the ErrorNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Error) AddChildren(children []*Error) {
+func (tn *ErrorNode) AddChildren(children []*ErrorNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Error) AddChildren(children []*Error) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Error) GetChildren() []Noder {
+func (tn *ErrorNode) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Error) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Error) HasChild(target *Error) bool {
+func (tn *ErrorNode) HasChild(target *ErrorNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Error) HasChild(target *Error) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Error) delete_child(target *Error) []Noder {
+func (tn *ErrorNode) delete_child(target *ErrorNode) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Error) delete_child(target *Error) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Error) IsChildOf(target *Error) bool {
+func (tn *ErrorNode) IsChildOf(target *ErrorNode) bool {
 	if target == nil {
 		return false
 	}

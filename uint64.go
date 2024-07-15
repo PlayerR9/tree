@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// Uint64Iterator is a pull-based iterator that iterates
-// over the children of a Uint64.
-type Uint64Iterator struct {
-	parent, current *Uint64
+// Uint64NodeIterator is a pull-based iterator that iterates
+// over the children of a Uint64Node.
+type Uint64NodeIterator struct {
+	parent, current *Uint64Node
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *Uint64Iterator) Consume() (Noder, error) {
+func (iter *Uint64NodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *Uint64Iterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *Uint64Iterator) Restart() {
+func (iter *Uint64NodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Uint64 is a node in a tree.
-type Uint64 struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint64
+// Uint64Node is a node in a tree.
+type Uint64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint64Node
 	Data uint64
 }
 
@@ -45,15 +45,15 @@ type Uint64 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Uint64) Iterator() common.Iterater[Noder] {
-	return &Uint64Iterator{
+func (tn *Uint64Node) Iterator() common.Iterater[Noder] {
+	return &Uint64NodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Uint64) String() string {
+func (tn *Uint64Node) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Uint64) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Uint64) Copy() common.Copier {
+func (tn *Uint64Node) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Uint64) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Uint64{
+	tn_copy := &Uint64Node{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Uint64) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Uint64) SetParent(parent Noder) bool {
+func (tn *Uint64Node) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Uint64)
+	p, ok := parent.(*Uint64Node)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Uint64) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Uint64) GetParent() Noder {
+func (tn *Uint64Node) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Uint64 or nil are ignored.
-func (tn *Uint64) LinkChildren(children []Noder) {
+// Children that are not of type *Uint64Node or nil are ignored.
+func (tn *Uint64Node) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Uint64
+	var valid_children []*Uint64Node
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Uint64)
+		c, ok := child.(*Uint64Node)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Uint64) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Uint64) GetLeaves() []Noder {
+func (tn *Uint64Node) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Uint64) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Uint64)
+		node := top.(*Uint64Node)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Uint64) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Uint64) Cleanup() {
+func (tn *Uint64Node) Cleanup() {
 	type Helper struct {
-		previous, current *Uint64
+		previous, current *Uint64Node
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Uint64) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Uint64) GetAncestors() []Noder {
+func (tn *Uint64Node) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Uint64) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Uint64) IsLeaf() bool {
+func (tn *Uint64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Uint64) IsSingleton() bool {
+func (tn *Uint64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Uint64) GetFirstChild() Noder {
+func (tn *Uint64Node) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Uint64) DeleteChild(target Noder) []Noder {
+func (tn *Uint64Node) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Uint64)
+	n, ok := target.(*Uint64Node)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Uint64) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Uint64)
+		c := child.(*Uint64Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Uint64) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Uint64) Size() int {
+func (tn *Uint64Node) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Uint64) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Uint64, it does nothing.
+// *Uint64Node, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Uint64) AddChild(child Noder) {
+func (tn *Uint64Node) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Uint64)
+	c, ok := child.(*Uint64Node)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Uint64) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Uint64) RemoveNode() []Noder {
+func (tn *Uint64Node) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Uint64) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Uint64)
+		c := child.(*Uint64Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Uint64) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewUint64 creates a new node with the given data.
+// NewUint64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Uint64: A pointer to the newly created node. It is
+//   - *Uint64Node: A pointer to the newly created node. It is
 //   never nil.
-func NewUint64(data uint64) *Uint64 {
-	return &Uint64{
+func NewUint64Node(data uint64) *Uint64Node {
+	return &Uint64Node{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewUint64(data uint64) *Uint64 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Uint64: A pointer to the last sibling.
-func (tn *Uint64) GetLastSibling() *Uint64 {
+//   - *Uint64Node: A pointer to the last sibling.
+func (tn *Uint64Node) GetLastSibling() *Uint64Node {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Uint64) GetLastSibling() *Uint64 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Uint64: A pointer to the first sibling.
-func (tn *Uint64) GetFirstSibling() *Uint64 {
+//   - *Uint64Node: A pointer to the first sibling.
+func (tn *Uint64Node) GetFirstSibling() *Uint64Node {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Uint64) GetFirstSibling() *Uint64 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Uint64) IsRoot() bool {
+func (tn *Uint64Node) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Uint64.AddChild function.
+// same as the behaviors of the Uint64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Uint64) AddChildren(children []*Uint64) {
+func (tn *Uint64Node) AddChildren(children []*Uint64Node) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Uint64) AddChildren(children []*Uint64) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Uint64) GetChildren() []Noder {
+func (tn *Uint64Node) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Uint64) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Uint64) HasChild(target *Uint64) bool {
+func (tn *Uint64Node) HasChild(target *Uint64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Uint64) HasChild(target *Uint64) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Uint64) delete_child(target *Uint64) []Noder {
+func (tn *Uint64Node) delete_child(target *Uint64Node) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Uint64) delete_child(target *Uint64) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Uint64) IsChildOf(target *Uint64) bool {
+func (tn *Uint64Node) IsChildOf(target *Uint64Node) bool {
 	if target == nil {
 		return false
 	}

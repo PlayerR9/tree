@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// RuneIterator is a pull-based iterator that iterates
-// over the children of a Rune.
-type RuneIterator struct {
-	parent, current *Rune
+// RuneNodeIterator is a pull-based iterator that iterates
+// over the children of a RuneNode.
+type RuneNodeIterator struct {
+	parent, current *RuneNode
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *RuneIterator) Consume() (Noder, error) {
+func (iter *RuneNodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *RuneIterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *RuneIterator) Restart() {
+func (iter *RuneNodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Rune is a node in a tree.
-type Rune struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Rune
+// RuneNode is a node in a tree.
+type RuneNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *RuneNode
 	Data rune
 }
 
@@ -45,15 +45,15 @@ type Rune struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Rune) Iterator() common.Iterater[Noder] {
-	return &RuneIterator{
+func (tn *RuneNode) Iterator() common.Iterater[Noder] {
+	return &RuneNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Rune) String() string {
+func (tn *RuneNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Rune) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Rune) Copy() common.Copier {
+func (tn *RuneNode) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Rune) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Rune{
+	tn_copy := &RuneNode{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Rune) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Rune) SetParent(parent Noder) bool {
+func (tn *RuneNode) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Rune)
+	p, ok := parent.(*RuneNode)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Rune) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Rune) GetParent() Noder {
+func (tn *RuneNode) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Rune or nil are ignored.
-func (tn *Rune) LinkChildren(children []Noder) {
+// Children that are not of type *RuneNode or nil are ignored.
+func (tn *RuneNode) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Rune
+	var valid_children []*RuneNode
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Rune)
+		c, ok := child.(*RuneNode)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Rune) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Rune) GetLeaves() []Noder {
+func (tn *RuneNode) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Rune) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Rune)
+		node := top.(*RuneNode)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Rune) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Rune) Cleanup() {
+func (tn *RuneNode) Cleanup() {
 	type Helper struct {
-		previous, current *Rune
+		previous, current *RuneNode
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Rune) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Rune) GetAncestors() []Noder {
+func (tn *RuneNode) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Rune) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Rune) IsLeaf() bool {
+func (tn *RuneNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Rune) IsSingleton() bool {
+func (tn *RuneNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Rune) GetFirstChild() Noder {
+func (tn *RuneNode) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Rune) DeleteChild(target Noder) []Noder {
+func (tn *RuneNode) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Rune)
+	n, ok := target.(*RuneNode)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Rune) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Rune)
+		c := child.(*RuneNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Rune) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Rune) Size() int {
+func (tn *RuneNode) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Rune) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Rune, it does nothing.
+// *RuneNode, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Rune) AddChild(child Noder) {
+func (tn *RuneNode) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Rune)
+	c, ok := child.(*RuneNode)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Rune) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Rune) RemoveNode() []Noder {
+func (tn *RuneNode) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Rune) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Rune)
+		c := child.(*RuneNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Rune) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewRune creates a new node with the given data.
+// NewRuneNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Rune: A pointer to the newly created node. It is
+//   - *RuneNode: A pointer to the newly created node. It is
 //   never nil.
-func NewRune(data rune) *Rune {
-	return &Rune{
+func NewRuneNode(data rune) *RuneNode {
+	return &RuneNode{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewRune(data rune) *Rune {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Rune: A pointer to the last sibling.
-func (tn *Rune) GetLastSibling() *Rune {
+//   - *RuneNode: A pointer to the last sibling.
+func (tn *RuneNode) GetLastSibling() *RuneNode {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Rune) GetLastSibling() *Rune {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Rune: A pointer to the first sibling.
-func (tn *Rune) GetFirstSibling() *Rune {
+//   - *RuneNode: A pointer to the first sibling.
+func (tn *RuneNode) GetFirstSibling() *RuneNode {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Rune) GetFirstSibling() *Rune {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Rune) IsRoot() bool {
+func (tn *RuneNode) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Rune.AddChild function.
+// same as the behaviors of the RuneNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Rune) AddChildren(children []*Rune) {
+func (tn *RuneNode) AddChildren(children []*RuneNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Rune) AddChildren(children []*Rune) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Rune) GetChildren() []Noder {
+func (tn *RuneNode) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Rune) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Rune) HasChild(target *Rune) bool {
+func (tn *RuneNode) HasChild(target *RuneNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Rune) HasChild(target *Rune) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Rune) delete_child(target *Rune) []Noder {
+func (tn *RuneNode) delete_child(target *RuneNode) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Rune) delete_child(target *Rune) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Rune) IsChildOf(target *Rune) bool {
+func (tn *RuneNode) IsChildOf(target *RuneNode) bool {
 	if target == nil {
 		return false
 	}

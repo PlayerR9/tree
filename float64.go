@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// Float64Iterator is a pull-based iterator that iterates
-// over the children of a Float64.
-type Float64Iterator struct {
-	parent, current *Float64
+// Float64NodeIterator is a pull-based iterator that iterates
+// over the children of a Float64Node.
+type Float64NodeIterator struct {
+	parent, current *Float64Node
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *Float64Iterator) Consume() (Noder, error) {
+func (iter *Float64NodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *Float64Iterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *Float64Iterator) Restart() {
+func (iter *Float64NodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Float64 is a node in a tree.
-type Float64 struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Float64
+// Float64Node is a node in a tree.
+type Float64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Float64Node
 	Data float64
 }
 
@@ -45,15 +45,15 @@ type Float64 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Float64) Iterator() common.Iterater[Noder] {
-	return &Float64Iterator{
+func (tn *Float64Node) Iterator() common.Iterater[Noder] {
+	return &Float64NodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Float64) String() string {
+func (tn *Float64Node) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Float64) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Float64) Copy() common.Copier {
+func (tn *Float64Node) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Float64) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Float64{
+	tn_copy := &Float64Node{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Float64) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Float64) SetParent(parent Noder) bool {
+func (tn *Float64Node) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Float64)
+	p, ok := parent.(*Float64Node)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Float64) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Float64) GetParent() Noder {
+func (tn *Float64Node) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Float64 or nil are ignored.
-func (tn *Float64) LinkChildren(children []Noder) {
+// Children that are not of type *Float64Node or nil are ignored.
+func (tn *Float64Node) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Float64
+	var valid_children []*Float64Node
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Float64)
+		c, ok := child.(*Float64Node)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Float64) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Float64) GetLeaves() []Noder {
+func (tn *Float64Node) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Float64) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Float64)
+		node := top.(*Float64Node)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Float64) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Float64) Cleanup() {
+func (tn *Float64Node) Cleanup() {
 	type Helper struct {
-		previous, current *Float64
+		previous, current *Float64Node
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Float64) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Float64) GetAncestors() []Noder {
+func (tn *Float64Node) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Float64) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Float64) IsLeaf() bool {
+func (tn *Float64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Float64) IsSingleton() bool {
+func (tn *Float64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Float64) GetFirstChild() Noder {
+func (tn *Float64Node) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Float64) DeleteChild(target Noder) []Noder {
+func (tn *Float64Node) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Float64)
+	n, ok := target.(*Float64Node)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Float64) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Float64)
+		c := child.(*Float64Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Float64) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Float64) Size() int {
+func (tn *Float64Node) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Float64) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Float64, it does nothing.
+// *Float64Node, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Float64) AddChild(child Noder) {
+func (tn *Float64Node) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Float64)
+	c, ok := child.(*Float64Node)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Float64) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Float64) RemoveNode() []Noder {
+func (tn *Float64Node) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Float64) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Float64)
+		c := child.(*Float64Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Float64) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewFloat64 creates a new node with the given data.
+// NewFloat64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Float64: A pointer to the newly created node. It is
+//   - *Float64Node: A pointer to the newly created node. It is
 //   never nil.
-func NewFloat64(data float64) *Float64 {
-	return &Float64{
+func NewFloat64Node(data float64) *Float64Node {
+	return &Float64Node{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewFloat64(data float64) *Float64 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Float64: A pointer to the last sibling.
-func (tn *Float64) GetLastSibling() *Float64 {
+//   - *Float64Node: A pointer to the last sibling.
+func (tn *Float64Node) GetLastSibling() *Float64Node {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Float64) GetLastSibling() *Float64 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Float64: A pointer to the first sibling.
-func (tn *Float64) GetFirstSibling() *Float64 {
+//   - *Float64Node: A pointer to the first sibling.
+func (tn *Float64Node) GetFirstSibling() *Float64Node {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Float64) GetFirstSibling() *Float64 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Float64) IsRoot() bool {
+func (tn *Float64Node) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Float64.AddChild function.
+// same as the behaviors of the Float64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Float64) AddChildren(children []*Float64) {
+func (tn *Float64Node) AddChildren(children []*Float64Node) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Float64) AddChildren(children []*Float64) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Float64) GetChildren() []Noder {
+func (tn *Float64Node) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Float64) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Float64) HasChild(target *Float64) bool {
+func (tn *Float64Node) HasChild(target *Float64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Float64) HasChild(target *Float64) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Float64) delete_child(target *Float64) []Noder {
+func (tn *Float64Node) delete_child(target *Float64Node) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Float64) delete_child(target *Float64) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Float64) IsChildOf(target *Float64) bool {
+func (tn *Float64Node) IsChildOf(target *Float64Node) bool {
 	if target == nil {
 		return false
 	}

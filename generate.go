@@ -1,23 +1,23 @@
-//go:generate go run cmd/treenode/main.go -type=TreeNode -fields=Data/T -g=T/any -output=generic.go
-//go:generate go run cmd/treenode/main.go -type=Bool -fields=Data/bool -output=bool.go
-//go:generate go run cmd/treenode/main.go -type=Byte -fields=Data/byte -output=byte.go
-//go:generate go run cmd/treenode/main.go -type=Complex64 -fields=Data/complex64 -output=complex64.go
-//go:generate go run cmd/treenode/main.go -type=Complex128 -fields=Data/complex128 -output=complex128.go
-//go:generate go run cmd/treenode/main.go -type=Error -fields=Data/error -output=error.go
-//go:generate go run cmd/treenode/main.go -type=Float32 -fields=Data/float32 -output=float32.go
-//go:generate go run cmd/treenode/main.go -type=Float64 -fields=Data/float64 -output=float64.go
-//go:generate go run cmd/treenode/main.go -type=Int -fields=Data/int -output=int.go
-//go:generate go run cmd/treenode/main.go -type=Int8 -fields=Data/int8 -output=int8.go
-//go:generate go run cmd/treenode/main.go -type=Int16 -fields=Data/int16 -output=int16.go
-//go:generate go run cmd/treenode/main.go -type=Int32 -fields=Data/int32 -output=int32.go
-//go:generate go run cmd/treenode/main.go -type=Int64 -fields=Data/int64 -output=int64.go
-//go:generate go run cmd/treenode/main.go -type=Rune -fields=Data/rune -output=rune.go
-//go:generate go run cmd/treenode/main.go -type=String -fields=Data/string -output=string.go
-//go:generate go run cmd/treenode/main.go -type=Uint -fields=Data/uint -output=uint.go
-//go:generate go run cmd/treenode/main.go -type=Uint8 -fields=Data/uint8 -output=uint8.go
-//go:generate go run cmd/treenode/main.go -type=Uint16 -fields=Data/uint16 -output=uint16.go
-//go:generate go run cmd/treenode/main.go -type=Uint32 -fields=Data/uint32 -output=uint32.go
-//go:generate go run cmd/treenode/main.go -type=Uint64 -fields=Data/uint64 -output=uint64.go
-//go:generate go run cmd/treenode/main.go -type=Uintptr -fields=Data/uintptr -output=uintptr.go
-//go:generate go run cmd/treenode/main.go -type=StatusNode -fields=Status/S,Data/T -g=S/common.Enumer,T/any -output=status.go
+//go:generate go run cmd/treenode/main.go -name=TreeNode -fields=Data/T -g=T/any -o=generic.go
+//go:generate go run cmd/treenode/main.go -name=BoolNode -fields=Data/bool -o=bool.go
+//go:generate go run cmd/treenode/main.go -name=ByteNode -fields=Data/byte -o=byte.go
+//go:generate go run cmd/treenode/main.go -name=Complex64Node -fields=Data/complex64 -o=complex64.go
+//go:generate go run cmd/treenode/main.go -name=Complex128Node -fields=Data/complex128 -o=complex128.go
+//go:generate go run cmd/treenode/main.go -name=ErrorNode -fields=Data/error -o=error.go
+//go:generate go run cmd/treenode/main.go -name=Float32Node -fields=Data/float32 -o=float32.go
+//go:generate go run cmd/treenode/main.go -name=Float64Node -fields=Data/float64 -o=float64.go
+//go:generate go run cmd/treenode/main.go -name=IntNode -fields=Data/int -o=int.go
+//go:generate go run cmd/treenode/main.go -name=Int8Node -fields=Data/int8 -o=int8.go
+//go:generate go run cmd/treenode/main.go -name=Int16Node -fields=Data/int16 -o=int16.go
+//go:generate go run cmd/treenode/main.go -name=Int32Node -fields=Data/int32 -o=int32.go
+//go:generate go run cmd/treenode/main.go -name=Int64Node -fields=Data/int64 -o=int64.go
+//go:generate go run cmd/treenode/main.go -name=RuneNode -fields=Data/rune -o=rune.go
+//go:generate go run cmd/treenode/main.go -name=StringNode -fields=Data/string -o=string.go
+//go:generate go run cmd/treenode/main.go -name=UintNode -fields=Data/uint -o=uint.go
+//go:generate go run cmd/treenode/main.go -name=Uint8Node -fields=Data/uint8 -o=uint8.go
+//go:generate go run cmd/treenode/main.go -name=Uint16Node -fields=Data/uint16 -o=uint16.go
+//go:generate go run cmd/treenode/main.go -name=Uint32Node -fields=Data/uint32 -o=uint32.go
+//go:generate go run cmd/treenode/main.go -name=Uint64Node -fields=Data/uint64 -o=uint64.go
+//go:generate go run cmd/treenode/main.go -name=UintptrNode -fields=Data/uintptr -o=uintptr.go
+//go:generate go run cmd/treenode/main.go -name=StatusNode -fields=Status/S,Data/T -g=S/common.Enumer,T/any -o=status.go
 package treenode

@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// Int16Iterator is a pull-based iterator that iterates
-// over the children of a Int16.
-type Int16Iterator struct {
-	parent, current *Int16
+// Int16NodeIterator is a pull-based iterator that iterates
+// over the children of a Int16Node.
+type Int16NodeIterator struct {
+	parent, current *Int16Node
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *Int16Iterator) Consume() (Noder, error) {
+func (iter *Int16NodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *Int16Iterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *Int16Iterator) Restart() {
+func (iter *Int16NodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Int16 is a node in a tree.
-type Int16 struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int16
+// Int16Node is a node in a tree.
+type Int16Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int16Node
 	Data int16
 }
 
@@ -45,15 +45,15 @@ type Int16 struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Int16) Iterator() common.Iterater[Noder] {
-	return &Int16Iterator{
+func (tn *Int16Node) Iterator() common.Iterater[Noder] {
+	return &Int16NodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Int16) String() string {
+func (tn *Int16Node) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Int16) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Int16) Copy() common.Copier {
+func (tn *Int16Node) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Int16) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Int16{
+	tn_copy := &Int16Node{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Int16) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Int16) SetParent(parent Noder) bool {
+func (tn *Int16Node) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Int16)
+	p, ok := parent.(*Int16Node)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Int16) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Int16) GetParent() Noder {
+func (tn *Int16Node) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Int16 or nil are ignored.
-func (tn *Int16) LinkChildren(children []Noder) {
+// Children that are not of type *Int16Node or nil are ignored.
+func (tn *Int16Node) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Int16
+	var valid_children []*Int16Node
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Int16)
+		c, ok := child.(*Int16Node)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Int16) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Int16) GetLeaves() []Noder {
+func (tn *Int16Node) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Int16) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Int16)
+		node := top.(*Int16Node)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Int16) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Int16) Cleanup() {
+func (tn *Int16Node) Cleanup() {
 	type Helper struct {
-		previous, current *Int16
+		previous, current *Int16Node
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Int16) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Int16) GetAncestors() []Noder {
+func (tn *Int16Node) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Int16) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Int16) IsLeaf() bool {
+func (tn *Int16Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Int16) IsSingleton() bool {
+func (tn *Int16Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Int16) GetFirstChild() Noder {
+func (tn *Int16Node) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Int16) DeleteChild(target Noder) []Noder {
+func (tn *Int16Node) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Int16)
+	n, ok := target.(*Int16Node)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Int16) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Int16)
+		c := child.(*Int16Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Int16) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Int16) Size() int {
+func (tn *Int16Node) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Int16) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Int16, it does nothing.
+// *Int16Node, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Int16) AddChild(child Noder) {
+func (tn *Int16Node) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Int16)
+	c, ok := child.(*Int16Node)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Int16) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Int16) RemoveNode() []Noder {
+func (tn *Int16Node) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Int16) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Int16)
+		c := child.(*Int16Node)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Int16) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewInt16 creates a new node with the given data.
+// NewInt16Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Int16: A pointer to the newly created node. It is
+//   - *Int16Node: A pointer to the newly created node. It is
 //   never nil.
-func NewInt16(data int16) *Int16 {
-	return &Int16{
+func NewInt16Node(data int16) *Int16Node {
+	return &Int16Node{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewInt16(data int16) *Int16 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Int16: A pointer to the last sibling.
-func (tn *Int16) GetLastSibling() *Int16 {
+//   - *Int16Node: A pointer to the last sibling.
+func (tn *Int16Node) GetLastSibling() *Int16Node {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Int16) GetLastSibling() *Int16 {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Int16: A pointer to the first sibling.
-func (tn *Int16) GetFirstSibling() *Int16 {
+//   - *Int16Node: A pointer to the first sibling.
+func (tn *Int16Node) GetFirstSibling() *Int16Node {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Int16) GetFirstSibling() *Int16 {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Int16) IsRoot() bool {
+func (tn *Int16Node) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Int16.AddChild function.
+// same as the behaviors of the Int16Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Int16) AddChildren(children []*Int16) {
+func (tn *Int16Node) AddChildren(children []*Int16Node) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Int16) AddChildren(children []*Int16) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Int16) GetChildren() []Noder {
+func (tn *Int16Node) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Int16) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Int16) HasChild(target *Int16) bool {
+func (tn *Int16Node) HasChild(target *Int16Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Int16) HasChild(target *Int16) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Int16) delete_child(target *Int16) []Noder {
+func (tn *Int16Node) delete_child(target *Int16Node) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Int16) delete_child(target *Int16) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Int16) IsChildOf(target *Int16) bool {
+func (tn *Int16Node) IsChildOf(target *Int16Node) bool {
 	if target == nil {
 		return false
 	}

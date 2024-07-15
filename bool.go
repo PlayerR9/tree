@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// BoolIterator is a pull-based iterator that iterates
-// over the children of a Bool.
-type BoolIterator struct {
-	parent, current *Bool
+// BoolNodeIterator is a pull-based iterator that iterates
+// over the children of a BoolNode.
+type BoolNodeIterator struct {
+	parent, current *BoolNode
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *BoolIterator) Consume() (Noder, error) {
+func (iter *BoolNodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *BoolIterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *BoolIterator) Restart() {
+func (iter *BoolNodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Bool is a node in a tree.
-type Bool struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Bool
+// BoolNode is a node in a tree.
+type BoolNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *BoolNode
 	Data bool
 }
 
@@ -45,15 +45,15 @@ type Bool struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Bool) Iterator() common.Iterater[Noder] {
-	return &BoolIterator{
+func (tn *BoolNode) Iterator() common.Iterater[Noder] {
+	return &BoolNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Bool) String() string {
+func (tn *BoolNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Bool) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Bool) Copy() common.Copier {
+func (tn *BoolNode) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Bool) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Bool{
+	tn_copy := &BoolNode{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Bool) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Bool) SetParent(parent Noder) bool {
+func (tn *BoolNode) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Bool)
+	p, ok := parent.(*BoolNode)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Bool) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Bool) GetParent() Noder {
+func (tn *BoolNode) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Bool or nil are ignored.
-func (tn *Bool) LinkChildren(children []Noder) {
+// Children that are not of type *BoolNode or nil are ignored.
+func (tn *BoolNode) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Bool
+	var valid_children []*BoolNode
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Bool)
+		c, ok := child.(*BoolNode)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Bool) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Bool) GetLeaves() []Noder {
+func (tn *BoolNode) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Bool) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Bool)
+		node := top.(*BoolNode)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Bool) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Bool) Cleanup() {
+func (tn *BoolNode) Cleanup() {
 	type Helper struct {
-		previous, current *Bool
+		previous, current *BoolNode
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Bool) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Bool) GetAncestors() []Noder {
+func (tn *BoolNode) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Bool) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Bool) IsLeaf() bool {
+func (tn *BoolNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Bool) IsSingleton() bool {
+func (tn *BoolNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Bool) GetFirstChild() Noder {
+func (tn *BoolNode) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Bool) DeleteChild(target Noder) []Noder {
+func (tn *BoolNode) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Bool)
+	n, ok := target.(*BoolNode)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Bool) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Bool)
+		c := child.(*BoolNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Bool) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Bool) Size() int {
+func (tn *BoolNode) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Bool) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Bool, it does nothing.
+// *BoolNode, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Bool) AddChild(child Noder) {
+func (tn *BoolNode) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Bool)
+	c, ok := child.(*BoolNode)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Bool) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Bool) RemoveNode() []Noder {
+func (tn *BoolNode) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Bool) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Bool)
+		c := child.(*BoolNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Bool) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewBool creates a new node with the given data.
+// NewBoolNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Bool: A pointer to the newly created node. It is
+//   - *BoolNode: A pointer to the newly created node. It is
 //   never nil.
-func NewBool(data bool) *Bool {
-	return &Bool{
+func NewBoolNode(data bool) *BoolNode {
+	return &BoolNode{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewBool(data bool) *Bool {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Bool: A pointer to the last sibling.
-func (tn *Bool) GetLastSibling() *Bool {
+//   - *BoolNode: A pointer to the last sibling.
+func (tn *BoolNode) GetLastSibling() *BoolNode {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Bool) GetLastSibling() *Bool {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Bool: A pointer to the first sibling.
-func (tn *Bool) GetFirstSibling() *Bool {
+//   - *BoolNode: A pointer to the first sibling.
+func (tn *BoolNode) GetFirstSibling() *BoolNode {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Bool) GetFirstSibling() *Bool {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Bool) IsRoot() bool {
+func (tn *BoolNode) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Bool.AddChild function.
+// same as the behaviors of the BoolNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Bool) AddChildren(children []*Bool) {
+func (tn *BoolNode) AddChildren(children []*BoolNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Bool) AddChildren(children []*Bool) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Bool) GetChildren() []Noder {
+func (tn *BoolNode) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Bool) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Bool) HasChild(target *Bool) bool {
+func (tn *BoolNode) HasChild(target *BoolNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Bool) HasChild(target *Bool) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Bool) delete_child(target *Bool) []Noder {
+func (tn *BoolNode) delete_child(target *BoolNode) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Bool) delete_child(target *Bool) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Bool) IsChildOf(target *Bool) bool {
+func (tn *BoolNode) IsChildOf(target *BoolNode) bool {
 	if target == nil {
 		return false
 	}

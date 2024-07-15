@@ -9,17 +9,17 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
-// UintIterator is a pull-based iterator that iterates
-// over the children of a Uint.
-type UintIterator struct {
-	parent, current *Uint
+// UintNodeIterator is a pull-based iterator that iterates
+// over the children of a UintNode.
+type UintNodeIterator struct {
+	parent, current *UintNode
 }
 
 // Consume implements the common.Iterater interface.
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *UintIterator) Consume() (Noder, error) {
+func (iter *UintNodeIterator) Consume() (Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -31,13 +31,13 @@ func (iter *UintIterator) Consume() (Noder, error) {
 }
 
 // Restart implements the common.Iterater interface.
-func (iter *UintIterator) Restart() {
+func (iter *UintNodeIterator) Restart() {
 	iter.current = iter.parent.FirstChild
 }
 
-// Uint is a node in a tree.
-type Uint struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint
+// UintNode is a node in a tree.
+type UintNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *UintNode
 	Data uint
 }
 
@@ -45,15 +45,15 @@ type Uint struct {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *Uint) Iterator() common.Iterater[Noder] {
-	return &UintIterator{
+func (tn *UintNode) Iterator() common.Iterater[Noder] {
+	return &UintNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
 // String implements the Noder interface.
-func (tn *Uint) String() string {
+func (tn *UintNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
 
@@ -63,7 +63,7 @@ func (tn *Uint) String() string {
 // Copy implements the Noder interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *Uint) Copy() common.Copier {
+func (tn *UintNode) Copy() common.Copier {
 	var child_copy []Noder	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -72,7 +72,7 @@ func (tn *Uint) Copy() common.Copier {
 
 	// Copy here the data of the node.
 
-	tn_copy := &Uint{
+	tn_copy := &UintNode{
 	 	// Add here the copied data of the node.
 	}
 
@@ -82,13 +82,13 @@ func (tn *Uint) Copy() common.Copier {
 }
 
 // SetParent implements the Noder interface.
-func (tn *Uint) SetParent(parent Noder) bool {
+func (tn *UintNode) SetParent(parent Noder) bool {
 	if parent == nil {
 		tn.Parent = nil
 		return true
 	}
 
-	p, ok := parent.(*Uint)
+	p, ok := parent.(*UintNode)
 	if !ok {
 		return false
 	}
@@ -99,26 +99,26 @@ func (tn *Uint) SetParent(parent Noder) bool {
 }
 
 // GetParent implements the Noder interface.
-func (tn *Uint) GetParent() Noder {
+func (tn *UintNode) GetParent() Noder {
 	return tn.Parent
 }
 
 // LinkWithParent implements the Noder interface.
 //
-// Children that are not of type *Uint or nil are ignored.
-func (tn *Uint) LinkChildren(children []Noder) {
+// Children that are not of type *UintNode or nil are ignored.
+func (tn *UintNode) LinkChildren(children []Noder) {
 	if len(children) == 0 {
 		return
 	}
 
-	var valid_children []*Uint
+	var valid_children []*UintNode
 
 	for _, child := range children {
 		if child == nil {
 			continue
 		}
 
-		c, ok := child.(*Uint)
+		c, ok := child.(*UintNode)
 		if ok {
 			c.Parent = tn
 			valid_children = append(valid_children, c)
@@ -156,7 +156,7 @@ func (tn *Uint) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Uint) GetLeaves() []Noder {
+func (tn *UintNode) GetLeaves() []Noder {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -170,7 +170,7 @@ func (tn *Uint) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*Uint)
+		node := top.(*UintNode)
 		if node.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
@@ -193,9 +193,9 @@ func (tn *Uint) GetLeaves() []Noder {
 // make sure goroutines are not running on the tree while this function is called).
 //
 // Finally, it also logically removes the node from the siblings and the parent.
-func (tn *Uint) Cleanup() {
+func (tn *UintNode) Cleanup() {
 	type Helper struct {
-		previous, current *Uint
+		previous, current *UintNode
 	}
 
 	stack := Stacker.NewLinkedStack[*Helper]()
@@ -262,7 +262,7 @@ func (tn *Uint) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *Uint) GetAncestors() []Noder {
+func (tn *UintNode) GetAncestors() []Noder {
 	var ancestors []Noder
 
 	for node := tn; node.Parent != nil; node = node.Parent {
@@ -275,29 +275,29 @@ func (tn *Uint) GetAncestors() []Noder {
 }
 
 // IsLeaf implements the Noder interface.
-func (tn *Uint) IsLeaf() bool {
+func (tn *UintNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the Noder interface.
-func (tn *Uint) IsSingleton() bool {
+func (tn *UintNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // GetFirstChild implements the Noder interface.
-func (tn *Uint) GetFirstChild() Noder {
+func (tn *UintNode) GetFirstChild() Noder {
 	return tn.FirstChild
 }
 
 // DeleteChild implements the Noder interface.
 //
 // No nil nodes are returned.
-func (tn *Uint) DeleteChild(target Noder) []Noder {
+func (tn *UintNode) DeleteChild(target Noder) []Noder {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*Uint)
+	n, ok := target.(*UintNode)
 	if !ok {
 		return nil
 	}
@@ -309,7 +309,7 @@ func (tn *Uint) DeleteChild(target Noder) []Noder {
 	}
 
 	for _, child := range children {
-		c := child.(*Uint)
+		c := child.(*UintNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -330,7 +330,7 @@ func (tn *Uint) DeleteChild(target Noder) []Noder {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func (tn *Uint) Size() int {
+func (tn *UintNode) Size() int {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
@@ -355,19 +355,19 @@ func (tn *Uint) Size() int {
 }
 
 // AddChild adds a new child to the node. If the child is nil or it is not of type
-// *Uint, it does nothing.
+// *UintNode, it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *Uint) AddChild(child Noder) {
+func (tn *UintNode) AddChild(child Noder) {
 	if child == nil {
 		return
 	}
 
-	c, ok := child.(*Uint)
+	c, ok := child.(*UintNode)
 	if !ok {
 		return
 	}
@@ -415,7 +415,7 @@ func (tn *Uint) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *Uint) RemoveNode() []Noder {
+func (tn *UintNode) RemoveNode() []Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -455,7 +455,7 @@ func (tn *Uint) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*Uint)
+		c := child.(*UintNode)
 
 		c.PrevSibling = nil
 		c.NextSibling = nil
@@ -468,16 +468,16 @@ func (tn *Uint) RemoveNode() []Noder {
 	return sub_roots
 }
 
-// NewUint creates a new node with the given data.
+// NewUintNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Uint: A pointer to the newly created node. It is
+//   - *UintNode: A pointer to the newly created node. It is
 //   never nil.
-func NewUint(data uint) *Uint {
-	return &Uint{
+func NewUintNode(data uint) *UintNode {
+	return &UintNode{
 		Data: data,
 	}
 }
@@ -490,8 +490,8 @@ func NewUint(data uint) *Uint {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Uint: A pointer to the last sibling.
-func (tn *Uint) GetLastSibling() *Uint {
+//   - *UintNode: A pointer to the last sibling.
+func (tn *UintNode) GetLastSibling() *UintNode {
 	if tn.Parent != nil {
 		return tn.Parent.LastChild
 	} else if tn.NextSibling == nil {
@@ -515,8 +515,8 @@ func (tn *Uint) GetLastSibling() *Uint {
 // the node itself. Thus, this function never returns nil.
 //
 // Returns:
-//   - *Uint: A pointer to the first sibling.
-func (tn *Uint) GetFirstSibling() *Uint {
+//   - *UintNode: A pointer to the first sibling.
+func (tn *UintNode) GetFirstSibling() *UintNode {
 	if tn.Parent != nil {
 		return tn.Parent.FirstChild
 	} else if tn.PrevSibling == nil {
@@ -536,17 +536,17 @@ func (tn *Uint) GetFirstSibling() *Uint {
 //
 // Returns:
 //   - bool: True if the node is the root, false otherwise.
-func (tn *Uint) IsRoot() bool {
+func (tn *UintNode) IsRoot() bool {
 	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Uint.AddChild function.
+// same as the behaviors of the UintNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Uint) AddChildren(children []*Uint) {
+func (tn *UintNode) AddChildren(children []*UintNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -608,7 +608,7 @@ func (tn *Uint) AddChildren(children []*Uint) {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Uint) GetChildren() []Noder {
+func (tn *UintNode) GetChildren() []Noder {
 	var children []Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -627,7 +627,7 @@ func (tn *Uint) GetChildren() []Noder {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Uint) HasChild(target *Uint) bool {
+func (tn *UintNode) HasChild(target *UintNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -650,7 +650,7 @@ func (tn *Uint) HasChild(target *Uint) bool {
 //
 // Returns:
 //   - []Noder: A slice of pointers to the children of the node.
-func (tn *Uint) delete_child(target *Uint) []Noder {
+func (tn *UintNode) delete_child(target *UintNode) []Noder {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -694,7 +694,7 @@ func (tn *Uint) delete_child(target *Uint) []Noder {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Uint) IsChildOf(target *Uint) bool {
+func (tn *UintNode) IsChildOf(target *UintNode) bool {
 	if target == nil {
 		return false
 	}

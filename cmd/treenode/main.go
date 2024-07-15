@@ -2,11 +2,11 @@
 //
 // To use it, run the following command:
 //
-// //go:generate go run github.com/PlayerR9/treenode/cmd/treenode -type=<type_name> -fields=<field_list> [ -g=<generics>] [ -output=<output_file> ]
+// //go:generate go run github.com/PlayerR9/treenode/cmd/treenode -name=<type_name> -fields=<field_list> [ -g=<generics>] [ -o=<output_file> ]
 //
 // **Flag: Type Name**
 //
-// The "type name" flag is used to specify the name of the tree node struct. As such, it must be set and,
+// The "name" flag is used to specify the name of the tree node struct. As such, it must be set and,
 // not only does it have to be a valid Go identifier, but it also must start with an upper case letter.
 //
 // **Flag: Fields**
@@ -21,7 +21,7 @@
 //
 // For instance, running the following command:
 //
-//	//go:generate treenode -type="TreeNode" -fields=a/int,b/int,name/string
+//	//go:generate treenode -name=TreeNode -fields=a/int,b/int,name/string
 //
 // will generate a tree node with the following fields:
 //
@@ -52,7 +52,7 @@
 //
 // For instance, running the following command:
 //
-//	//go:generate treenode -type="TreeNode" -fields=a/MyType[T],b/MyType[C] -g=T/any,C/int
+//	//go:generate treenode -name=TreeNode -fields=a/MyType[T],b/MyType[C] -g=T/any,C/int
 //
 // will generate a tree node with the following fields:
 //
@@ -70,12 +70,12 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"text/template"
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	ggen "github.com/PlayerR9/MyGoLib/go_generator"
-	pkg "github.com/PlayerR9/treenode/cmd/treenode/pkg"
 )
 
 var (
@@ -87,13 +87,47 @@ func init() {
 	Logger = ggen.InitLogger("treenode")
 }
 
-func main() {
-	type_name := uc.AssertNil(pkg.TypeNameFlag, "TypeNameFlag")
+var (
+	// TypeNameFlag is the flag for the type name.
+	TypeNameFlag *string
+)
 
+func init() {
+	TypeNameFlag = flag.String("name", "",
+		"The name of the struct to generate the tree node for. It must be set."+
+			" Must start with an upper case letter and must be a valid Go identifier.",
+	)
+
+	ggen.SetOutputFlag("<type_name>_treenode.go", false)
+	ggen.SetStructFieldsFlag("fields", true, -1, "The fields to generate the code for.")
+	ggen.SetGenericsSignFlag("g", false, -1)
+}
+
+type GenData struct {
+	PackageName   string
+	TypeName      string
+	TypeSig       string
+	Fields        map[string]string
+	IteratorName  string
+	IteratorSig   string
+	ParamList     string
+	AssignmentMap map[string]string
+	Generics      string
+	Noder         string
+}
+
+func (g GenData) SetPackageName(pkg_name string) ggen.Generater {
+	g.PackageName = pkg_name
+	return g
+}
+
+func main() {
 	err := ggen.ParseFlags()
 	if err != nil {
 		Logger.Fatalf("Could not parse flags: %s", err.Error())
 	}
+
+	type_name := uc.AssertNil(TypeNameFlag, "TypeNameFlag")
 
 	err = ggen.IsValidName(type_name, nil, ggen.Exported)
 	if err != nil {
@@ -119,39 +153,43 @@ func main() {
 		Logger.Fatalf("Could not generate type signature: %s", err.Error())
 	}
 
-	param_list, err := pkg.MakeParameterList(nil) // fix me
-	if err != nil {
-		Logger.Fatalf("Could not generate parameter list: %s", err.Error())
+	data := GenData{
+		TypeName:     type_name,
+		TypeSig:      tn_type_sig,
+		IteratorName: type_name + "Iterator",
+		IteratorSig:  tn_iterator_sig,
+		Generics:     ggen.GenericsSigFlag.String(),
 	}
 
-	assignment_map, err := pkg.MakeAssignmentList(nil) // fix me
-	if err != nil {
-		Logger.Fatalf("Could not generate assignment map: %s", err.Error())
-	}
+	err = ggen.Generate(filename, data, t,
+		func(data GenData) GenData {
+			if data.PackageName == "treenode" {
+				data.Noder = "Noder"
+			} else {
+				data.Noder = "treenode.Noder"
+			}
 
-	/*
-		var noder string
+			return data
+		},
+		func(data GenData) GenData {
+			param_list, err := ggen.MakeParameterList()
+			if err != nil {
+				Logger.Fatalf("Could not generate parameter list: %s", err.Error())
+			}
 
-		if package_name == "treenode" {
-			noder = "Noder"
-		} else {
-			noder = "treenode.Noder"
-		}
-	*/
+			assignment_map, err := ggen.MakeAssignmentList()
+			if err != nil {
+				Logger.Fatalf("Could not generate assignment map: %s", err.Error())
+			}
 
-	data := pkg.GenData{
-		TypeName:      type_name,
-		TypeSig:       tn_type_sig,
-		Fields:        nil, // fix me
-		IteratorName:  type_name + "Iterator",
-		IteratorSig:   tn_iterator_sig,
-		ParamList:     param_list,
-		AssignmentMap: assignment_map,
-		Generics:      ggen.GenericsSigFlag.String(), //
-		Noder:         "",                            // fix me noder,
-	}
+			data.ParamList = param_list
+			data.AssignmentMap = assignment_map
 
-	err = ggen.Generate(filename, data, t)
+			data.Fields = ggen.GetFields()
+
+			return data
+		},
+	)
 	if err != nil {
 		Logger.Fatalf("Could not generate code: %s", err.Error())
 	}
