@@ -205,7 +205,10 @@ import (
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
-	{{- if ne .PackageName "treenode" }} "github.com/PlayerR9/treenode" {{- end }}
+	
+	{{- if ne .PackageName "treenode" }}
+		"github.com/PlayerR9/treenode"
+	{{- end }}
 )
 
 // {{ .IteratorName }} is a pull-based iterator that iterates
