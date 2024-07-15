@@ -81,10 +81,15 @@ import (
 var (
 	// Logger is the logger for the package.
 	Logger *log.Logger
+
+	// t is the template for the tree node.
+	t *template.Template
 )
 
 func init() {
 	Logger = ggen.InitLogger("treenode")
+
+	t = template.Must(template.New("").Parse(templ))
 }
 
 var (
@@ -138,10 +143,6 @@ func main() {
 	if err != nil {
 		Logger.Fatalf("Could not fix output location: %s", err.Error())
 	}
-
-	t := template.Must(
-		template.New("").Parse(templ),
-	)
 
 	tn_type_sig, err := ggen.MakeTypeSig(type_name, "")
 	if err != nil {
