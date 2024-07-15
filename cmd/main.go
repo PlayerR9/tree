@@ -72,6 +72,7 @@ package main
 import (
 	"flag"
 	"log"
+	"strings"
 	"text/template"
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
@@ -108,19 +109,40 @@ func init() {
 	ggen.SetGenericsSignFlag("g", false, -1)
 }
 
+// GenData is the data for the generator.
 type GenData struct {
-	PackageName   string
-	TypeName      string
-	TypeSig       string
-	Fields        map[string]string
-	IteratorName  string
-	IteratorSig   string
-	ParamList     string
+	// PackageName is the name of the package.
+	PackageName string
+
+	// TypeName is the name of the type.
+	TypeName string
+
+	// TypeSig is the signature of the type.
+	TypeSig string
+
+	// Fields is the list of fields.
+	Fields map[string]string
+
+	// IteratorName is the name of the iterator.
+	IteratorName string
+
+	// IteratorSig is the signature of the iterator.
+	IteratorSig string
+
+	// ParamList is the list of parameters.
+	ParamList string
+
+	// AssignmentMap is the map of assignments.
 	AssignmentMap map[string]string
-	Generics      string
-	Noder         string
+
+	// Generics is the list of generics.
+	Generics string
+
+	// Noder is the name of the struct that implements the Noder interface.
+	Noder string
 }
 
+// SetPackageName implements the ggen.Generater interface.
 func (g GenData) SetPackageName(pkg_name string) ggen.Generater {
 	g.PackageName = pkg_name
 	return g
@@ -144,25 +166,47 @@ func main() {
 		Logger.Fatalf("Could not fix output location: %s", err.Error())
 	}
 
-	tn_type_sig, err := ggen.MakeTypeSig(type_name, "")
-	if err != nil {
-		Logger.Fatalf("Could not generate type signature: %s", err.Error())
-	}
+	err = ggen.Generate(filename, GenData{}, t,
+		func(data GenData) GenData {
+			data.TypeName = type_name
 
-	tn_iterator_sig, err := ggen.MakeTypeSig(type_name, "Iterator")
-	if err != nil {
-		Logger.Fatalf("Could not generate type signature: %s", err.Error())
-	}
+			return data
+		},
+		func(data GenData) GenData {
+			tn_type_sig, err := ggen.MakeTypeSig(type_name, "")
+			if err != nil {
+				Logger.Fatalf("Could not generate type signature: %s", err.Error())
+			}
 
-	data := GenData{
-		TypeName:     type_name,
-		TypeSig:      tn_type_sig,
-		IteratorName: type_name + "Iterator",
-		IteratorSig:  tn_iterator_sig,
-		Generics:     ggen.GenericsSigFlag.String(),
-	}
+			data.TypeSig = tn_type_sig
 
-	err = ggen.Generate(filename, data, t,
+			return data
+		},
+		func(data GenData) GenData {
+			tn_iterator_sig, err := ggen.MakeTypeSig(type_name, "Iterator")
+			if err != nil {
+				Logger.Fatalf("Could not generate type signature: %s", err.Error())
+			}
+
+			data.IteratorSig = tn_iterator_sig
+
+			return data
+		},
+		func(data GenData) GenData {
+			data.Generics = ggen.GenericsSigFlag.String()
+
+			return data
+		},
+		func(data GenData) GenData {
+			var builder strings.Builder
+
+			builder.WriteString(type_name)
+			builder.WriteString("Iterator")
+
+			data.IteratorName = builder.String()
+
+			return data
+		},
 		func(data GenData) GenData {
 			if data.PackageName == "treenode" {
 				data.Noder = "Noder"
@@ -178,14 +222,21 @@ func main() {
 				Logger.Fatalf("Could not generate parameter list: %s", err.Error())
 			}
 
+			data.ParamList = param_list
+
+			return data
+		},
+		func(data GenData) GenData {
 			assignment_map, err := ggen.MakeAssignmentList()
 			if err != nil {
 				Logger.Fatalf("Could not generate assignment map: %s", err.Error())
 			}
 
-			data.ParamList = param_list
 			data.AssignmentMap = assignment_map
 
+			return data
+		},
+		func(data GenData) GenData {
 			data.Fields = ggen.GetFields()
 
 			return data
