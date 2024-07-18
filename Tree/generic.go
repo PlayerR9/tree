@@ -103,7 +103,7 @@ func (tn *TreeNode[T]) GetLeaves() []*TreeNode[T] {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[*TreeNode[T]](tn)
+	stack := Stacker.NewLinkedStack(tn)
 
 	var leaves []*TreeNode[T]
 

@@ -861,11 +861,10 @@ func (t *Tree[T]) ProcessLeaves(f uc.EvalManyFunc[*TreeNode[T], *TreeNode[T]]) e
 //
 // Returns:
 //   - []T: A slice of the direct children of the root. Nil if the tree does not have a root.
-//   - error: An error if the iteration fails.
-func (t *Tree[T]) GetDirectChildren() ([]*TreeNode[T], error) {
+func (t *Tree[T]) GetDirectChildren() []*TreeNode[T] {
 	root := t.root
 	if root == nil {
-		return nil, nil
+		return nil
 	}
 
 	var children []*TreeNode[T]
@@ -876,7 +875,7 @@ func (t *Tree[T]) GetDirectChildren() ([]*TreeNode[T], error) {
 		children = append(children, c)
 	}
 
-	return children, nil
+	return children
 }
 
 // ExtractBranch extracts the branch of the tree that contains the given leaf.

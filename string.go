@@ -81,82 +81,6 @@ func (tn *StringNode) Copy() common.Copier {
 	return tn_copy
 }
 
-// LinkWithParent implements the StringNode interface.
-//
-// Children that are nil are ignored.
-func (tn *StringNode) LinkChildren(children []*StringNode) {
-	if len(children) == 0 {
-		return
-	}
-
-	var valid_children []*StringNode
-
-	for _, child := range children {
-		if child == nil {
-			continue
-		}
-
-		child.Parent = tn
-		valid_children = append(valid_children, child)		
-	}
-	
-	if len(valid_children) == 0 {
-		return
-	}
-
-	valid_children[0].PrevSibling = nil
-	valid_children[len(valid_children)-1].NextSibling = nil
-
-	if len(valid_children) == 1 {
-		return
-	}
-
-	for i := 0; i < len(valid_children)-1; i++ {
-		valid_children[i].NextSibling = valid_children[i+1]
-	}
-
-	for i := 1; i < len(valid_children); i++ {
-		valid_children[i].PrevSibling = valid_children[i-1]
-	}
-
-	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
-}
-
-// GetLeaves implements the StringNode interface.
-//
-// This is expensive as leaves are not stored and so, every time this function is called,
-// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
-// this function once and then store the leaves somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *StringNode) GetLeaves() []*StringNode {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[*StringNode](tn)
-
-	var leaves []*StringNode
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		if top.FirstChild == nil {
-			leaves = append(leaves, top)
-		} else {
-			for c := top.FirstChild; c != nil; c = c.NextSibling {
-				stack.Push(c)
-			}
-		}
-	}
-
-	return leaves
-}
-
 // Cleanup implements the StringNode interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
@@ -227,27 +151,6 @@ func (tn *StringNode) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// GetAncestors implements the StringNode interface.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *StringNode) GetAncestors() []*StringNode {
-	var ancestors []*StringNode
-
-	for node := tn; node.Parent != nil; node = node.Parent {
-		ancestors = append(ancestors, node.Parent)
-	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
-}
-
 // IsLeaf implements the StringNode interface.
 func (tn *StringNode) IsLeaf() bool {
 	return tn.FirstChild == nil
@@ -258,12 +161,13 @@ func (tn *StringNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// GetFirstChild implements the StringNode interface.
-func (tn *StringNode) GetFirstChild() *StringNode {
-	return tn.FirstChild
-}
-
-// DeleteChild implements the StringNode interface.
+// DeleteChild removes the given child from the children of the node.
+//
+// Parameters:
+//   - target: The child to remove.
+//
+// Returns:
+//   - []*StringNode: A slice of pointers to the children of the node. Nil if the node has no children.
 //
 // No nil nodes are returned.
 func (tn *StringNode) DeleteChild(target *StringNode) []*StringNode {
@@ -321,13 +225,70 @@ func (tn *StringNode) Size() int {
 	return size
 }
 
-// AddChild adds a new child to the node. If the child is nil it does nothing.
+// NewStringNode creates a new node with the given data.
 //
-// This function clears the parent and sibling pointers of the child and so, it
-// does not add relatives to the child.
+// Parameters:
+//   - Data: The Data of the node.
+//
+// Returns:
+//   - *StringNode: A pointer to the newly created node. It is
+//   never nil.
+func NewStringNode(data string) *StringNode {
+	return &StringNode{
+		Data: data,
+	}
+}
+
+// LinkChildren links the parent with the children. It also links the children
+// with each other. Nil children are ignored.
+//
+// Parameters:
+//   - children: The children nodes.
+func (tn *StringNode) LinkChildren(children []*StringNode) {
+	if len(children) == 0 {
+		return
+	}
+
+	var valid_children []*StringNode
+
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+
+		child.Parent = tn
+		valid_children = append(valid_children, child)		
+	}
+	
+	if len(valid_children) == 0 {
+		return
+	}
+
+	valid_children[0].PrevSibling = nil
+	valid_children[len(valid_children)-1].NextSibling = nil
+
+	if len(valid_children) == 1 {
+		return
+	}
+
+	for i := 0; i < len(valid_children)-1; i++ {
+		valid_children[i].NextSibling = valid_children[i+1]
+	}
+
+	for i := 1; i < len(valid_children); i++ {
+		valid_children[i].PrevSibling = valid_children[i-1]
+	}
+
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+}
+
+// AddChild adds a new child to the node. If the child is nil it does nothing.
 //
 // Parameters:
 //   - child: The child to add.
+//
+// This function clears the parent and sibling pointers of the child and so, it
+// does not add relatives to the child.
 func (tn *StringNode) AddChild(child *StringNode) {
 	if child == nil {
 		return
@@ -427,18 +388,69 @@ func (tn *StringNode) RemoveNode() []*StringNode {
 	return sub_roots
 }
 
-// NewStringNode creates a new node with the given data.
-//
-// Parameters:
-//   - Data: The Data of the node.
+// GetLeaves returns all the leaves of the tree rooted at the node.
 //
 // Returns:
-//   - *StringNode: A pointer to the newly created node. It is
-//   never nil.
-func NewStringNode(data string) *StringNode {
-	return &StringNode{
-		Data: data,
+//   - []*StringNode: A slice of pointers to the leaves of the tree.
+//
+// This is expensive as leaves are not stored and so, every time this function is called,
+// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
+// this function once and then store the leaves somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func (tn *StringNode) GetLeaves() []*StringNode {
+	// It is safe to change the stack implementation as long as
+	// it is not limited in size. If it is, make sure to check the error
+	// returned by the Push and Pop methods.
+	stack := Stacker.NewLinkedStack(tn)
+
+	var leaves []*StringNode
+
+	for {
+		top, ok := stack.Pop()
+		if !ok {
+			break
+		}
+
+		if top.FirstChild == nil {
+			leaves = append(leaves, top)
+		} else {
+			for c := top.FirstChild; c != nil; c = c.NextSibling {
+				stack.Push(c)
+			}
+		}
 	}
+
+	return leaves
+}
+
+// GetAncestors returns all the ancestors of the node. This does not return the node itself.
+//
+// Returns:
+//   - []*StringNode: A slice of pointers to the ancestors of the node.
+//
+// The ancestors are returned in the opposite order of a DFS traversal. Therefore, the first element is the parent
+// of the node.
+//
+// This is expensive since ancestors are not stored and so, every time this
+// function is called, it has to traverse the tree to find the ancestors. Thus, it is
+// recommended to call this function once and then store the ancestors somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func (tn *StringNode) GetAncestors() []*StringNode {
+	var ancestors []*StringNode
+
+	for node := tn; node.Parent != nil; node = node.Parent {
+		ancestors = append(ancestors, node.Parent)
+	}
+
+	slices.Reverse(ancestors)
+
+	return ancestors
 }
 
 // GetLastSibling returns the last sibling of the node. If it has a parent,

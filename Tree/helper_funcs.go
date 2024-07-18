@@ -12,28 +12,24 @@ import (
 //
 // Returns:
 //   - [][]T: A slice of slices of elements.
-//   - error: An error if the iterator fails.
 //
 // Behaviors:
 //   - The paths are returned in the order of a BFS traversal.
 //   - It is a recursive function.
-func rec_snake_traversal[T any](n *TreeNode[T]) ([][]*TreeNode[T], error) {
+func rec_snake_traversal[T any](n *TreeNode[T]) [][]*TreeNode[T] {
 	uc.AssertParam("n", n != nil, errors.New("recSnakeTraversal: n is nil"))
 
 	ok := n.IsLeaf()
 	if ok {
 		return [][]*TreeNode[T]{
 			{n},
-		}, nil
+		}
 	}
 
 	var result [][]*TreeNode[T]
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		subResults, err := rec_snake_traversal(c)
-		if err != nil {
-			return nil, err
-		}
+		subResults := rec_snake_traversal(c)
 
 		for _, tmp := range subResults {
 			tmp = append([]*TreeNode[T]{n}, tmp...)
@@ -41,25 +37,24 @@ func rec_snake_traversal[T any](n *TreeNode[T]) ([][]*TreeNode[T], error) {
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 // SnakeTraversal returns all the paths from the root to the leaves of the tree.
 //
 // Returns:
 //   - [][]T: A slice of slices of elements.
-//   - error: An error if the iterator fails.
 //
 // Behaviors:
 //   - The paths are returned in the order of a BFS traversal.
-func (t *Tree[T]) SnakeTraversal() ([][]*TreeNode[T], error) {
+func (t *Tree[T]) SnakeTraversal() [][]*TreeNode[T] {
 	root := t.root
 	if root == nil {
-		return nil, nil
+		return nil
 	}
 
-	sol, err := rec_snake_traversal(root)
-	return sol, err
+	sol := rec_snake_traversal(root)
+	return sol
 }
 
 // rec_prune_func is an helper function that removes all the children of the
