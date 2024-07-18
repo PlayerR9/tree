@@ -25,7 +25,14 @@ func (iter *DFSIterator) Consume() (*IteratorNode, error) {
 		return nil, uc.NewErrExhaustedIter()
 	}
 
-	for c := top.Node.FirstChild; c != nil; c = c.NextSibling {
+	sub_iter := top.Node.Iterator()
+
+	for {
+		c, err := sub_iter.Consume()
+		if err != nil {
+			break
+		}
+
 		iter.stack.Push(&IteratorNode{
 			Node:  c,
 			Depth: top.Depth + 1,
@@ -47,6 +54,28 @@ func (iter *DFSIterator) Restart() {
 	}
 }
 
+func NewDFSIterator(tree Treer) *DFSIterator {
+	var root Noder
+
+	if tree != nil {
+		root = tree.Root()
+	}
+
+	iter := &DFSIterator{
+		root:  root,
+		stack: lls.NewLinkedStack[*IteratorNode](),
+	}
+
+	if root != nil {
+		iter.stack.Push(&IteratorNode{
+			Node:  root,
+			Depth: 0,
+		})
+	}
+
+	return iter
+}
+
 type BFSIterator struct {
 	root  Noder
 	queue *llq.LinkedQueue[*IteratorNode]
@@ -61,7 +90,14 @@ func (iter *BFSIterator) Consume() (*IteratorNode, error) {
 		return nil, uc.NewErrExhaustedIter()
 	}
 
-	for c := first.Node.FirstChild; c != nil; c = c.NextSibling {
+	sub_iter := first.Node.Iterator()
+
+	for {
+		c, err := sub_iter.Consume()
+		if err != nil {
+			break
+		}
+
 		iter.queue.Enqueue(&IteratorNode{
 			Node:  c,
 			Depth: first.Depth + 1,
@@ -81,4 +117,26 @@ func (iter *BFSIterator) Restart() {
 			Depth: 0,
 		})
 	}
+}
+
+func NewBFSIterator(tree Treer) *BFSIterator {
+	var root Noder
+
+	if tree != nil {
+		root = tree.Root()
+	}
+
+	iter := &BFSIterator{
+		root:  root,
+		queue: llq.NewLinkedQueue[*IteratorNode](),
+	}
+
+	if root != nil {
+		iter.queue.Enqueue(&IteratorNode{
+			Node:  root,
+			Depth: 0,
+		})
+	}
+
+	return iter
 }

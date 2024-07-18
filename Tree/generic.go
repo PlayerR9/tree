@@ -9,6 +9,32 @@ import (
 	"github.com/PlayerR9/MyGoLib/Units/common"
 )
 
+// TreeNodeIterator is a pull-based iterator that iterates
+// over the children of a TreeNode.
+type TreeNodeIterator[T any] struct {
+	parent, current *TreeNode[T]
+}
+
+// Consume implements the common.Iterater interface.
+//
+// *common.ErrExhaustedIter is the only error returned by this function and the returned
+// node is never nil.
+func (iter *TreeNodeIterator[T]) Consume() (*TreeNode[T], error) {
+	if iter.current == nil {
+		return nil, common.NewErrExhaustedIter()
+	}
+
+	node := iter.current
+	iter.current = iter.current.NextSibling
+
+	return node, nil
+}
+
+// Restart implements the common.Iterater interface.
+func (iter *TreeNodeIterator[T]) Restart() {
+	iter.current = iter.parent.FirstChild
+}
+
 // TreeNode is a node in a tree.
 type TreeNode[T any] struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *TreeNode[T]
@@ -42,6 +68,17 @@ func (tn *TreeNode[T]) Copy() common.Copier {
 	tn_copy.LinkChildren(child_copy)
 
 	return tn_copy
+}
+
+// Iterator implements the TreeNode[T] interface.
+//
+// This function iterates over the children of the node, it is a pull-based iterator,
+// and never returns nil.
+func (tn *TreeNode[T]) Iterator() common.Iterater[*TreeNode[T]] {
+	return &TreeNodeIterator[T]{
+		parent:  tn,
+		current: tn.FirstChild,
+	}
 }
 
 // LinkWithParent implements the *TreeNode[T] interface.
