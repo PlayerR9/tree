@@ -1,9 +1,5 @@
 package Tree
 
-import (
-	tn "github.com/PlayerR9/treenode"
-)
-
 // FilterNonNilTree is a filter that returns true if the tree is not nil.
 //
 // Parameters:
@@ -11,7 +7,7 @@ import (
 //
 // Returns:
 //   - bool: True if the tree is not nil, false otherwise.
-func FilterNonNilTree[T tn.Noder](tree *Tree[T]) bool {
+func FilterNonNilTree[T any](tree *Tree[T]) bool {
 	if tree == nil {
 		return false
 	}

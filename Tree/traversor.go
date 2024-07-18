@@ -4,7 +4,6 @@ import (
 	"github.com/PlayerR9/MyGoLib/ListLike/Queuer"
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	tn "github.com/PlayerR9/treenode"
 )
 
 // ObserverFunc is a function that observes a node.
@@ -16,12 +15,12 @@ import (
 // Returns:
 //   - bool: True if the traversal should continue, otherwise false.
 //   - error: An error if the observation fails.
-type ObserverFunc[T tn.Noder] func(data T, info Infoer) (bool, error)
+type ObserverFunc[T any] func(data *TreeNode[T], info Infoer) (bool, error)
 
 // traversor is a struct that traverses a tree.
-type traversor[T tn.Noder] struct {
+type traversor[T any] struct {
 	// elem is the current node.
-	elem T
+	elem *TreeNode[T]
 
 	// info is the info of the current node.
 	info Infoer
@@ -35,7 +34,7 @@ type traversor[T tn.Noder] struct {
 //
 // Returns:
 //   - Traversor[T, I]: The traversor.
-func new_traversor[T tn.Noder](node T, init Infoer) *traversor[T] {
+func new_traversor[T any](node *TreeNode[T], init Infoer) *traversor[T] {
 	t := &traversor[T]{
 		elem: node,
 	}
@@ -54,7 +53,7 @@ func new_traversor[T tn.Noder](node T, init Infoer) *traversor[T] {
 // Returns:
 //   - T: The data of the traversor.
 //   - bool: True if the data is valid, otherwise false.
-func (t *traversor[T]) get_data() (T, bool) {
+func (t *traversor[T]) get_data() (*TreeNode[T], bool) {
 	if t.elem == nil {
 		return nil, false
 	}
@@ -66,7 +65,7 @@ func (t *traversor[T]) get_data() (T, bool) {
 //
 // Returns:
 //   - uc.Objecter: The info of the traversor.
-func (t *traversor) get_info() Infoer {
+func (t *traversor[T]) get_info() Infoer {
 	return t.info
 }
 
@@ -79,7 +78,7 @@ func (t *traversor) get_info() Infoer {
 //
 // Returns:
 //   - error: An error if the traversal fails.
-func DFS(tree *Tree, init Infoer, f ObserverFunc) error {
+func DFS[T any](tree *Tree[T], init Infoer, f ObserverFunc[T]) error {
 	if f == nil || tree == nil {
 		return nil
 	}
@@ -107,21 +106,8 @@ func DFS(tree *Tree, init Infoer, f ObserverFunc) error {
 			continue
 		}
 
-		iter := top.elem.Iterator()
-		if iter == nil {
-			continue
-		}
-
-		for {
-			value, err := iter.Consume()
-			ok := uc.IsDone(err)
-			if ok {
-				break
-			} else if err != nil {
-				return err
-			}
-
-			new_t := new_traversor(value, top_inf)
+		for c := top.elem.FirstChild; c != nil; c = c.NextSibling {
+			new_t := new_traversor(c, top_inf)
 
 			S.Push(new_t)
 		}
@@ -139,7 +125,7 @@ func DFS(tree *Tree, init Infoer, f ObserverFunc) error {
 //
 // Returns:
 //   - error: An error if the traversal fails.
-func BFS(tree *Tree, init Infoer, f ObserverFunc) error {
+func BFS[T any](tree *Tree[T], init Infoer, f ObserverFunc[T]) error {
 	if f == nil || tree == nil {
 		return nil
 	}
@@ -167,21 +153,8 @@ func BFS(tree *Tree, init Infoer, f ObserverFunc) error {
 			continue
 		}
 
-		iter := first.elem.Iterator()
-		if iter == nil {
-			continue
-		}
-
-		for {
-			value, err := iter.Consume()
-			ok := uc.IsDone(err)
-			if ok {
-				break
-			} else if err != nil {
-				return err
-			}
-
-			new_t := new_traversor(value, first_inf)
+		for c := first.elem.FirstChild; c != nil; c = c.NextSibling {
+			new_t := new_traversor(c, first_inf)
 
 			Q.Enqueue(new_t)
 		}

@@ -19,7 +19,7 @@ type ByteNodeIterator struct {
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *ByteNodeIterator) Consume() (Noder, error) {
+func (iter *ByteNodeIterator) Consume() (*ByteNode, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -41,18 +41,18 @@ type ByteNode struct {
 	Data byte
 }
 
-// Iterator implements the Noder interface.
+// Iterator implements the ByteNode interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *ByteNode) Iterator() common.Iterater[Noder] {
+func (tn *ByteNode) Iterator() common.Iterater[*ByteNode] {
 	return &ByteNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
-// String implements the Noder interface.
+// String implements the ByteNode interface.
 func (tn *ByteNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
@@ -60,14 +60,14 @@ func (tn *ByteNode) String() string {
 	return str
 }
 
-// Copy implements the Noder interface.
+// Copy implements the ByteNode interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
 func (tn *ByteNode) Copy() common.Copier {
-	var child_copy []Noder	
+	var child_copy []*ByteNode	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(Noder))
+		child_copy = append(child_copy, c.Copy().(*ByteNode))
 	}
 
 	// Copy here the data of the node.
@@ -81,32 +81,10 @@ func (tn *ByteNode) Copy() common.Copier {
 	return tn_copy
 }
 
-// SetParent implements the Noder interface.
-func (tn *ByteNode) SetParent(parent Noder) bool {
-	if parent == nil {
-		tn.Parent = nil
-		return true
-	}
-
-	p, ok := parent.(*ByteNode)
-	if !ok {
-		return false
-	}
-
-	tn.Parent = p
-
-	return true
-}
-
-// GetParent implements the Noder interface.
-func (tn *ByteNode) GetParent() Noder {
-	return tn.Parent
-}
-
-// LinkWithParent implements the Noder interface.
+// LinkWithParent implements the ByteNode interface.
 //
-// Children that are not of type *ByteNode or nil are ignored.
-func (tn *ByteNode) LinkChildren(children []Noder) {
+// Children that are nil are ignored.
+func (tn *ByteNode) LinkChildren(children []*ByteNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -118,11 +96,8 @@ func (tn *ByteNode) LinkChildren(children []Noder) {
 			continue
 		}
 
-		c, ok := child.(*ByteNode)
-		if ok {
-			c.Parent = tn
-			valid_children = append(valid_children, c)
-		}		
+		child.Parent = tn
+		valid_children = append(valid_children, child)		
 	}
 	
 	if len(valid_children) == 0 {
@@ -147,7 +122,7 @@ func (tn *ByteNode) LinkChildren(children []Noder) {
 	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
-// GetLeaves implements the Noder interface.
+// GetLeaves implements the ByteNode interface.
 //
 // This is expensive as leaves are not stored and so, every time this function is called,
 // it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
@@ -156,13 +131,13 @@ func (tn *ByteNode) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *ByteNode) GetLeaves() []Noder {
+func (tn *ByteNode) GetLeaves() []*ByteNode {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](tn)
+	stack := Stacker.NewLinkedStack[*ByteNode](tn)
 
-	var leaves []Noder
+	var leaves []*ByteNode
 
 	for {
 		top, ok := stack.Pop()
@@ -170,11 +145,10 @@ func (tn *ByteNode) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*ByteNode)
-		if node.FirstChild == nil {
+		if top.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
-			for c := node.FirstChild; c != nil; c = c.NextSibling {
+			for c := top.FirstChild; c != nil; c = c.NextSibling {
 				stack.Push(c)
 			}
 		}
@@ -183,7 +157,7 @@ func (tn *ByteNode) GetLeaves() []Noder {
 	return leaves
 }
 
-// Cleanup implements the Noder interface.
+// Cleanup implements the ByteNode interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
 // by one. While this is useful for freeing up memory, for large enough trees, it is
@@ -253,7 +227,7 @@ func (tn *ByteNode) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// GetAncestors implements the Noder interface.
+// GetAncestors implements the ByteNode interface.
 //
 // This is expensive since ancestors are not stored and so, every time this
 // function is called, it has to traverse the tree to find the ancestors. Thus, it is
@@ -262,8 +236,8 @@ func (tn *ByteNode) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *ByteNode) GetAncestors() []Noder {
-	var ancestors []Noder
+func (tn *ByteNode) GetAncestors() []*ByteNode {
+	var ancestors []*ByteNode
 
 	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
@@ -274,46 +248,39 @@ func (tn *ByteNode) GetAncestors() []Noder {
 	return ancestors
 }
 
-// IsLeaf implements the Noder interface.
+// IsLeaf implements the ByteNode interface.
 func (tn *ByteNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
-// IsSingleton implements the Noder interface.
+// IsSingleton implements the ByteNode interface.
 func (tn *ByteNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// GetFirstChild implements the Noder interface.
-func (tn *ByteNode) GetFirstChild() Noder {
+// GetFirstChild implements the ByteNode interface.
+func (tn *ByteNode) GetFirstChild() *ByteNode {
 	return tn.FirstChild
 }
 
-// DeleteChild implements the Noder interface.
+// DeleteChild implements the ByteNode interface.
 //
 // No nil nodes are returned.
-func (tn *ByteNode) DeleteChild(target Noder) []Noder {
+func (tn *ByteNode) DeleteChild(target *ByteNode) []*ByteNode {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*ByteNode)
-	if !ok {
-		return nil
-	}
-
-	children := tn.delete_child(n)
+	children := tn.delete_child(target)
 
 	if len(children) == 0 {
 		return children
 	}
 
 	for _, child := range children {
-		c := child.(*ByteNode)
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
 	}
 
 	tn.FirstChild = nil
@@ -322,7 +289,7 @@ func (tn *ByteNode) DeleteChild(target Noder) []Noder {
 	return children
 }
 
-// Size implements the Noder interface.
+// Size implements the ByteNode interface.
 //
 // This is expensive as it has to traverse the whole tree to find the size of the tree.
 // Thus, it is recommended to call this function once and then store the size somewhere if needed.
@@ -354,38 +321,32 @@ func (tn *ByteNode) Size() int {
 	return size
 }
 
-// AddChild adds a new child to the node. If the child is nil or it is not of type
-// *ByteNode, it does nothing.
+// AddChild adds a new child to the node. If the child is nil it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *ByteNode) AddChild(child Noder) {
+func (tn *ByteNode) AddChild(child *ByteNode) {
 	if child == nil {
 		return
 	}
-
-	c, ok := child.(*ByteNode)
-	if !ok {
-		return
-	}
 	
-	c.NextSibling = nil
-	c.PrevSibling = nil
+	child.NextSibling = nil
+	child.PrevSibling = nil
 
 	last_child := tn.LastChild
 
 	if last_child == nil {
-		tn.FirstChild = c
+		tn.FirstChild = child
 	} else {
-		last_child.NextSibling = c
-		c.PrevSibling = last_child
+		last_child.NextSibling = child
+		child.PrevSibling = last_child
 	}
 
-	c.Parent = tn
-	tn.LastChild = c
+	child.Parent = tn
+	tn.LastChild = child
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -395,7 +356,7 @@ func (tn *ByteNode) AddChild(child Noder) {
 // is removed.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node iff the node is the root.
+//   - []*ByteNode: A slice of pointers to the children of the node iff the node is the root.
 //     Nil otherwise.
 //
 // Example:
@@ -415,12 +376,12 @@ func (tn *ByteNode) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *ByteNode) RemoveNode() []Noder {
+func (tn *ByteNode) RemoveNode() []*ByteNode {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []Noder
+	var sub_roots []*ByteNode
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -430,7 +391,7 @@ func (tn *ByteNode) RemoveNode() []Noder {
 		children := parent.delete_child(tn)
 
 		for _, child := range children {
-			child.SetParent(parent)
+			child.Parent = parent
 		}
 	}
 
@@ -455,11 +416,9 @@ func (tn *ByteNode) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*ByteNode)
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
 	}
 
 	tn.FirstChild = nil
@@ -607,9 +566,9 @@ func (tn *ByteNode) AddChildren(children []*ByteNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func (tn *ByteNode) GetChildren() []Noder {
-	var children []Noder
+//   - []*ByteNode: A slice of pointers to the children of the node.
+func (tn *ByteNode) GetChildren() []*ByteNode {
+	var children []*ByteNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -649,8 +608,8 @@ func (tn *ByteNode) HasChild(target *ByteNode) bool {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func (tn *ByteNode) delete_child(target *ByteNode) []Noder {
+//   - []ByteNode: A slice of pointers to the children of the node.
+func (tn *ByteNode) delete_child(target *ByteNode) []*ByteNode {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -702,9 +661,7 @@ func (tn *ByteNode) IsChildOf(target *ByteNode) bool {
 	parents := target.GetAncestors()
 
 	for node := tn; node.Parent != nil; node = node.Parent {
-		parent := Noder(node.Parent)
-
-		ok := slices.Contains(parents, parent)
+		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true
 		}
@@ -712,3 +669,82 @@ func (tn *ByteNode) IsChildOf(target *ByteNode) bool {
 
 	return false
 }
+
+/*
+
+// FindCommonAncestor returns the first common ancestor of the two nodes.
+//
+// Parameters:
+//   - n1: The first node.
+//   - n2: The second node.
+//
+// Returns:
+//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
+func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
+	if n1 == nil {
+		return n2
+	} else if n2 == nil {
+		return n1
+	} else if n1 == n2 {
+		return n1
+	}
+
+	ancestors1 := n1.GetAncestors()
+	ancestors2 := n2.GetAncestors()
+
+	if len(ancestors1) > len(ancestors2) {
+		ancestors1, ancestors2 = ancestors2, ancestors1
+	}
+
+	for _, node := range ancestors1 {
+		ok := slices.Contains(ancestors2, node)
+		if ok {
+			return node
+		}
+	}
+
+	return nil
+}
+
+// FindBranchingPoint returns the first node in the path from n to the root
+// such that has more than one sibling.
+//
+// Returns:
+//   - *TreeNode[T]: The branching point.
+//   - *TreeNode[T]: The parent of the branching point.
+//   - bool: True if the node has a branching point, false otherwise.
+//
+// Behaviors:
+//   - If there is no branching point, it returns the root of the tree. However,
+//     if n is nil, it returns nil, nil, false and if the node has no parent, it
+//     returns nil, n, false.
+func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
+	if n == nil {
+		return nil, nil, false
+	}
+
+	parent := n.GetParent()
+	if parent == nil {
+		return nil, n, false
+	}
+
+	var has_branching_point bool
+
+	for !has_branching_point {
+		grand_parent := parent.GetParent()
+		if grand_parent == nil {
+			break
+		}
+
+		ok := parent.IsSingleton()
+		if !ok {
+			has_branching_point = true
+		} else {
+			n = parent
+			parent = grand_parent
+		}
+	}
+
+	return n, parent, has_branching_point
+}
+*/

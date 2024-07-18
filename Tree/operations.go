@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	tn "github.com/PlayerR9/treenode"
 )
 
 // InfPrinter is a struct that prints the tree.
@@ -47,7 +46,7 @@ func (ip *InfPrinter) IncIndent() {
 // Returns:
 //   - []string: The lines of the tree.
 //   - error: An error if the tree cannot be printed.
-func PrintTree[T tn.Noder](tree *Tree[T]) ([]string, error) {
+func PrintTree[T *TreeNode[T]](tree *Tree[T]) ([]string, error) {
 	if tree == nil {
 		return nil, nil
 	}
@@ -55,7 +54,7 @@ func PrintTree[T tn.Noder](tree *Tree[T]) ([]string, error) {
 	var lines []string
 	var builder strings.Builder
 
-	f := func(elem T, obj Infoer) (bool, error) {
+	f := func(elem *TreeNode[T], obj Infoer) (bool, error) {
 		inf, ok := obj.(*InfPrinter)
 		if !ok {
 			return false, fmt.Errorf("invalid objecter type: %T", obj)

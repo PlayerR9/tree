@@ -137,9 +137,6 @@ type GenData struct {
 
 	// Generics is the list of generics.
 	Generics string
-
-	// Noder is the name of the struct that implements the Noder interface.
-	Noder string
 }
 
 // SetPackageName implements the ggen.Generater interface.
@@ -208,15 +205,6 @@ func main() {
 			return data
 		},
 		func(data GenData) GenData {
-			if data.PackageName == "treenode" {
-				data.Noder = "Noder"
-			} else {
-				data.Noder = "treenode.Noder"
-			}
-
-			return data
-		},
-		func(data GenData) GenData {
 			param_list, err := ggen.MakeParameterList()
 			if err != nil {
 				Logger.Fatalf("Could not generate parameter list: %s", err.Error())
@@ -273,7 +261,7 @@ type {{ .IteratorName }}{{ .Generics }} struct {
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *{{ .IteratorSig }}) Consume() ({{ .Noder }}, error) {
+func (iter *{{ .IteratorSig }}) Consume() (*{{ .TypeSig }}, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -298,18 +286,18 @@ type {{ .TypeName }}{{ .Generics }} struct {
 	{{- end }}
 }
 
-// Iterator implements the {{ .Noder }} interface.
+// Iterator implements the {{ .TypeSig }} interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *{{ .TypeSig }}) Iterator() common.Iterater[{{ .Noder }}] {
+func (tn *{{ .TypeSig }}) Iterator() common.Iterater[*{{ .TypeSig }}] {
 	return &{{ .IteratorSig }}{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
-// String implements the {{ .Noder }} interface.
+// String implements the {{ .TypeSig }} interface.
 func (tn *{{ .TypeSig }}) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
@@ -317,14 +305,14 @@ func (tn *{{ .TypeSig }}) String() string {
 	return str
 }
 
-// Copy implements the {{ .Noder }} interface.
+// Copy implements the {{ .TypeSig }} interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
 func (tn *{{ .TypeSig }}) Copy() common.Copier {
-	var child_copy []{{ .Noder }}	
+	var child_copy []*{{ .TypeSig }}	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().({{ .Noder }}))
+		child_copy = append(child_copy, c.Copy().(*{{ .TypeSig }}))
 	}
 
 	// Copy here the data of the node.
@@ -338,109 +326,7 @@ func (tn *{{ .TypeSig }}) Copy() common.Copier {
 	return tn_copy
 }
 
-// SetParent implements the {{ .Noder }} interface.
-func (tn *{{ .TypeSig }}) SetParent(parent {{ .Noder }}) bool {
-	if parent == nil {
-		tn.Parent = nil
-		return true
-	}
-
-	p, ok := parent.(*{{ .TypeSig }})
-	if !ok {
-		return false
-	}
-
-	tn.Parent = p
-
-	return true
-}
-
-// GetParent implements the {{ .Noder }} interface.
-func (tn *{{ .TypeSig }}) GetParent() {{ .Noder }} {
-	return tn.Parent
-}
-
-// LinkWithParent implements the {{ .Noder }} interface.
-//
-// Children that are not of type *{{ .TypeSig }} or nil are ignored.
-func (tn *{{ .TypeSig }}) LinkChildren(children []{{ .Noder }}) {
-	if len(children) == 0 {
-		return
-	}
-
-	var valid_children []*{{ .TypeSig }}
-
-	for _, child := range children {
-		if child == nil {
-			continue
-		}
-
-		c, ok := child.(*{{ .TypeSig }})
-		if ok {
-			c.Parent = tn
-			valid_children = append(valid_children, c)
-		}		
-	}
-	
-	if len(valid_children) == 0 {
-		return
-	}
-
-	valid_children[0].PrevSibling = nil
-	valid_children[len(valid_children)-1].NextSibling = nil
-
-	if len(valid_children) == 1 {
-		return
-	}
-
-	for i := 0; i < len(valid_children)-1; i++ {
-		valid_children[i].NextSibling = valid_children[i+1]
-	}
-
-	for i := 1; i < len(valid_children); i++ {
-		valid_children[i].PrevSibling = valid_children[i-1]
-	}
-
-	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
-}
-
-// GetLeaves implements the {{ .Noder }} interface.
-//
-// This is expensive as leaves are not stored and so, every time this function is called,
-// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
-// this function once and then store the leaves somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *{{ .TypeSig }}) GetLeaves() []{{ .Noder }} {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[{{ .Noder }}](tn)
-
-	var leaves []{{ .Noder }}
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		node := top.(*{{ .TypeSig }})
-		if node.FirstChild == nil {
-			leaves = append(leaves, top)
-		} else {
-			for c := node.FirstChild; c != nil; c = c.NextSibling {
-				stack.Push(c)
-			}
-		}
-	}
-
-	return leaves
-}
-
-// Cleanup implements the {{ .Noder }} interface.
+// Cleanup implements the {{ .TypeSig }} interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
 // by one. While this is useful for freeing up memory, for large enough trees, it is
@@ -510,67 +396,40 @@ func (tn *{{ .TypeSig }}) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// GetAncestors implements the {{ .Noder }} interface.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *{{ .TypeSig }}) GetAncestors() []{{ .Noder }} {
-	var ancestors []{{ .Noder }}
-
-	for node := tn; node.Parent != nil; node = node.Parent {
-		ancestors = append(ancestors, node.Parent)
-	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
-}
-
-// IsLeaf implements the {{ .Noder }} interface.
+// IsLeaf implements the {{ .TypeSig }} interface.
 func (tn *{{ .TypeSig }}) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
-// IsSingleton implements the {{ .Noder }} interface.
+// IsSingleton implements the {{ .TypeSig }} interface.
 func (tn *{{ .TypeSig }}) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// GetFirstChild implements the {{ .Noder }} interface.
-func (tn *{{ .TypeSig }}) GetFirstChild() {{ .Noder }} {
-	return tn.FirstChild
-}
-
-// DeleteChild implements the {{ .Noder }} interface.
+// DeleteChild removes the given child from the children of the node.
+//
+// Parameters:
+//   - target: The child to remove.
+//
+// Returns:
+//   - []*{{ .TypeSig }}: A slice of pointers to the children of the node. Nil if the node has no children.
 //
 // No nil nodes are returned.
-func (tn *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{ .Noder }} {
+func (tn *{{ .TypeSig }}) DeleteChild(target *{{ .TypeSig }}) []*{{ .TypeSig }} {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*{{ .TypeSig }})
-	if !ok {
-		return nil
-	}
-
-	children := tn.delete_child(n)
+	children := tn.delete_child(target)
 
 	if len(children) == 0 {
 		return children
 	}
 
 	for _, child := range children {
-		c := child.(*{{ .TypeSig }})
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
 	}
 
 	tn.FirstChild = nil
@@ -579,7 +438,7 @@ func (tn *{{ .TypeSig }}) DeleteChild(target {{ .Noder }}) []{{ .Noder }} {
 	return children
 }
 
-// Size implements the {{ .Noder }} interface.
+// Size implements the {{ .TypeSig }} interface.
 //
 // This is expensive as it has to traverse the whole tree to find the size of the tree.
 // Thus, it is recommended to call this function once and then store the size somewhere if needed.
@@ -609,120 +468,6 @@ func (tn *{{ .TypeSig }}) Size() int {
 	}
 
 	return size
-}
-
-// AddChild adds a new child to the node. If the child is nil or it is not of type
-// *{{ .TypeSig }}, it does nothing.
-//
-// This function clears the parent and sibling pointers of the child and so, it
-// does not add relatives to the child.
-//
-// Parameters:
-//   - child: The child to add.
-func (tn *{{ .TypeSig }}) AddChild(child {{ .Noder }}) {
-	if child == nil {
-		return
-	}
-
-	c, ok := child.(*{{ .TypeSig }})
-	if !ok {
-		return
-	}
-	
-	c.NextSibling = nil
-	c.PrevSibling = nil
-
-	last_child := tn.LastChild
-
-	if last_child == nil {
-		tn.FirstChild = c
-	} else {
-		last_child.NextSibling = c
-		c.PrevSibling = last_child
-	}
-
-	c.Parent = tn
-	tn.LastChild = c
-}
-
-// RemoveNode removes the node from the tree while shifting the children up one level to
-// maintain the tree structure.
-//
-// Also, the returned children can be used to create a forest of trees if the root node
-// is removed.
-//
-// Returns:
-//   - []{{ .Noder }}: A slice of pointers to the children of the node iff the node is the root.
-//     Nil otherwise.
-//
-// Example:
-//
-//	// Given the tree:
-//	1
-//	├── 2
-//	└── 3
-//		├── 4
-//		└── 5
-//	└── 6
-//
-//	// The tree after removing node 3:
-//
-//	1
-//	├── 2
-//	└── 4
-//	└── 5
-//	└── 6
-func (tn *{{ .TypeSig }}) RemoveNode() []{{ .Noder }} {
-	prev := tn.PrevSibling
-	next := tn.NextSibling
-	parent := tn.Parent
-
-	var sub_roots []{{ .Noder }}
-
-	if parent == nil {
-		for c := tn.FirstChild; c != nil; c = c.NextSibling {
-			sub_roots = append(sub_roots, c)
-		}
-	} else {
-		children := parent.delete_child(tn)
-
-		for _, child := range children {
-			child.SetParent(parent)
-		}
-	}
-
-	if prev != nil {
-		prev.NextSibling = next
-	} else {
-		parent.FirstChild = next
-	}
-
-	if next != nil {
-		next.PrevSibling = prev
-	} else {
-		parent.Parent.LastChild = prev
-	}
-
-	tn.Parent = nil
-	tn.PrevSibling = nil
-	tn.NextSibling = nil
-
-	if len(sub_roots) == 0 {
-		return sub_roots
-	}
-
-	for _, child := range sub_roots {
-		c := child.(*{{ .TypeSig }})
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
-	}
-
-	tn.FirstChild = nil
-	tn.LastChild = nil
-
-	return sub_roots
 }
 
 {{- if eq (len .AssignmentMap) 0 }}
@@ -755,6 +500,220 @@ func New{{ .TypeName }}{{ .Generics }}({{ .ParamList }}) *{{ .TypeSig }} {
 }
 
 {{- end }}
+
+// LinkChildren links the parent with the children. It also links the children
+// with each other. Nil children are ignored.
+//
+// Parameters:
+//   - children: The children nodes.
+func (tn *{{ .TypeSig }}) LinkChildren(children []*{{ .TypeSig }}) {
+	if len(children) == 0 {
+		return
+	}
+
+	var valid_children []*{{ .TypeSig }}
+
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+
+		child.Parent = tn
+		valid_children = append(valid_children, child)		
+	}
+	
+	if len(valid_children) == 0 {
+		return
+	}
+
+	valid_children[0].PrevSibling = nil
+	valid_children[len(valid_children)-1].NextSibling = nil
+
+	if len(valid_children) == 1 {
+		return
+	}
+
+	for i := 0; i < len(valid_children)-1; i++ {
+		valid_children[i].NextSibling = valid_children[i+1]
+	}
+
+	for i := 1; i < len(valid_children); i++ {
+		valid_children[i].PrevSibling = valid_children[i-1]
+	}
+
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+}
+
+// AddChild adds a new child to the node. If the child is nil it does nothing.
+//
+// Parameters:
+//   - child: The child to add.
+//
+// This function clears the parent and sibling pointers of the child and so, it
+// does not add relatives to the child.
+func (tn *{{ .TypeSig }}) AddChild(child *{{ .TypeSig }}) {
+	if child == nil {
+		return
+	}
+	
+	child.NextSibling = nil
+	child.PrevSibling = nil
+
+	last_child := tn.LastChild
+
+	if last_child == nil {
+		tn.FirstChild = child
+	} else {
+		last_child.NextSibling = child
+		child.PrevSibling = last_child
+	}
+
+	child.Parent = tn
+	tn.LastChild = child
+}
+
+// RemoveNode removes the node from the tree while shifting the children up one level to
+// maintain the tree structure.
+//
+// Also, the returned children can be used to create a forest of trees if the root node
+// is removed.
+//
+// Returns:
+//   - []*{{ .TypeSig }}: A slice of pointers to the children of the node iff the node is the root.
+//     Nil otherwise.
+//
+// Example:
+//
+//	// Given the tree:
+//	1
+//	├── 2
+//	└── 3
+//		├── 4
+//		└── 5
+//	└── 6
+//
+//	// The tree after removing node 3:
+//
+//	1
+//	├── 2
+//	└── 4
+//	└── 5
+//	└── 6
+func (tn *{{ .TypeSig }}) RemoveNode() []*{{ .TypeSig }} {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
+
+	var sub_roots []*{{ .TypeSig }}
+
+	if parent == nil {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
+			sub_roots = append(sub_roots, c)
+		}
+	} else {
+		children := parent.delete_child(tn)
+
+		for _, child := range children {
+			child.Parent = parent
+		}
+	}
+
+	if prev != nil {
+		prev.NextSibling = next
+	} else {
+		parent.FirstChild = next
+	}
+
+	if next != nil {
+		next.PrevSibling = prev
+	} else {
+		parent.Parent.LastChild = prev
+	}
+
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
+
+	if len(sub_roots) == 0 {
+		return sub_roots
+	}
+
+	for _, child := range sub_roots {
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
+	}
+
+	tn.FirstChild = nil
+	tn.LastChild = nil
+
+	return sub_roots
+}
+
+// GetLeaves returns all the leaves of the tree rooted at the node.
+//
+// Returns:
+//   - []*{{ .TypeSig }}: A slice of pointers to the leaves of the tree.
+//
+// This is expensive as leaves are not stored and so, every time this function is called,
+// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
+// this function once and then store the leaves somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func (tn *{{ .TypeSig }}) GetLeaves() []*{{ .TypeSig }} {
+	// It is safe to change the stack implementation as long as
+	// it is not limited in size. If it is, make sure to check the error
+	// returned by the Push and Pop methods.
+	stack := Stacker.NewLinkedStack[*{{ .TypeSig }}](tn)
+
+	var leaves []*{{ .TypeSig }}
+
+	for {
+		top, ok := stack.Pop()
+		if !ok {
+			break
+		}
+
+		if top.FirstChild == nil {
+			leaves = append(leaves, top)
+		} else {
+			for c := top.FirstChild; c != nil; c = c.NextSibling {
+				stack.Push(c)
+			}
+		}
+	}
+
+	return leaves
+}
+
+// GetAncestors returns all the ancestors of the node. This does not return the node itself.
+//
+// Returns:
+//   - []*{{ .TypeSig }}: A slice of pointers to the ancestors of the node.
+//
+// The ancestors are returned in the opposite order of a DFS traversal. Therefore, the first element is the parent
+// of the node.
+//
+// This is expensive since ancestors are not stored and so, every time this
+// function is called, it has to traverse the tree to find the ancestors. Thus, it is
+// recommended to call this function once and then store the ancestors somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func (tn *{{ .TypeSig }}) GetAncestors() []*{{ .TypeSig }} {
+	var ancestors []*{{ .TypeSig }}
+
+	for node := tn; node.Parent != nil; node = node.Parent {
+		ancestors = append(ancestors, node.Parent)
+	}
+
+	slices.Reverse(ancestors)
+
+	return ancestors
+}
 
 // GetLastSibling returns the last sibling of the node. If it has a parent,
 // it returns the last child of the parent. Otherwise, it returns the last
@@ -881,9 +840,9 @@ func (tn *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }}) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []{{ .Noder }}: A slice of pointers to the children of the node.
-func (tn *{{ .TypeSig }}) GetChildren() []{{ .Noder }} {
-	var children []{{ .Noder }}
+//   - []*{{ .TypeSig }}: A slice of pointers to the children of the node.
+func (tn *{{ .TypeSig }}) GetChildren() []*{{ .TypeSig }} {
+	var children []*{{ .TypeSig }}
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -923,8 +882,8 @@ func (tn *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []{{ .Noder }}: A slice of pointers to the children of the node.
-func (tn *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []{{ .Noder }} {
+//   - []{{ .TypeSig }}: A slice of pointers to the children of the node.
+func (tn *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []*{{ .TypeSig }} {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -976,9 +935,7 @@ func (tn *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
 	parents := target.GetAncestors()
 
 	for node := tn; node.Parent != nil; node = node.Parent {
-		parent := {{ .Noder }}(node.Parent)
-
-		ok := slices.Contains(parents, parent)
+		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true
 		}
@@ -986,4 +943,83 @@ func (tn *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
 
 	return false
 }
+
+/*
+
+// FindCommonAncestor returns the first common ancestor of the two nodes.
+//
+// Parameters:
+//   - n1: The first node.
+//   - n2: The second node.
+//
+// Returns:
+//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
+func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
+	if n1 == nil {
+		return n2
+	} else if n2 == nil {
+		return n1
+	} else if n1 == n2 {
+		return n1
+	}
+
+	ancestors1 := n1.GetAncestors()
+	ancestors2 := n2.GetAncestors()
+
+	if len(ancestors1) > len(ancestors2) {
+		ancestors1, ancestors2 = ancestors2, ancestors1
+	}
+
+	for _, node := range ancestors1 {
+		ok := slices.Contains(ancestors2, node)
+		if ok {
+			return node
+		}
+	}
+
+	return nil
+}
+
+// FindBranchingPoint returns the first node in the path from n to the root
+// such that has more than one sibling.
+//
+// Returns:
+//   - *TreeNode[T]: The branching point.
+//   - *TreeNode[T]: The parent of the branching point.
+//   - bool: True if the node has a branching point, false otherwise.
+//
+// Behaviors:
+//   - If there is no branching point, it returns the root of the tree. However,
+//     if n is nil, it returns nil, nil, false and if the node has no parent, it
+//     returns nil, n, false.
+func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
+	if n == nil {
+		return nil, nil, false
+	}
+
+	parent := n.GetParent()
+	if parent == nil {
+		return nil, n, false
+	}
+
+	var has_branching_point bool
+
+	for !has_branching_point {
+		grand_parent := parent.GetParent()
+		if grand_parent == nil {
+			break
+		}
+
+		ok := parent.IsSingleton()
+		if !ok {
+			has_branching_point = true
+		} else {
+			n = parent
+			parent = grand_parent
+		}
+	}
+
+	return n, parent, has_branching_point
+}
+*/
 `

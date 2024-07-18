@@ -1,2 +1,4 @@
 github.com/PlayerR9/MyGoLib v0.4.1 h1:XCeQL0nF7Dzi7j/OgXKP8BlmPPoaJ6HN8A1Xv+jD0r0=
 github.com/PlayerR9/MyGoLib v0.4.1/go.mod h1:LH3B5Ohx/7jL599VpeuaC0UrseOpPzEMuBSGIY7ZB6Q=
+golang.org/x/exp v0.0.0-20240707233637-46b078467d37 h1:uLDX+AfeFCct3a2C7uIWBKMJIR3CJMhcgfrUAqjRK6w=
+golang.org/x/exp v0.0.0-20240707233637-46b078467d37/go.mod h1:M4RDyNAINzryxdtnbRXRL/OHtkFuWGRjvuhBJpk2IlY=

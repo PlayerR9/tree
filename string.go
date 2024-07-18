@@ -19,7 +19,7 @@ type StringNodeIterator struct {
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *StringNodeIterator) Consume() (Noder, error) {
+func (iter *StringNodeIterator) Consume() (*StringNode, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -41,18 +41,18 @@ type StringNode struct {
 	Data string
 }
 
-// Iterator implements the Noder interface.
+// Iterator implements the StringNode interface.
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *StringNode) Iterator() common.Iterater[Noder] {
+func (tn *StringNode) Iterator() common.Iterater[*StringNode] {
 	return &StringNodeIterator{
 		parent: tn,
 		current: tn.FirstChild,
 	}
 }
 
-// String implements the Noder interface.
+// String implements the StringNode interface.
 func (tn *StringNode) String() string {
 	// WARNING: Implement this function.
 	str := common.StringOf(tn.Data)
@@ -60,14 +60,14 @@ func (tn *StringNode) String() string {
 	return str
 }
 
-// Copy implements the Noder interface.
+// Copy implements the StringNode interface.
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
 func (tn *StringNode) Copy() common.Copier {
-	var child_copy []Noder	
+	var child_copy []*StringNode	
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(Noder))
+		child_copy = append(child_copy, c.Copy().(*StringNode))
 	}
 
 	// Copy here the data of the node.
@@ -81,32 +81,10 @@ func (tn *StringNode) Copy() common.Copier {
 	return tn_copy
 }
 
-// SetParent implements the Noder interface.
-func (tn *StringNode) SetParent(parent Noder) bool {
-	if parent == nil {
-		tn.Parent = nil
-		return true
-	}
-
-	p, ok := parent.(*StringNode)
-	if !ok {
-		return false
-	}
-
-	tn.Parent = p
-
-	return true
-}
-
-// GetParent implements the Noder interface.
-func (tn *StringNode) GetParent() Noder {
-	return tn.Parent
-}
-
-// LinkWithParent implements the Noder interface.
+// LinkWithParent implements the StringNode interface.
 //
-// Children that are not of type *StringNode or nil are ignored.
-func (tn *StringNode) LinkChildren(children []Noder) {
+// Children that are nil are ignored.
+func (tn *StringNode) LinkChildren(children []*StringNode) {
 	if len(children) == 0 {
 		return
 	}
@@ -118,11 +96,8 @@ func (tn *StringNode) LinkChildren(children []Noder) {
 			continue
 		}
 
-		c, ok := child.(*StringNode)
-		if ok {
-			c.Parent = tn
-			valid_children = append(valid_children, c)
-		}		
+		child.Parent = tn
+		valid_children = append(valid_children, child)		
 	}
 	
 	if len(valid_children) == 0 {
@@ -147,7 +122,7 @@ func (tn *StringNode) LinkChildren(children []Noder) {
 	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
-// GetLeaves implements the Noder interface.
+// GetLeaves implements the StringNode interface.
 //
 // This is expensive as leaves are not stored and so, every time this function is called,
 // it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
@@ -156,13 +131,13 @@ func (tn *StringNode) LinkChildren(children []Noder) {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *StringNode) GetLeaves() []Noder {
+func (tn *StringNode) GetLeaves() []*StringNode {
 	// It is safe to change the stack implementation as long as
 	// it is not limited in size. If it is, make sure to check the error
 	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack[Noder](tn)
+	stack := Stacker.NewLinkedStack[*StringNode](tn)
 
-	var leaves []Noder
+	var leaves []*StringNode
 
 	for {
 		top, ok := stack.Pop()
@@ -170,11 +145,10 @@ func (tn *StringNode) GetLeaves() []Noder {
 			break
 		}
 
-		node := top.(*StringNode)
-		if node.FirstChild == nil {
+		if top.FirstChild == nil {
 			leaves = append(leaves, top)
 		} else {
-			for c := node.FirstChild; c != nil; c = c.NextSibling {
+			for c := top.FirstChild; c != nil; c = c.NextSibling {
 				stack.Push(c)
 			}
 		}
@@ -183,7 +157,7 @@ func (tn *StringNode) GetLeaves() []Noder {
 	return leaves
 }
 
-// Cleanup implements the Noder interface.
+// Cleanup implements the StringNode interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
 // by one. While this is useful for freeing up memory, for large enough trees, it is
@@ -253,7 +227,7 @@ func (tn *StringNode) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// GetAncestors implements the Noder interface.
+// GetAncestors implements the StringNode interface.
 //
 // This is expensive since ancestors are not stored and so, every time this
 // function is called, it has to traverse the tree to find the ancestors. Thus, it is
@@ -262,8 +236,8 @@ func (tn *StringNode) Cleanup() {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func (tn *StringNode) GetAncestors() []Noder {
-	var ancestors []Noder
+func (tn *StringNode) GetAncestors() []*StringNode {
+	var ancestors []*StringNode
 
 	for node := tn; node.Parent != nil; node = node.Parent {
 		ancestors = append(ancestors, node.Parent)
@@ -274,46 +248,39 @@ func (tn *StringNode) GetAncestors() []Noder {
 	return ancestors
 }
 
-// IsLeaf implements the Noder interface.
+// IsLeaf implements the StringNode interface.
 func (tn *StringNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
-// IsSingleton implements the Noder interface.
+// IsSingleton implements the StringNode interface.
 func (tn *StringNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// GetFirstChild implements the Noder interface.
-func (tn *StringNode) GetFirstChild() Noder {
+// GetFirstChild implements the StringNode interface.
+func (tn *StringNode) GetFirstChild() *StringNode {
 	return tn.FirstChild
 }
 
-// DeleteChild implements the Noder interface.
+// DeleteChild implements the StringNode interface.
 //
 // No nil nodes are returned.
-func (tn *StringNode) DeleteChild(target Noder) []Noder {
+func (tn *StringNode) DeleteChild(target *StringNode) []*StringNode {
 	if target == nil {
 		return nil
 	}
 
-	n, ok := target.(*StringNode)
-	if !ok {
-		return nil
-	}
-
-	children := tn.delete_child(n)
+	children := tn.delete_child(target)
 
 	if len(children) == 0 {
 		return children
 	}
 
 	for _, child := range children {
-		c := child.(*StringNode)
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
 	}
 
 	tn.FirstChild = nil
@@ -322,7 +289,7 @@ func (tn *StringNode) DeleteChild(target Noder) []Noder {
 	return children
 }
 
-// Size implements the Noder interface.
+// Size implements the StringNode interface.
 //
 // This is expensive as it has to traverse the whole tree to find the size of the tree.
 // Thus, it is recommended to call this function once and then store the size somewhere if needed.
@@ -354,38 +321,32 @@ func (tn *StringNode) Size() int {
 	return size
 }
 
-// AddChild adds a new child to the node. If the child is nil or it is not of type
-// *StringNode, it does nothing.
+// AddChild adds a new child to the node. If the child is nil it does nothing.
 //
 // This function clears the parent and sibling pointers of the child and so, it
 // does not add relatives to the child.
 //
 // Parameters:
 //   - child: The child to add.
-func (tn *StringNode) AddChild(child Noder) {
+func (tn *StringNode) AddChild(child *StringNode) {
 	if child == nil {
 		return
 	}
-
-	c, ok := child.(*StringNode)
-	if !ok {
-		return
-	}
 	
-	c.NextSibling = nil
-	c.PrevSibling = nil
+	child.NextSibling = nil
+	child.PrevSibling = nil
 
 	last_child := tn.LastChild
 
 	if last_child == nil {
-		tn.FirstChild = c
+		tn.FirstChild = child
 	} else {
-		last_child.NextSibling = c
-		c.PrevSibling = last_child
+		last_child.NextSibling = child
+		child.PrevSibling = last_child
 	}
 
-	c.Parent = tn
-	tn.LastChild = c
+	child.Parent = tn
+	tn.LastChild = child
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to
@@ -395,7 +356,7 @@ func (tn *StringNode) AddChild(child Noder) {
 // is removed.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node iff the node is the root.
+//   - []*StringNode: A slice of pointers to the children of the node iff the node is the root.
 //     Nil otherwise.
 //
 // Example:
@@ -415,12 +376,12 @@ func (tn *StringNode) AddChild(child Noder) {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *StringNode) RemoveNode() []Noder {
+func (tn *StringNode) RemoveNode() []*StringNode {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []Noder
+	var sub_roots []*StringNode
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -430,7 +391,7 @@ func (tn *StringNode) RemoveNode() []Noder {
 		children := parent.delete_child(tn)
 
 		for _, child := range children {
-			child.SetParent(parent)
+			child.Parent = parent
 		}
 	}
 
@@ -455,11 +416,9 @@ func (tn *StringNode) RemoveNode() []Noder {
 	}
 
 	for _, child := range sub_roots {
-		c := child.(*StringNode)
-
-		c.PrevSibling = nil
-		c.NextSibling = nil
-		c.Parent = nil
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
 	}
 
 	tn.FirstChild = nil
@@ -607,9 +566,9 @@ func (tn *StringNode) AddChildren(children []*StringNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func (tn *StringNode) GetChildren() []Noder {
-	var children []Noder
+//   - []*StringNode: A slice of pointers to the children of the node.
+func (tn *StringNode) GetChildren() []*StringNode {
+	var children []*StringNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -649,8 +608,8 @@ func (tn *StringNode) HasChild(target *StringNode) bool {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Noder: A slice of pointers to the children of the node.
-func (tn *StringNode) delete_child(target *StringNode) []Noder {
+//   - []StringNode: A slice of pointers to the children of the node.
+func (tn *StringNode) delete_child(target *StringNode) []*StringNode {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -702,9 +661,7 @@ func (tn *StringNode) IsChildOf(target *StringNode) bool {
 	parents := target.GetAncestors()
 
 	for node := tn; node.Parent != nil; node = node.Parent {
-		parent := Noder(node.Parent)
-
-		ok := slices.Contains(parents, parent)
+		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true
 		}
@@ -712,3 +669,82 @@ func (tn *StringNode) IsChildOf(target *StringNode) bool {
 
 	return false
 }
+
+/*
+
+// FindCommonAncestor returns the first common ancestor of the two nodes.
+//
+// Parameters:
+//   - n1: The first node.
+//   - n2: The second node.
+//
+// Returns:
+//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
+func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
+	if n1 == nil {
+		return n2
+	} else if n2 == nil {
+		return n1
+	} else if n1 == n2 {
+		return n1
+	}
+
+	ancestors1 := n1.GetAncestors()
+	ancestors2 := n2.GetAncestors()
+
+	if len(ancestors1) > len(ancestors2) {
+		ancestors1, ancestors2 = ancestors2, ancestors1
+	}
+
+	for _, node := range ancestors1 {
+		ok := slices.Contains(ancestors2, node)
+		if ok {
+			return node
+		}
+	}
+
+	return nil
+}
+
+// FindBranchingPoint returns the first node in the path from n to the root
+// such that has more than one sibling.
+//
+// Returns:
+//   - *TreeNode[T]: The branching point.
+//   - *TreeNode[T]: The parent of the branching point.
+//   - bool: True if the node has a branching point, false otherwise.
+//
+// Behaviors:
+//   - If there is no branching point, it returns the root of the tree. However,
+//     if n is nil, it returns nil, nil, false and if the node has no parent, it
+//     returns nil, n, false.
+func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
+	if n == nil {
+		return nil, nil, false
+	}
+
+	parent := n.GetParent()
+	if parent == nil {
+		return nil, n, false
+	}
+
+	var has_branching_point bool
+
+	for !has_branching_point {
+		grand_parent := parent.GetParent()
+		if grand_parent == nil {
+			break
+		}
+
+		ok := parent.IsSingleton()
+		if !ok {
+			has_branching_point = true
+		} else {
+			n = parent
+			parent = grand_parent
+		}
+	}
+
+	return n, parent, has_branching_point
+}
+*/

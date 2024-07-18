@@ -2,16 +2,15 @@ package Tree
 
 import (
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	tn "github.com/PlayerR9/treenode"
 )
 
 // stackElement is a stack element.
-type stackElement struct {
+type stackElement[T any] struct {
 	// prev is the previous node.
-	prev tn.Noder
+	prev *TreeNode[T]
 
 	// elem is the current node.
-	elem tn.Noder
+	elem *TreeNode[T]
 
 	// info is the info of the current node.
 	info uc.Copier
@@ -26,8 +25,8 @@ type stackElement struct {
 //
 // Returns:
 //   - *stackElement: A pointer to the stack element.
-func new_stack_element(prev, data tn.Noder, info uc.Copier) *stackElement {
-	se := &stackElement{
+func new_stack_element[T any](prev, data *TreeNode[T], info uc.Copier) *stackElement[T] {
+	se := &stackElement[T]{
 		prev: prev,
 		elem: data,
 		info: info,
@@ -39,9 +38,9 @@ func new_stack_element(prev, data tn.Noder, info uc.Copier) *stackElement {
 // get_data returns the data of the stack element.
 //
 // Returns:
-//   - Tree.tn.Noder: The data of the stack element.
+//   - Tree.*TreeNode[T]: The data of the stack element.
 //   - bool: True if the data is valid, otherwise false.
-func (se *stackElement) get_data() (tn.Noder, bool) {
+func (se *stackElement[T]) get_data() (*TreeNode[T], bool) {
 	if se.elem == nil {
 		return nil, false
 	}
@@ -53,7 +52,7 @@ func (se *stackElement) get_data() (tn.Noder, bool) {
 //
 // Returns:
 //   - common.Copier: The info of the stack element.
-func (se *stackElement) get_info() uc.Copier {
+func (se *stackElement[T]) get_info() uc.Copier {
 	return se.info
 }
 
@@ -61,7 +60,7 @@ func (se *stackElement) get_info() uc.Copier {
 //
 // Returns:
 //   - bool: True if the link is successful, otherwise false.
-func (se *stackElement) link_to_prev() bool {
+func (se *stackElement[T]) link_to_prev() bool {
 	if se.prev == nil {
 		return false
 	}
@@ -74,7 +73,7 @@ func (se *stackElement) link_to_prev() bool {
 // get_elem returns the current node.
 //
 // Returns:
-//   - Tree.tn.Noder: The current node.
-func (se *stackElement) get_elem() tn.Noder {
+//   - Tree.*TreeNode[T]: The current node.
+func (se *stackElement[T]) get_elem() *TreeNode[T] {
 	return se.elem
 }

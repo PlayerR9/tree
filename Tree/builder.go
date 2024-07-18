@@ -3,7 +3,6 @@ package Tree
 import (
 	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	tn "github.com/PlayerR9/treenode"
 )
 
 // Infoer is an interface that provides the info of the element.
@@ -20,15 +19,15 @@ type Infoer interface {
 // Returns:
 //   - []T: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T tn.Noder] func(elem T, info Infoer) ([]T, error)
+type NextsFunc[T any] func(elem T, info Infoer) ([]T, error)
 
 // Builder is a struct that builds a tree.
-type Builder[T tn.Noder] struct {
+type Builder[T any] struct {
 	// info is the info of the builder.
 	info Infoer
 
 	// f is the next function.
-	f NextsFunc[T]
+	f NextsFunc[*TreeNode[T]]
 }
 
 // SetInfo sets the info of the builder.
@@ -43,7 +42,7 @@ func (b *Builder[T]) SetInfo(info Infoer) {
 //
 // Parameters:
 //   - f: The function to set.
-func (b *Builder[T]) SetNextFunc(f NextsFunc[T]) {
+func (b *Builder[T]) SetNextFunc(f NextsFunc[*TreeNode[T]]) {
 	b.f = f
 }
 
@@ -68,18 +67,20 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 	}
 
 	// 1. Handle the root node
-	nexts, err := b.f(elem, b.info)
+	root := NewTreeNode(elem)
+
+	nexts, err := b.f(root, b.info)
 	if err != nil {
 		return nil, err
 	}
 
-	tree := NewTree(elem)
+	tree := NewTree(root)
 
 	if len(nexts) == 0 {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*stackElement]()
+	S := lls.NewLinkedStack[*stackElement[T]]()
 
 	for _, next := range nexts {
 		root := tree.Root()
@@ -129,7 +130,7 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 }
 
 // Reset resets the builder.
-func (b *Builder) Reset() {
+func (b *Builder[T]) Reset() {
 	b.info = nil
 	b.f = nil
 }

@@ -2,8 +2,6 @@ package Tree
 
 import (
 	"slices"
-
-	tn "github.com/PlayerR9/treenode"
 )
 
 // FindCommonAncestor returns the first common ancestor of the two nodes.
@@ -13,8 +11,8 @@ import (
 //   - n2: The second node.
 //
 // Returns:
-//   - tn.Noder: A pointer to the common ancestor. Nil if no such node is found.
-func FindCommonAncestor(n1, n2 tn.Noder) tn.Noder {
+//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
+func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
 	if n1 == nil {
 		return n2
 	} else if n2 == nil {
@@ -44,15 +42,15 @@ func FindCommonAncestor(n1, n2 tn.Noder) tn.Noder {
 // such that has more than one sibling.
 //
 // Returns:
-//   - tn.Noder: The branching point.
-//   - tn.Noder: The parent of the branching point.
+//   - *TreeNode[T]: The branching point.
+//   - *TreeNode[T]: The parent of the branching point.
 //   - bool: True if the node has a branching point, false otherwise.
 //
 // Behaviors:
 //   - If there is no branching point, it returns the root of the tree. However,
 //     if n is nil, it returns nil, nil, false and if the node has no parent, it
 //     returns nil, n, false.
-func FindBranchingPoint(n tn.Noder) (tn.Noder, tn.Noder, bool) {
+func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
 	if n == nil {
 		return nil, nil, false
 	}
@@ -92,7 +90,7 @@ func FindBranchingPoint(n tn.Noder) (tn.Noder, tn.Noder, bool) {
 //
 // Returns:
 //   - []T: A slice of the values of the nodes.
-func ExtractData[T any](nodes []tn.Noder) []T {
+func ExtractData[T any](nodes []*TreeNode[T]) []T {
 	if len(nodes) == 0 {
 		return nil
 	}
