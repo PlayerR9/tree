@@ -55,7 +55,7 @@ func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool
 		return nil, nil, false
 	}
 
-	parent := n.GetParent()
+	parent := n.Parent
 	if parent == nil {
 		return nil, n, false
 	}
@@ -63,7 +63,7 @@ func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool
 	var has_branching_point bool
 
 	for !has_branching_point {
-		grand_parent := parent.GetParent()
+		grand_parent := parent.Parent
 		if grand_parent == nil {
 			break
 		}

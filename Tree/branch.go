@@ -102,7 +102,7 @@ func NewBranch[T any](n *TreeNode[T]) *Branch[T] {
 	node := n
 
 	for {
-		parent := node.GetParent()
+		parent := node.Parent
 		if parent == nil {
 			break
 		}

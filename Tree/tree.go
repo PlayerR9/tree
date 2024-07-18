@@ -2,74 +2,12 @@ package Tree
 
 import (
 	"slices"
-	"strings"
-	"unicode/utf8"
 
-	ffs "github.com/PlayerR9/MyGoLib/Formatting/FString"
-	"github.com/PlayerR9/MyGoLib/ListLike/Queuer"
+	llq "github.com/PlayerR9/MyGoLib/ListLike/Queuer"
 	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	us "github.com/PlayerR9/MyGoLib/Units/slice"
 )
-
-// TreeFormatter is a formatter that formats the tree.
-type TreeFormatter struct {
-	// spacing is the spacing between nodes.
-	spacing string
-
-	// leaf_prefix is the prefix for leaves.
-	leaf_prefix string
-
-	// node_prefix is the prefix for nodes.
-	node_prefix string
-}
-
-// WithSpacing sets the spacing between nodes.
-//
-// If spacing is an empty string, it is set to three spaces.
-//
-// Parameters:
-//   - spacing: The spacing between nodes.
-//
-// Returns:
-//   - ffs.Option: The option function.
-func WithSpacing(spacing string) ffs.Option {
-	size := utf8.RuneCountInString(spacing)
-	if size <= 1 {
-		spacing = "   "
-	}
-
-	p1 := strings.Repeat("─", size-1)
-	p2 := strings.Repeat(spacing, size)
-
-	return func(s ffs.Settinger) {
-		tf, ok := s.(*TreeFormatter)
-		if !ok {
-			return
-		}
-
-		var builder strings.Builder
-
-		builder.WriteRune('|')
-		builder.WriteString(p2)
-
-		tf.spacing = builder.String()
-		builder.Reset()
-
-		builder.WriteRune('├')
-		builder.WriteString(p1)
-		builder.WriteRune(' ')
-
-		tf.leaf_prefix = builder.String()
-		builder.Reset()
-
-		builder.WriteRune('└')
-		builder.WriteString(p1)
-		builder.WriteRune(' ')
-
-		tf.node_prefix = builder.String()
-	}
-}
 
 // Tree is a generic data structure that represents a tree.
 type Tree[T any] struct {
@@ -81,108 +19,6 @@ type Tree[T any] struct {
 
 	// size is the number of nodes in the tree.
 	size int
-}
-
-// FString implements the FString.FStringer interface.
-//
-// By default, it uses a three-space indentation.
-//
-// Format:
-//
-//	root
-//	├── node1
-//	│   ├── node2
-//	│   └── node3
-//	└── node4
-//	|   └── node5
-//	|
-//	| // ...
-//	// ...
-func (t *Tree[T]) FString(trav *ffs.Traversor, opts ...ffs.Option) error {
-	if trav == nil {
-		return nil
-	}
-
-	root := t.root
-	if root == nil {
-		return nil
-	}
-
-	tf := &TreeFormatter{
-		spacing:     "|   ",
-		leaf_prefix: "├── ",
-		node_prefix: "└── ",
-	}
-
-	for _, opt := range opts {
-		opt(tf)
-	}
-
-	// Deal with root.
-	str := root.String()
-
-	err := trav.AddLine(str)
-	if err != nil {
-		return err
-	}
-
-	type stack_element struct {
-		node  *TreeNode[T]
-		depth string
-	}
-
-	stack := lls.NewArrayStack[*stack_element]()
-
-	for c := root.FirstChild; c != nil; c = c.NextSibling {
-		new_se := &stack_element{
-			node:  c,
-			depth: tf.spacing,
-		}
-
-		stack.Push(new_se)
-	}
-
-	// Deal with the rest of the tree.
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		var builder strings.Builder
-
-		builder.WriteString(top.depth)
-
-		ok = top.node.IsLeaf()
-		if ok {
-			builder.WriteString(tf.leaf_prefix)
-		} else {
-			builder.WriteString(tf.node_prefix)
-		}
-
-		str := top.node.String()
-
-		builder.WriteString(str)
-
-		str = builder.String()
-
-		err := trav.AddLine(str)
-		if err != nil {
-			return err
-		}
-
-		for c := top.node.FirstChild; c != nil; c = c.NextSibling {
-			new_se := &stack_element{
-				node:  c,
-				depth: top.depth + tf.spacing,
-			}
-
-			stack.Push(new_se)
-		}
-	}
-
-	return nil
 }
 
 // Cleanup implements the object.Cleaner interface.
@@ -396,27 +232,21 @@ func (t *Tree[T]) RegenerateLeaves() ([]*TreeNode[T], error) {
 
 	var leaves []*TreeNode[T]
 
-	S := lls.NewLinkedStack(root)
+	iter := t.DFS()
 
 	t.size = 0
 
 	for {
-		top, ok := S.Pop()
-		if !ok {
+		elem, err := iter.Consume()
+		if err != nil {
 			break
 		}
-		uc.Assert(top != nil, "top is nil")
 
 		t.size++
 
-		ok = top.IsLeaf()
+		ok := elem.Node.IsLeaf()
 		if ok {
-			leaves = append(leaves, top)
-			continue
-		}
-
-		for c := top.FirstChild; c != nil; c = c.NextSibling {
-			S.Push(c)
+			leaves = append(leaves, elem.Node)
 		}
 	}
 
@@ -444,28 +274,21 @@ func (t *Tree[T]) UpdateLeaves() ([]*TreeNode[T], error) {
 
 	var leaves []*TreeNode[T]
 
-	S := lls.NewLinkedStack(t.leaves...)
+	iter := t.DFS()
 
 	t.size -= len(t.leaves)
 
 	for {
-		top, ok := S.Pop()
-		if !ok {
+		elem, err := iter.Consume()
+		if err != nil {
 			break
 		}
 
-		uc.Assert(top != nil, "top is nil")
-
 		t.size++
 
-		ok = top.IsLeaf()
+		ok := elem.Node.IsLeaf()
 		if ok {
-			leaves = append(leaves, top)
-			continue
-		}
-
-		for c := top.FirstChild; c != nil; c = c.NextSibling {
-			S.Push(c)
+			leaves = append(leaves, elem.Node)
 		}
 	}
 
@@ -490,28 +313,18 @@ func (t *Tree[T]) HasChild(filter us.PredicateFilter[*TreeNode[T]]) (bool, error
 		return false, nil
 	}
 
-	root := t.root
-	if root == nil {
-		return false, nil
-	}
-
-	Q := Queuer.NewLinkedQueue(root)
+	iter := t.BFS()
+	uc.Assert(iter != nil, "iter is nil")
 
 	for {
-		node, ok := Q.Dequeue()
-		if !ok {
+		value, err := iter.Consume()
+		if err != nil {
 			break
 		}
 
-		uc.Assert(node != nil, "node is nil")
-
-		ok = filter(node)
+		ok := filter(value.Node)
 		if ok {
 			return true, nil
-		}
-
-		for c := node.FirstChild; c != nil; c = c.NextSibling {
-			Q.Enqueue(c)
 		}
 	}
 
@@ -534,30 +347,19 @@ func (t *Tree[T]) FilterChildren(filter us.PredicateFilter[*TreeNode[T]]) ([]*Tr
 		return nil, nil
 	}
 
-	root := t.root
-	if root == nil {
-		return nil, nil
-	}
-
-	Q := Queuer.NewLinkedQueue(root)
+	iter := t.BFS()
 
 	var children []*TreeNode[T]
 
 	for {
-		node, ok := Q.Dequeue()
-		if !ok {
+		value, err := iter.Consume()
+		if err != nil {
 			break
 		}
 
-		uc.Assert(node != nil, "node is nil")
-
-		ok = filter(node)
+		ok := filter(value.Node)
 		if ok {
-			children = append(children, node)
-		}
-
-		for c := node.FirstChild; c != nil; c = c.NextSibling {
-			Q.Enqueue(c)
+			children = append(children, value.Node)
 		}
 	}
 
@@ -604,37 +406,27 @@ func (t *Tree[T]) PruneBranches(filter us.PredicateFilter[*TreeNode[T]]) bool {
 //   - f: The filter to apply.
 //
 // Returns:
-//   - T: The node that satisfies the filter.
-//   - error: An error if the node is not found or the iteration fails.
-//
-// Errors:
-//   - *common.ErrNotFound: If the node is not found.
-//   - error: The error returned by the iteration function.
-func (t *Tree[T]) SearchNodes(f us.PredicateFilter[*TreeNode[T]]) (*TreeNode[T], error) {
-	root := t.root
-	if root == nil {
-		return nil, nil
+//   - T: The node that satisfies the filter. Nil if the node is not found.
+func (t *Tree[T]) SearchNodes(f us.PredicateFilter[*TreeNode[T]]) *TreeNode[T] {
+	if f == nil {
+		return nil
 	}
 
-	Q := Queuer.NewLinkedQueue(root)
+	iter := t.BFS()
 
 	for {
-		first, ok := Q.Dequeue()
-		if !ok {
+		value, err := iter.Consume()
+		if err != nil {
 			break
 		}
 
-		ok = f(first)
+		ok := f(value.Node)
 		if ok {
-			return first, nil
-		}
-
-		for c := first.FirstChild; c != nil; c = c.NextSibling {
-			Q.Enqueue(c)
+			return value.Node
 		}
 	}
 
-	return nil, uc.NewErrNotFound()
+	return nil
 }
 
 // DeleteBranchContaining deletes the branch containing the given node.
@@ -690,22 +482,17 @@ func (t *Tree[T]) DeleteBranchContaining(n *TreeNode[T]) error {
 //
 // Returns:
 //   - bool: True if no nodes were pruned, false otherwise.
-//   - error: An error if the iteration fails.
-func (t *Tree[T]) Prune(filter us.PredicateFilter[*TreeNode[T]]) (bool, error) {
+func (t *Tree[T]) Prune(filter us.PredicateFilter[*TreeNode[T]]) bool {
 	for t.Size() != 0 {
-		target, err := t.SearchNodes(filter)
-		if err != nil {
-			return false, err
-		}
-
+		target := t.SearchNodes(filter)
 		if target == nil {
-			return true, nil
+			return true
 		}
 
 		t.DeleteBranchContaining(target)
 	}
 
-	return false, nil
+	return false
 }
 
 // SkipFunc removes all the children of the tree that satisfy the given filter
@@ -741,7 +528,7 @@ func (t *Tree[T]) SkipFilter(filter us.PredicateFilter[*TreeNode[T]]) (forest []
 
 		ok := filter(leaf)
 
-		parent := leaf.GetParent()
+		parent := leaf.Parent
 
 		if !ok {
 			if parent == nil {
@@ -980,4 +767,52 @@ func (t *Tree[T]) InsertBranch(branch *Branch[T]) (bool, error) {
 
 	ok := t.size != prev_size
 	return ok, nil
+}
+
+// DFS returns an iterator that traverses the tree in depth-first order.
+//
+// If the tree has no root, an empty iterator is returned.
+//
+// Returns:
+//   - uc.Iterater[*TreeNode[T]]: An iterator that traverses the tree in depth-first order.
+//     Never returns nil.
+func (t *Tree[T]) DFS() uc.Iterater[*IteratorNode[T]] {
+	if t.root == nil {
+		return &DFSIterator[T]{
+			root:  nil,
+			stack: lls.NewLinkedStack[*IteratorNode[T]](),
+		}
+	} else {
+		return &DFSIterator[T]{
+			root: t.root,
+			stack: lls.NewLinkedStack[*IteratorNode[T]](&IteratorNode[T]{
+				Node:  t.root,
+				Depth: 0,
+			}),
+		}
+	}
+}
+
+// BFS returns an iterator that traverses the tree in breadth-first order.
+//
+// If the tree has no root, an empty iterator is returned.
+//
+// Returns:
+//   - uc.Iterater[*TreeNode[T]]: An iterator that traverses the tree in breadth-first order.
+//     Never returns nil.
+func (t *Tree[T]) BFS() uc.Iterater[*IteratorNode[T]] {
+	if t.root == nil {
+		return &BFSIterator[T]{
+			root:  nil,
+			queue: llq.NewLinkedQueue[*IteratorNode[T]](),
+		}
+	} else {
+		return &BFSIterator[T]{
+			root: t.root,
+			queue: llq.NewLinkedQueue[*IteratorNode[T]](&IteratorNode[T]{
+				Node:  t.root,
+				Depth: 0,
+			}),
+		}
+	}
 }

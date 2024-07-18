@@ -44,11 +44,6 @@ func (tn *TreeNode[T]) Copy() common.Copier {
 	return tn_copy
 }
 
-// GetParent implements the *TreeNode[T] interface.
-func (tn *TreeNode[T]) GetParent() *TreeNode[T] {
-	return tn.Parent
-}
-
 // LinkWithParent implements the *TreeNode[T] interface.
 //
 // Children that are nil are ignored.

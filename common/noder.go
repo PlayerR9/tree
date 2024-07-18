@@ -1,4 +1,4 @@
-package treenode
+package common
 
 import (
 	"fmt"
