@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	utob "github.com/PlayerR9/MyGoLib/Utility/object"
 )
@@ -111,12 +110,14 @@ type Noder interface {
 //
 // Finally, no nil nodes are returned.
 func GetNodeLeaves[N Noder](node N) []N {
-	stack := lls.NewLinkedStack(node)
+	lls := NewLinkedNStack[N]()
+
+	lls.Push(node)
 
 	var leaves []N
 
 	for {
-		top, ok := stack.Pop()
+		top, ok := lls.Pop()
 		if !ok {
 			break
 		}
@@ -136,7 +137,7 @@ func GetNodeLeaves[N Noder](node N) []N {
 				tmp, ok := c.(N)
 				uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
 
-				stack.Push(tmp)
+				lls.Push(tmp)
 			}
 		}
 	}
@@ -157,12 +158,14 @@ func GetNodeSize(node Noder) int {
 		return 0
 	}
 
-	stack := lls.NewLinkedStack(node)
+	lls := NewLinkedNStack[Noder]()
+
+	lls.Push(node)
 
 	var size int
 
 	for {
-		top, ok := stack.Pop()
+		top, ok := lls.Pop()
 		if !ok {
 			break
 		}
@@ -178,7 +181,7 @@ func GetNodeSize(node Noder) int {
 				break
 			}
 
-			stack.Push(c)
+			lls.Push(c)
 		}
 	}
 

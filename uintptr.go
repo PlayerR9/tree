@@ -5,7 +5,7 @@ package tree
 import (
 	"slices"
 
-	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/stack"
 	"github.com/PlayerR9/MyGoLib/Units/common"
 	"github.com/PlayerR9/tree/tree"
 )
@@ -316,7 +316,7 @@ func (tn *UintptrNode) Cleanup() {
 		previous, current *UintptrNode
 	}
 
-	stack := Stacker.NewLinkedStack[*Helper]()
+	lls := stack.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -325,7 +325,7 @@ func (tn *UintptrNode) Cleanup() {
 			current: 	c,
 		}
 
-		stack.Push(h)
+		lls.Push(h)
 	}
 
 	tn.FirstChild = nil
@@ -334,7 +334,7 @@ func (tn *UintptrNode) Cleanup() {
 
 	// Free the rest of the nodes.
 	for {
-		h, ok := stack.Pop()
+		h, ok := lls.Pop()
 		if !ok {
 			break
 		}
@@ -345,7 +345,7 @@ func (tn *UintptrNode) Cleanup() {
 				current: 	c,
 			}
 
-			stack.Push(h)
+			lls.Push(h)
 		}
 
 		h.previous.NextSibling = nil

@@ -76,7 +76,7 @@ import (
 	"text/template"
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	ggen "github.com/PlayerR9/MyGoLib/go_generator"
+	ggen "github.com/PlayerR9/MyGoLib/Utility/go_generator"
 )
 
 var (
@@ -164,37 +164,37 @@ func main() {
 	}
 
 	err = ggen.Generate(filename, GenData{}, t,
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			data.TypeName = type_name
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			tn_type_sig, err := ggen.MakeTypeSig(type_name, "")
 			if err != nil {
-				Logger.Fatalf("Could not generate type signature: %s", err.Error())
+				return err
 			}
 
 			data.TypeSig = tn_type_sig
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			tn_iterator_sig, err := ggen.MakeTypeSig(type_name, "Iterator")
 			if err != nil {
-				Logger.Fatalf("Could not generate type signature: %s", err.Error())
+				return err
 			}
 
 			data.IteratorSig = tn_iterator_sig
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			data.Generics = ggen.GenericsSigFlag.String()
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			var builder strings.Builder
 
 			builder.WriteString(type_name)
@@ -202,32 +202,32 @@ func main() {
 
 			data.IteratorName = builder.String()
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			param_list, err := ggen.MakeParameterList()
 			if err != nil {
-				Logger.Fatalf("Could not generate parameter list: %s", err.Error())
+				return err
 			}
 
 			data.ParamList = param_list
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
+		func(data *GenData) error {
 			assignment_map, err := ggen.MakeAssignmentList()
 			if err != nil {
-				Logger.Fatalf("Could not generate assignment map: %s", err.Error())
+				return err
 			}
 
 			data.AssignmentMap = assignment_map
 
-			return data
+			return nil
 		},
-		func(data GenData) GenData {
-			data.Fields = ggen.GetFields()
+		func(data *GenData) error {
+			data.Fields = ggen.StructFieldsFlag.GetFields()
 
-			return data
+			return nil
 		},
 	)
 	if err != nil {
@@ -243,7 +243,7 @@ package {{ .PackageName }}
 import (
 	"slices"
 
-	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
+	"github.com/PlayerR9/stack"
 	"github.com/PlayerR9/MyGoLib/Units/common"
 	"github.com/PlayerR9/tree/tree"
 )
@@ -557,7 +557,7 @@ func (tn *{{ .TypeSig }}) Cleanup() {
 		previous, current *{{ .TypeSig }}
 	}
 
-	stack := Stacker.NewLinkedStack[*Helper]()
+	lls := stack.NewLinkedStack[*Helper]()
 
 	// Free the first node.
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -566,7 +566,7 @@ func (tn *{{ .TypeSig }}) Cleanup() {
 			current: 	c,
 		}
 
-		stack.Push(h)
+		lls.Push(h)
 	}
 
 	tn.FirstChild = nil
@@ -575,7 +575,7 @@ func (tn *{{ .TypeSig }}) Cleanup() {
 
 	// Free the rest of the nodes.
 	for {
-		h, ok := stack.Pop()
+		h, ok := lls.Pop()
 		if !ok {
 			break
 		}
@@ -586,7 +586,7 @@ func (tn *{{ .TypeSig }}) Cleanup() {
 				current: 	c,
 			}
 
-			stack.Push(h)
+			lls.Push(h)
 		}
 
 		h.previous.NextSibling = nil

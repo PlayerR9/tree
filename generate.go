@@ -21,3 +21,7 @@
 //go:generate go run cmd/main.go -name=UintptrNode -fields=Data/uintptr -o=uintptr.go
 //go:generate go run cmd/main.go -name=StatusNode -fields=Status/S,Data/T -g=S/common.Enumer,T/any -o=status.go
 package tree
+
+import _ "github.com/PlayerR9/stack"
+
+//go:generate go run github.com/PlayerR9/stack/cmd -type=N -g=N/Noder -o=tree/node_stack.go

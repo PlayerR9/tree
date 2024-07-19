@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	llq "github.com/PlayerR9/MyGoLib/ListLike/Queuer"
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	lls "github.com/PlayerR9/stack"
 )
 
 // IteratorNode is a node in the iterator.
@@ -230,7 +230,8 @@ func DFS[N Noder](tree *Tree[N], init Infoer, f ObserverFunc[N]) error {
 
 	trav := new_traversor(tree.root, init)
 
-	S := lls.NewLinkedStack(trav)
+	S := lls.NewLinkedStack[*traversor[N]]()
+	S.Push(trav)
 
 	for {
 		top, ok := S.Pop()

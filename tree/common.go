@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	ffs "github.com/PlayerR9/MyGoLib/Formatting/FString"
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	us "github.com/PlayerR9/MyGoLib/Units/slice"
 )
@@ -150,10 +149,12 @@ func UpdateLeaves[N Noder](tree *Tree[N]) {
 	var new_leaves []N
 	size := tree.size - len(tree.leaves)
 
-	stack := lls.NewArrayStack(tree.leaves...)
+	lls := NewLinkedNStack[N]()
+
+	lls.PushMany(tree.leaves)
 
 	for {
-		top, ok := stack.Pop()
+		top, ok := lls.Pop()
 		if !ok {
 			break
 		}
