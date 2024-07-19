@@ -38,5 +38,42 @@ type Treer interface {
 	//   - size: The size of the tree.
 	SetLeaves(leaves []Noder, size int)
 
+	// SetRoot is an internal function that sets the root of the tree. Nil
+	// or invalid roots are ignored.
+	//
+	// WARNING: Never call this function unless you know what you are doing.
+	//
+	// Parameters:
+	//   - root: The root to set.
+	SetRoot(root Noder)
+
 	utob.Cleaner
+}
+
+// NewTree creates a new tree with the given value as the root.
+//
+// Parameters:
+//   - data: The value of the root.
+//
+// Returns:
+//   - *Tree: A pointer to the newly created tree.
+func NewTree[T Treer, N Noder](root N) T {
+	// if root == nil {
+	// 	tree := &Tree[T]{
+	// 		root:   nil,
+	// 		leaves: nil,
+	// 		size:   0,
+	// 	}
+	//
+	// 	return tree
+	// }
+
+	leaves := GetNodeLeaves(root)
+	size := GetNodeSize(root)
+
+	tree := *new(T)
+	tree.SetLeaves(leaves, size)
+	tree.SetRoot(root)
+
+	return tree
 }

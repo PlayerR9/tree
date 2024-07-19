@@ -207,70 +207,6 @@ func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
 	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
-// NewTree creates a new tree with the given value as the root.
-//
-// Parameters:
-//   - data: The value of the root.
-//
-// Returns:
-//   - *Tree: A pointer to the newly created tree.
-func (tn *TreeNode[T]) ToTree() com.Treer {
-	var leaves []*TreeNode[T]
-	var size int
-
-	ok := tn.IsLeaf()
-	if ok {
-		leaves = []*TreeNode[T]{tn}
-		size = 1
-	} else {
-		leaves = tn.GetLeaves()
-		size = tn.Size()
-	}
-
-	tree := &Tree[T]{
-		root:   tn,
-		leaves: leaves,
-		size:   size,
-	}
-
-	return tree
-}
-
-// GetLeaves implements the *TreeNode[T] interface.
-//
-// This is expensive as leaves are not stored and so, every time this function is called,
-// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
-// this function once and then store the leaves somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *TreeNode[T]) GetLeaves() []*TreeNode[T] {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
-
-	var leaves []*TreeNode[T]
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		if top.FirstChild == nil {
-			leaves = append(leaves, top)
-		} else {
-			for c := top.FirstChild; c != nil; c = c.NextSibling {
-				stack.Push(c)
-			}
-		}
-	}
-
-	return leaves
-}
-
 // Cleanup implements the *TreeNode[T] interface.
 //
 // This is expensive as it has to traverse the whole tree to clean up the nodes, one
@@ -370,38 +306,6 @@ func (tn *TreeNode[T]) IsLeaf() bool {
 // IsSingleton implements the *TreeNode[T] interface.
 func (tn *TreeNode[T]) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
-}
-
-// Size implements the *TreeNode[T] interface.
-//
-// This is expensive as it has to traverse the whole tree to find the size of the tree.
-// Thus, it is recommended to call this function once and then store the size somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, the traversal is done in a depth-first manner.
-func (tn *TreeNode[T]) Size() int {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
-
-	var size int
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		size++
-
-		for c := top.FirstChild; c != nil; c = c.NextSibling {
-			stack.Push(c)
-		}
-	}
-
-	return size
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to

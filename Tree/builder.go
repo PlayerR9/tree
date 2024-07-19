@@ -72,7 +72,7 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 		return nil, err
 	}
 
-	tree := NewTree(root)
+	tree := com.NewTree[*Tree[T], *TreeNode[T]](root)
 
 	if len(nexts) == 0 {
 		return tree, nil

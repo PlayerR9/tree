@@ -507,14 +507,9 @@ func InsertBranch[T Treer, N Noder](tree T, branch *Branch[N]) (T, error) {
 	ref := tree.Root()
 
 	if ref == nil {
-		other_tree := branch.from_node.ToTree()
+		other_tree := NewTree[T](branch.from_node)
 
-		tmp, ok := other_tree.(T)
-		if !ok {
-			return *new(T), fmt.Errorf("other_tree is not a tree: %T", other_tree)
-		}
-
-		return tmp, nil
+		return other_tree, nil
 	}
 
 	var from Noder

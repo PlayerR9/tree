@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 
+	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	utob "github.com/PlayerR9/MyGoLib/Utility/object"
 )
@@ -55,12 +56,6 @@ type Noder interface {
 	//   - Noder: The first child of the node. Nil if the node has no children.
 	GetFirstChild() Noder
 
-	// ToTree creates a tree from the node.
-	//
-	// Returns:
-	//   - Treer: The tree containing the node. Never returns nil.
-	ToTree() Treer
-
 	// AddChild adds a child to the node.
 	//
 	// Parameters:
@@ -75,4 +70,89 @@ type Noder interface {
 	utob.Cleaner
 
 	fmt.Stringer
+}
+
+// GetLeaves implements the *TreeNode[T] interface.
+//
+// This is expensive as leaves are not stored and so, every time this function is called,
+// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
+// this function once and then store the leaves somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func GetNodeLeaves(node Noder) []Noder {
+	if node == nil {
+		return nil
+	}
+
+	stack := lls.NewLinkedStack(node)
+
+	var leaves []Noder
+
+	for {
+		top, ok := stack.Pop()
+		if !ok {
+			break
+		}
+
+		if top.GetFirstChild() == nil {
+			leaves = append(leaves, top)
+		} else {
+			iter := top.Iterator()
+			uc.Assert(iter != nil, "Iterator should not be nil")
+
+			for {
+				c, err := iter.Consume()
+				if err != nil {
+					break
+				}
+
+				stack.Push(c)
+			}
+		}
+	}
+
+	return leaves
+}
+
+// Size implements the *TreeNode[T] interface.
+//
+// This is expensive as it has to traverse the whole tree to find the size of the tree.
+// Thus, it is recommended to call this function once and then store the size somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, the traversal is done in a depth-first manner.
+func GetNodeSize(node Noder) int {
+	if node == nil {
+		return 0
+	}
+
+	stack := lls.NewLinkedStack(node)
+
+	var size int
+
+	for {
+		top, ok := stack.Pop()
+		if !ok {
+			break
+		}
+
+		size++
+
+		iter := top.Iterator()
+		uc.Assert(iter != nil, "Iterator should not be nil")
+
+		for {
+			c, err := iter.Consume()
+			if err != nil {
+				break
+			}
+
+			stack.Push(c)
+		}
+	}
+
+	return size
 }

@@ -5,6 +5,7 @@ import (
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	us "github.com/PlayerR9/MyGoLib/Units/slice"
+	com "github.com/PlayerR9/tree/common"
 )
 
 // rec_snake_traversal is an helper function that returns all the paths
@@ -122,8 +123,19 @@ func (t *Tree[T]) PruneFunc(filter us.PredicateFilter[*TreeNode[T]]) bool {
 		return true
 	}
 
-	t.leaves = highest.GetLeaves()
-	t.size = highest.Size()
+	leaves := com.GetNodeLeaves(highest)
+
+	conv := make([]*TreeNode[T], 0, len(leaves))
+
+	for i := 0; i < len(leaves); i++ {
+		tmp, ok := leaves[i].(*TreeNode[T])
+		uc.Assert(ok, "leaf is not of TreeNode type")
+
+		conv = append(conv, tmp)
+	}
+
+	t.leaves = conv
+	t.size = com.GetNodeSize(highest)
 
 	return false
 }

@@ -57,6 +57,14 @@ func (t *Tree[T]) SetLeaves(leaves []com.Noder, size int) {
 	t.size = size
 }
 
+// SetRoot implements the common.Treer interface.
+func (t *Tree[T]) SetRoot(root com.Noder) {
+	tmp, ok := root.(*TreeNode[T])
+	uc.AssertF(ok, "root is not a TreeNode")
+
+	t.root = tmp
+}
+
 // Cleanup implements the object.Cleaner interface.
 func (t *Tree[T]) Cleanup() {
 	root := t.root
@@ -85,50 +93,21 @@ func (t *Tree[T]) Copy() uc.Copier {
 	var tree *Tree[T]
 
 	root_copy := root.Copy().(*TreeNode[T])
+	leaves_copy := com.GetNodeLeaves(root_copy)
+
+	conv := make([]*TreeNode[T], 0, len(leaves_copy))
+
+	for _, leaf := range leaves_copy {
+		tmp, ok := leaf.(*TreeNode[T])
+		uc.Assert(ok, "leaf is not of TreeNode type")
+
+		conv = append(conv, tmp)
+	}
 
 	tree = &Tree[T]{
 		root:   root_copy,
-		leaves: root_copy.GetLeaves(),
+		leaves: conv,
 		size:   t.size,
-	}
-
-	return tree
-}
-
-// NewTree creates a new tree with the given value as the root.
-//
-// Parameters:
-//   - data: The value of the root.
-//
-// Returns:
-//   - *Tree: A pointer to the newly created tree.
-func NewTree[T any](root *TreeNode[T]) *Tree[T] {
-	if root == nil {
-		tree := &Tree[T]{
-			root:   nil,
-			leaves: nil,
-			size:   0,
-		}
-
-		return tree
-	}
-
-	var leaves []*TreeNode[T]
-	var size int
-
-	ok := root.IsLeaf()
-	if ok {
-		leaves = []*TreeNode[T]{root}
-		size = 1
-	} else {
-		leaves = root.GetLeaves()
-		size = root.Size()
-	}
-
-	tree := &Tree[T]{
-		root:   root,
-		leaves: leaves,
-		size:   size,
 	}
 
 	return tree
@@ -254,8 +233,20 @@ func (t *Tree[T]) PruneBranches(filter us.PredicateFilter[*TreeNode[T]]) bool {
 		return true
 	}
 
-	t.leaves = highest.GetLeaves()
-	t.size = highest.Size()
+	leaves := com.GetNodeLeaves(highest)
+
+	conv := make([]*TreeNode[T], 0, len(leaves))
+
+	for _, leaf := range leaves {
+		tmp, ok := leaf.(*TreeNode[T])
+		uc.Assert(ok, "leaf is not of TreeNode type")
+
+		conv = append(conv, tmp)
+	}
+
+	t.size = com.GetNodeSize(highest)
+
+	t.leaves = conv
 
 	return false
 }
@@ -320,7 +311,7 @@ func (t *Tree[T]) SkipFilter(filter us.PredicateFilter[*TreeNode[T]]) (forest []
 				for i := 0; i < len(children); i++ {
 					child := children[i]
 
-					tree := NewTree(child)
+					tree := com.NewTree[*Tree[T], *TreeNode[T]](child)
 
 					forest = append(forest, tree)
 				}
@@ -367,14 +358,23 @@ func (t *Tree[T]) replaceLeafWithTree(at int, values []*TreeNode[T]) {
 	t.size += len(values) - 1
 
 	// Replace the current leaf with the leaf's children
-	sub_leaves := leaf.GetLeaves()
+	sub_leaves := com.GetNodeLeaves(leaf)
+
+	conv := make([]*TreeNode[T], 0, len(sub_leaves))
+
+	for _, leaf := range sub_leaves {
+		tmp, ok := leaf.(*TreeNode[T])
+		uc.Assert(ok, "leaf is not of TreeNode type")
+
+		conv = append(conv, tmp)
+	}
 
 	if at == len(t.leaves)-1 {
-		t.leaves = append(t.leaves[:at], sub_leaves...)
+		t.leaves = append(t.leaves[:at], conv...)
 	} else if at == 0 {
-		t.leaves = append(sub_leaves, t.leaves[at+1:]...)
+		t.leaves = append(conv, t.leaves[at+1:]...)
 	} else {
-		t.leaves = append(t.leaves[:at], append(sub_leaves, t.leaves[at+1:]...)...)
+		t.leaves = append(t.leaves[:at], append(conv, t.leaves[at+1:]...)...)
 	}
 }
 
