@@ -1,36 +1,50 @@
-package Tree
+package common
 
 import (
+	"errors"
+	"fmt"
+
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 // BranchIterator is the pull-based iterator for the branch.
-type BranchIterator[T any] struct {
+type BranchIterator[T Noder] struct {
 	// from_node is the node from which the branch starts.
-	from_node *TreeNode[T]
+	from_node T
 
 	// to_node is the node to which the branch ends.
-	to_node *TreeNode[T]
+	to_node T
 
 	// current is the current node of the iterator.
-	current *TreeNode[T]
+	current T
 }
 
 // Consume implements the common.Iterater interface.
 //
 // This scans from the root node to the leaf node.
 //
-// *TreeNode[T] is never nil.
-func (bi *BranchIterator[T]) Consume() (*TreeNode[T], error) {
-	uc.Assert(bi.current != nil, "BranchIterator: current is nil")
-
+// Errors:
+//   - *common.ErrExhaustedIter: If the iterator has reached the end of the branch.
+//   - error: If the first child of the current node is not of the correct type or an impossible case occurs.
+func (bi *BranchIterator[T]) Consume() (T, error) {
 	value := bi.current
 
-	if bi.current == bi.to_node {
-		return nil, uc.NewErrExhaustedIter()
+	if Noder(bi.current) == Noder(bi.to_node) {
+		return *new(T), uc.NewErrExhaustedIter()
 	}
 
-	bi.current = bi.current.FirstChild
+	fc := bi.current.GetFirstChild()
+	if fc == nil {
+		return *new(T), errors.New("impossible case: no children but not reached the branch's end point")
+	}
+
+	tmp, ok := fc.(T)
+	if !ok {
+		return *new(T), fmt.Errorf("first child should be of type %T, got %T", *new(T), fc)
+	}
+
+	bi.current = tmp
+
 	return value, nil
 }
 
@@ -40,18 +54,18 @@ func (bi *BranchIterator[T]) Restart() {
 }
 
 // Branch represents a branch in a tree.
-type Branch[T any] struct {
+type Branch[T Noder] struct {
 	// from_node is the node from which the branch starts.
-	from_node *TreeNode[T]
+	from_node T
 
 	// to_node is the node to which the branch ends.
-	to_node *TreeNode[T]
+	to_node T
 }
 
 // Copy implements the uc.Copier interface.
 func (b *Branch[T]) Copy() uc.Copier {
-	from_copy := b.from_node.Copy().(*TreeNode[T])
-	to_copy := b.to_node.Copy().(*TreeNode[T])
+	from_copy := b.from_node.Copy().(T)
+	to_copy := b.to_node.Copy().(T)
 
 	b_copy := &Branch[T]{
 		from_node: from_copy,
@@ -62,7 +76,7 @@ func (b *Branch[T]) Copy() uc.Copier {
 }
 
 // Iterator implements the uc.Iterable interface.
-func (b *Branch[T]) Iterator() uc.Iterater[*TreeNode[T]] {
+func (b *Branch[T]) Iterator() uc.Iterater[T] {
 	iter := &BranchIterator[T]{
 		from_node: b.from_node,
 		current:   b.from_node,
@@ -72,14 +86,20 @@ func (b *Branch[T]) Iterator() uc.Iterater[*TreeNode[T]] {
 }
 
 // Slice implements the uc.Slicer interface.
-func (b *Branch[T]) Slice() []*TreeNode[T] {
-	var slice []*TreeNode[T]
+func (b *Branch[T]) Slice() []T {
+	var slice []T
 
 	n := b.from_node
-	for n != b.to_node {
+	for Noder(n) != Noder(b.to_node) {
 		slice = append(slice, n)
 
-		n = n.FirstChild
+		fc := n.GetFirstChild()
+		uc.Assert(fc != nil, "first child should not be nil")
+
+		tmp, ok := fc.(T)
+		uc.AssertF(ok, "first child should be of type %T, got %T", *new(T), fc)
+
+		n = tmp
 	}
 
 	slice = append(slice, b.to_node)
@@ -94,7 +114,8 @@ func (b *Branch[T]) Slice() []*TreeNode[T] {
 //
 // Returns:
 //   - *Branch: The branch from the node to the root.
-func NewBranch[T any](n *TreeNode[T]) *Branch[T] {
+//   - error: An error if the creation fails (i.e., the node is not of type T).
+func NewBranch[T Noder](n T) (*Branch[T], error) {
 	branch := &Branch[T]{
 		to_node: n,
 	}
@@ -102,15 +123,20 @@ func NewBranch[T any](n *TreeNode[T]) *Branch[T] {
 	node := n
 
 	for {
-		parent := node.Parent
+		parent := node.GetParent()
 		if parent == nil {
 			break
 		}
 
-		node = parent
+		tmp, ok := parent.(T)
+		if !ok {
+			return nil, fmt.Errorf("parent should be of type %T, got %T", *new(T), parent)
+		}
+
+		node = tmp
 	}
 
 	branch.from_node = node
 
-	return branch
+	return branch, nil
 }

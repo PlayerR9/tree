@@ -3,6 +3,8 @@ package Tree
 import (
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	us "github.com/PlayerR9/MyGoLib/Units/slice"
+
+	com "github.com/PlayerR9/tree/common"
 )
 
 // Tree is a generic data structure that represents a tree.
@@ -15,6 +17,44 @@ type Tree[T any] struct {
 
 	// size is the number of nodes in the tree.
 	size int
+}
+
+// GetLeaves implements the common.Treer interface.
+//
+// Behaviors:
+//   - It returns the leaves that are stored in the tree. Make sure to call
+//     any update function before calling this function if the tree has been modified
+//     unexpectedly.
+func (t *Tree[T]) GetLeaves() []com.Noder {
+	leaves := make([]com.Noder, 0, len(t.leaves))
+
+	for _, leaf := range t.leaves {
+		leaves = append(leaves, leaf)
+	}
+
+	return leaves
+}
+
+// Root implements the common.Treer interface.
+func (t *Tree[T]) Root() com.Noder {
+	return t.root
+}
+
+// SetLeaves implements the common.Treer interface.
+//
+// WARNING: Do not call this function unless you know what you are doing.
+func (t *Tree[T]) SetLeaves(leaves []com.Noder, size int) {
+	conv_leaves := make([]*TreeNode[T], 0, len(leaves))
+
+	for _, leaf := range leaves {
+		tmp, ok := leaf.(*TreeNode[T])
+		uc.AssertF(ok, "leaf is not a TreeNode")
+
+		conv_leaves = append(conv_leaves, tmp)
+	}
+
+	t.leaves = conv_leaves
+	t.size = size
 }
 
 // Cleanup implements the object.Cleaner interface.
@@ -149,14 +189,6 @@ func (t *Tree[T]) Size() int {
 	return t.size
 }
 
-// Root returns the root of the tree.
-//
-// Returns:
-//   - T: The root of the tree. Nil if the tree does not have a root.
-func (t *Tree[T]) Root() *TreeNode[T] {
-	return t.root
-}
-
 /*
 
 // GetChildren returns all the children of the tree in a DFS order.
@@ -193,19 +225,6 @@ func (t *Tree) GetChildren() (children []T) {
 	return children
 }
 */
-
-// GetLeaves returns all the leaves of the tree.
-//
-// Returns:
-//   - []T: A slice of the leaves of the tree. Nil if the tree does not have a root.
-//
-// Behaviors:
-//   - It returns the leaves that are stored in the tree. Make sure to call
-//     any update function before calling this function if the tree has been modified
-//     unexpectedly.
-func (t *Tree[T]) GetLeaves() []*TreeNode[T] {
-	return t.leaves
-}
 
 // PruneBranches removes all the children of the node that satisfy the given filter.
 // The filter is a function that takes the value of a node and returns a boolean.

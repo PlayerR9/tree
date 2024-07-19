@@ -38,48 +38,6 @@ func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
 	return nil
 }
 
-// FindBranchingPoint returns the first node in the path from n to the root
-// such that has more than one sibling.
-//
-// Returns:
-//   - *TreeNode[T]: The branching point.
-//   - *TreeNode[T]: The parent of the branching point.
-//   - bool: True if the node has a branching point, false otherwise.
-//
-// Behaviors:
-//   - If there is no branching point, it returns the root of the tree. However,
-//     if n is nil, it returns nil, nil, false and if the node has no parent, it
-//     returns nil, n, false.
-func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
-	if n == nil {
-		return nil, nil, false
-	}
-
-	parent := n.Parent
-	if parent == nil {
-		return nil, n, false
-	}
-
-	var has_branching_point bool
-
-	for !has_branching_point {
-		grand_parent := parent.Parent
-		if grand_parent == nil {
-			break
-		}
-
-		ok := parent.IsSingleton()
-		if !ok {
-			has_branching_point = true
-		} else {
-			n = parent
-			parent = grand_parent
-		}
-	}
-
-	return n, parent, has_branching_point
-}
-
 /*
 
 // ExtractData returns the values of the nodes in the slice. This only works if the

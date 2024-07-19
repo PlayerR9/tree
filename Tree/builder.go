@@ -1,14 +1,12 @@
 package Tree
 
 import (
+	"fmt"
+
 	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	com "github.com/PlayerR9/tree/common"
 )
-
-// Infoer is an interface that provides the info of the element.
-type Infoer interface {
-	uc.Copier
-}
 
 // NextsFunc is a function that returns the next elements.
 //
@@ -19,12 +17,12 @@ type Infoer interface {
 // Returns:
 //   - []T: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem T, info Infoer) ([]T, error)
+type NextsFunc[T any] func(elem T, info com.Infoer) ([]T, error)
 
 // Builder is a struct that builds a tree.
 type Builder[T any] struct {
 	// info is the info of the builder.
-	info Infoer
+	info com.Infoer
 
 	// f is the next function.
 	f NextsFunc[*TreeNode[T]]
@@ -34,7 +32,7 @@ type Builder[T any] struct {
 //
 // Parameters:
 //   - info: The info to set.
-func (b *Builder[T]) SetInfo(info Infoer) {
+func (b *Builder[T]) SetInfo(info com.Infoer) {
 	b.info = info
 }
 
@@ -85,7 +83,12 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 	for _, next := range nexts {
 		root := tree.Root()
 
-		se := new_stack_element(root, next, b.info)
+		tmp, ok := root.(*TreeNode[T])
+		if !ok {
+			return nil, fmt.Errorf("root is not a tree: %T", root)
+		}
+
+		se := new_stack_element(tmp, next, b.info)
 
 		S.Push(se)
 	}
@@ -124,7 +127,7 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 
 	b.Reset()
 
-	tree.RegenerateLeaves()
+	com.RegenerateLeaves(tree)
 
 	return tree, nil
 }

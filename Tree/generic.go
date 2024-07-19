@@ -7,6 +7,7 @@ import (
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
+	com "github.com/PlayerR9/tree/common"
 )
 
 // TreeNodeIterator is a pull-based iterator that iterates
@@ -19,7 +20,7 @@ type TreeNodeIterator[T any] struct {
 //
 // *common.ErrExhaustedIter is the only error returned by this function and the returned
 // node is never nil.
-func (iter *TreeNodeIterator[T]) Consume() (*TreeNode[T], error) {
+func (iter *TreeNodeIterator[T]) Consume() (com.Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -39,6 +40,90 @@ func (iter *TreeNodeIterator[T]) Restart() {
 type TreeNode[T any] struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *TreeNode[T]
 	Data                                                    T
+}
+
+func (tn *TreeNode[T]) GetParent() com.Noder {
+	return tn.Parent
+}
+
+// AddChild adds a new child to the node. If the child is nil it does nothing.
+//
+// This function clears the parent and sibling pointers of the child and so, it
+// does not add relatives to the child.
+//
+// Parameters:
+//   - child: The child to add.
+func (tn *TreeNode[T]) AddChild(child com.Noder) {
+	if child == nil {
+		return
+	}
+
+	tmp, ok := child.(*TreeNode[T])
+	if !ok {
+		return
+	}
+
+	tmp.NextSibling = nil
+	tmp.PrevSibling = nil
+
+	last_child := tn.LastChild
+
+	if last_child == nil {
+		tn.FirstChild = tmp
+	} else {
+		last_child.NextSibling = tmp
+		tmp.PrevSibling = last_child
+	}
+
+	tmp.Parent = tn
+	tn.LastChild = tmp
+}
+
+// DeleteChild implements the *TreeNode[T] interface.
+//
+// No nil nodes are returned.
+func (tn *TreeNode[T]) DeleteChild(target com.Noder) []com.Noder {
+	if target == nil {
+		return nil
+	}
+
+	tmp, ok := target.(*TreeNode[T])
+	if !ok {
+		return nil
+	}
+
+	children := tn.delete_child(tmp)
+
+	if len(children) == 0 {
+		conv := make([]com.Noder, 0, len(children))
+
+		for _, child := range children {
+			conv = append(conv, child)
+		}
+
+		return conv
+	}
+
+	for _, child := range children {
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
+	}
+
+	tn.FirstChild = nil
+	tn.LastChild = nil
+
+	conv := make([]com.Noder, 0, len(children))
+
+	for _, child := range children {
+		conv = append(conv, child)
+	}
+
+	return conv
+}
+
+func (tn *TreeNode[T]) GetFirstChild() com.Noder {
+	return tn.FirstChild
 }
 
 // String implements the *TreeNode[T] interface.
@@ -74,7 +159,7 @@ func (tn *TreeNode[T]) Copy() common.Copier {
 //
 // This function iterates over the children of the node, it is a pull-based iterator,
 // and never returns nil.
-func (tn *TreeNode[T]) Iterator() common.Iterater[*TreeNode[T]] {
+func (tn *TreeNode[T]) Iterator() common.Iterater[com.Noder] {
 	return &TreeNodeIterator[T]{
 		parent:  tn,
 		current: tn.FirstChild,
@@ -120,6 +205,35 @@ func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
 	}
 
 	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+}
+
+// NewTree creates a new tree with the given value as the root.
+//
+// Parameters:
+//   - data: The value of the root.
+//
+// Returns:
+//   - *Tree: A pointer to the newly created tree.
+func (tn *TreeNode[T]) ToTree() com.Treer {
+	var leaves []*TreeNode[T]
+	var size int
+
+	ok := tn.IsLeaf()
+	if ok {
+		leaves = []*TreeNode[T]{tn}
+		size = 1
+	} else {
+		leaves = tn.GetLeaves()
+		size = tn.Size()
+	}
+
+	tree := &Tree[T]{
+		root:   tn,
+		leaves: leaves,
+		size:   size,
+	}
+
+	return tree
 }
 
 // GetLeaves implements the *TreeNode[T] interface.
@@ -258,32 +372,6 @@ func (tn *TreeNode[T]) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// DeleteChild implements the *TreeNode[T] interface.
-//
-// No nil nodes are returned.
-func (tn *TreeNode[T]) DeleteChild(target *TreeNode[T]) []*TreeNode[T] {
-	if target == nil {
-		return nil
-	}
-
-	children := tn.delete_child(target)
-
-	if len(children) == 0 {
-		return children
-	}
-
-	for _, child := range children {
-		child.PrevSibling = nil
-		child.NextSibling = nil
-		child.Parent = nil
-	}
-
-	tn.FirstChild = nil
-	tn.LastChild = nil
-
-	return children
-}
-
 // Size implements the *TreeNode[T] interface.
 //
 // This is expensive as it has to traverse the whole tree to find the size of the tree.
@@ -314,34 +402,6 @@ func (tn *TreeNode[T]) Size() int {
 	}
 
 	return size
-}
-
-// AddChild adds a new child to the node. If the child is nil it does nothing.
-//
-// This function clears the parent and sibling pointers of the child and so, it
-// does not add relatives to the child.
-//
-// Parameters:
-//   - child: The child to add.
-func (tn *TreeNode[T]) AddChild(child *TreeNode[T]) {
-	if child == nil {
-		return
-	}
-
-	child.NextSibling = nil
-	child.PrevSibling = nil
-
-	last_child := tn.LastChild
-
-	if last_child == nil {
-		tn.FirstChild = child
-	} else {
-		last_child.NextSibling = child
-		child.PrevSibling = last_child
-	}
-
-	child.Parent = tn
-	tn.LastChild = child
 }
 
 // RemoveNode removes the node from the tree while shifting the children up one level to

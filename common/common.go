@@ -1,11 +1,13 @@
 package common
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
+	"github.com/PlayerR9/MyGoLib/ListLike/Queuer"
 	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
-	us "github.com/PlayerR9/MyGoLib/Units/common"
+	uc "github.com/PlayerR9/MyGoLib/Units/common"
 )
 
 /*
@@ -340,6 +342,51 @@ func SearchNodes[T Noder](tree Treer, filter func(node T) bool) (T, bool) {
 	return *new(T), false
 }
 
+// FindBranchingPoint returns the first node in the path from n to the root
+// such that has more than one sibling.
+//
+// Parameters:
+//   - n: The node to start the search.
+//
+// Returns:
+//   - Noder: The branching point. Nil if no branching point was found.
+//   - Noder: The parent of the branching point. Nil if n is nil.
+//   - bool: True if the node has a branching point, false otherwise.
+//
+// Behaviors:
+//   - If there is no branching point, it returns the root of the tree. However,
+//     if n is nil, it returns nil, nil, false and if the node has no parent, it
+//     returns nil, n, false.
+func FindBranchingPoint(n Noder) (Noder, Noder, bool) {
+	if n == nil {
+		return nil, nil, false
+	}
+
+	parent := n.GetParent()
+	if parent == nil {
+		return nil, n, false
+	}
+
+	var has_branching_point bool
+
+	for !has_branching_point {
+		grand_parent := parent.GetParent()
+		if grand_parent == nil {
+			break
+		}
+
+		ok := parent.IsSingleton()
+		if !ok {
+			has_branching_point = true
+		} else {
+			n = parent
+			parent = grand_parent
+		}
+	}
+
+	return n, parent, has_branching_point
+}
+
 // DeleteBranchContaining deletes the branch containing the given node.
 //
 // Parameters:
@@ -347,12 +394,8 @@ func SearchNodes[T Noder](tree Treer, filter func(node T) bool) (T, bool) {
 //
 // Returns:
 //   - error: An error if the node is not a part of the tree.
-func DeleteBranchContaining[T Noder](tree Treer, n *TreeNode[T]) error {
-	if n == nil {
-		return nil
-	}
-
-	root := t.root
+func DeleteBranchContaining[T Noder](tree Treer, n T) error {
+	root := tree.Root()
 	if root == nil {
 		return NewErrNodeNotPartOfTree()
 	}
@@ -363,7 +406,7 @@ func DeleteBranchContaining[T Noder](tree Treer, n *TreeNode[T]) error {
 			return NewErrNodeNotPartOfTree()
 		}
 
-		t.Cleanup()
+		tree.Cleanup()
 	}
 
 	children := parent.DeleteChild(child)
@@ -376,12 +419,7 @@ func DeleteBranchContaining[T Noder](tree Treer, n *TreeNode[T]) error {
 		children[i] = nil
 	}
 
-	leaves, err := t.RegenerateLeaves()
-	if err != nil {
-		return err
-	}
-
-	t.leaves = leaves
+	RegenerateLeaves(tree)
 
 	return nil
 }
@@ -389,18 +427,24 @@ func DeleteBranchContaining[T Noder](tree Treer, n *TreeNode[T]) error {
 // PruneTree prunes the tree using the given filter.
 //
 // Parameters:
-//   - filter: The filter to use to prune the tree.
+//   - tree: The tree to prune.
+//   - filter: The filter to use to prune the tree. Must return true iff the node
+//     should be pruned.
 //
 // Returns:
-//   - bool: True if no nodes were pruned, false otherwise.
-func (t *Tree[T]) Prune(filter us.PredicateFilter[*TreeNode[T]]) bool {
-	for t.Size() != 0 {
-		target := t.SearchNodes(filter)
-		if target == nil {
+//   - bool: False if the whole tree can be deleted, true otherwise.
+func Prune(tree Treer, filter func(node Noder) bool) bool {
+	if tree == nil {
+		return false
+	}
+
+	for tree.Size() != 0 {
+		target, ok := SearchNodes(tree, filter)
+		if !ok {
 			return true
 		}
 
-		t.DeleteBranchContaining(target)
+		DeleteBranchContaining(tree, target)
 	}
 
 	return false
@@ -409,22 +453,31 @@ func (t *Tree[T]) Prune(filter us.PredicateFilter[*TreeNode[T]]) bool {
 // ExtractBranch extracts the branch of the tree that contains the given leaf.
 //
 // Parameters:
+//   - tree: The tree to search.
 //   - leaf: The leaf to extract the branch from.
 //   - delete: If true, the branch is deleted from the tree.
 //
 // Returns:
 //   - *Branch[T]: A pointer to the branch extracted. Nil if the leaf is not a part
-//     of the tree.
-func (t *Tree[T]) ExtractBranch(leaf *TreeNode[T], delete bool) (*Branch[T], error) {
-	found := slices.Contains(t.leaves, leaf)
-	if !found {
-		return nil, nil
+//     of the tree. Nil if the leaf is not a part of the tree and delete is false.
+//
+// Behaviors:
+//   - If delete is true, then the branch is deleted from the tree.
+func ExtractBranch[T Noder](tree Treer, leaf T, delete bool) *Branch[T] {
+	if tree == nil {
+		return nil
 	}
 
-	branch := NewBranch(leaf)
+	found := slices.Contains(tree.GetLeaves(), Noder(leaf))
+	if !found {
+		return nil
+	}
+
+	branch, err := NewBranch[T](leaf)
+	uc.AssertErr(err, "NewBranch[%T](%s)", leaf, leaf.String())
 
 	if !delete {
-		return branch, nil
+		return branch
 	}
 
 	child, parent, ok := FindBranchingPoint(leaf)
@@ -432,59 +485,59 @@ func (t *Tree[T]) ExtractBranch(leaf *TreeNode[T], delete bool) (*Branch[T], err
 		parent.DeleteChild(child)
 	}
 
-	leaves, err := t.RegenerateLeaves()
-	if err != nil {
-		return nil, err
-	}
+	RegenerateLeaves(tree)
 
-	t.leaves = leaves
-
-	return branch, nil
+	return branch
 }
 
 // InsertBranch inserts the given branch into the tree.
 //
 // Parameters:
+//   - tree: The tree to insert the branch into.
 //   - branch: The branch to insert.
 //
 // Returns:
-//   - bool: True if the branch was inserted, false otherwise.
+//   - T: The updated tree.
 //   - error: An error if the insertion fails.
-func (t *Tree[T]) InsertBranch(branch *Branch[T]) (bool, error) {
+func InsertBranch[T Treer, N Noder](tree T, branch *Branch[N]) (T, error) {
 	if branch == nil {
-		return true, nil
+		return tree, nil
 	}
 
-	ref := t.root
+	ref := tree.Root()
 
 	if ref == nil {
-		otherTree := NewTree(branch.from_node)
+		other_tree := branch.from_node.ToTree()
 
-		t.root = otherTree.root
-		t.leaves = otherTree.leaves
-		t.size = otherTree.size
+		tmp, ok := other_tree.(T)
+		if !ok {
+			return *new(T), fmt.Errorf("other_tree is not a tree: %T", other_tree)
+		}
 
-		return true, nil
+		return tmp, nil
 	}
 
-	from := branch.from_node
+	var from Noder
+
+	from = branch.from_node
+
 	if ref != from {
-		return false, nil
+		return tree, nil
 	}
 
-	for from != branch.to_node {
-		from = from.FirstChild
+	for from != Noder(branch.to_node) {
+		from = from.GetFirstChild()
 
-		var next *TreeNode[T]
+		var next Noder
 
-		c := ref.FirstChild
+		c := ref.GetFirstChild()
 
 		for c != nil && next == nil {
 			if c == from {
 				next = c
 			}
 
-			c = c.FirstChild
+			c = c.GetFirstChild()
 		}
 
 		if next == nil {
@@ -499,13 +552,248 @@ func (t *Tree[T]) InsertBranch(branch *Branch[T]) (bool, error) {
 	// added in the tree as new children.
 	ref.AddChild(from)
 
-	prev_size := t.size
+	RegenerateLeaves(tree)
 
-	_, err := t.RegenerateLeaves()
-	if err != nil {
-		return false, err
+	return tree, nil
+}
+
+// Infoer is an interface that provides the info of the element.
+type Infoer interface {
+	uc.Copier
+}
+
+// ObserverFunc is a function that observes a node.
+//
+// Parameters:
+//   - data: The data of the node.
+//   - info: The info of the node.
+//
+// Returns:
+//   - bool: True if the traversal should continue, otherwise false.
+//   - error: An error if the observation fails.
+type ObserverFunc[T Noder] func(data T, info Infoer) (bool, error)
+
+// traversor is a struct that traverses a tree.
+type traversor[T Noder] struct {
+	// elem is the current node.
+	elem T
+
+	// info is the info of the current node.
+	info Infoer
+}
+
+// new_traversor creates a new traversor for the tree.
+//
+// Parameters:
+//   - tree: The tree to traverse.
+//   - init: The initial info.
+//
+// Returns:
+//   - Traversor[T, I]: The traversor.
+func new_traversor[T Noder](node T, init Infoer) *traversor[T] {
+	t := &traversor[T]{
+		elem: node,
 	}
 
-	ok := t.size != prev_size
-	return ok, nil
+	if init != nil {
+		t.info = init.Copy().(Infoer)
+	} else {
+		t.info = nil
+	}
+
+	return t
+}
+
+// DFS traverses the tree in depth-first order.
+//
+// Parameters:
+//   - tree: The tree to traverse.
+//   - init: The initial info.
+//   - f: The observer function.
+//
+// Returns:
+//   - error: An error if the traversal fails.
+func DFS[T Noder](tree Treer, init Infoer, f ObserverFunc[T]) error {
+	if f == nil || tree == nil {
+		return nil
+	}
+
+	root := tree.Root()
+
+	tmp, ok := root.(T)
+	if !ok {
+		return fmt.Errorf("root is not a tree: %T", root)
+	}
+
+	trav := new_traversor(tmp, init)
+
+	S := lls.NewLinkedStack(trav)
+
+	for {
+		top, ok := S.Pop()
+		if !ok {
+			break
+		}
+
+		ok, err := f(top.elem, top.info)
+		if err != nil {
+			return err
+		} else if !ok {
+			continue
+		}
+
+		iter := top.elem.Iterator()
+		uc.Assert(iter != nil, "Iterator is nil")
+
+		for {
+			c, err := iter.Consume()
+			if err != nil {
+				break
+			}
+
+			tmp, ok := c.(T)
+			if !ok {
+				return fmt.Errorf("node is not a tree: %T", c)
+			}
+
+			new_t := new_traversor(tmp, top.info)
+
+			S.Push(new_t)
+		}
+	}
+
+	return nil
+}
+
+// BFS traverses the tree in breadth-first order.
+//
+// Parameters:
+//   - tree: The tree to traverse.
+//   - init: The initial info.
+//   - f: The observer function.
+//
+// Returns:
+//   - error: An error if the traversal fails.
+func BFS[T Noder](tree Treer, init Infoer, f ObserverFunc[T]) error {
+	if f == nil || tree == nil {
+		return nil
+	}
+
+	root := tree.Root()
+
+	tmp, ok := root.(T)
+	if !ok {
+		return fmt.Errorf("root is not a tree: %T", root)
+	}
+
+	trav := new_traversor(tmp, init)
+
+	Q := Queuer.NewLinkedQueue(trav)
+
+	for {
+		first, ok := Q.Dequeue()
+		if !ok {
+			break
+		}
+
+		ok, err := f(first.elem, first.info)
+		if err != nil {
+			return err
+		} else if !ok {
+			continue
+		}
+
+		iter := first.elem.Iterator()
+		uc.Assert(iter != nil, "Iterator is nil")
+
+		for {
+			c, err := iter.Consume()
+			if err != nil {
+				break
+			}
+
+			tmp, ok := c.(T)
+			if !ok {
+				return fmt.Errorf("node is not a tree: %T", c)
+			}
+
+			new_t := new_traversor(tmp, first.info)
+
+			Q.Enqueue(new_t)
+		}
+	}
+
+	return nil
+}
+
+// InfPrinter is a struct that prints the tree.
+type InfPrinter struct {
+	// indent_level is the level of indentation.
+	indent_level int
+}
+
+// Copy implements the common.Copier interface.
+func (ip *InfPrinter) Copy() uc.Copier {
+	ip_copy := &InfPrinter{
+		indent_level: ip.indent_level,
+	}
+
+	return ip_copy
+}
+
+// NewInfPrinter creates a new InfPrinter.
+//
+// Returns:
+//   - *InfPrinter: The new InfPrinter.
+func NewInfPrinter() *InfPrinter {
+	ip := &InfPrinter{
+		indent_level: 0,
+	}
+	return ip
+}
+
+// IncIndent increments the indentation level.
+func (ip *InfPrinter) IncIndent() {
+	ip.indent_level++
+}
+
+// PrintTree prints the tree.
+//
+// Parameters:
+//   - tree: The tree to print.
+//
+// Returns:
+//   - []string: The lines of the tree.
+//   - error: An error if the tree cannot be printed.
+func PrintTree[T Noder](tree Treer) ([]string, error) {
+	if tree == nil {
+		return nil, nil
+	}
+
+	var lines []string
+	var builder strings.Builder
+
+	f := func(elem T, obj Infoer) (bool, error) {
+		inf, ok := obj.(*InfPrinter)
+		if !ok {
+			return false, fmt.Errorf("invalid objecter type: %T", obj)
+		}
+
+		builder.WriteString(strings.Repeat("| ", inf.indent_level))
+		builder.WriteString(uc.StringOf(elem))
+		builder.WriteString("\n")
+
+		inf.IncIndent()
+
+		return true, nil
+	}
+
+	ip := NewInfPrinter()
+
+	err := DFS(tree, ip, f)
+	if err != nil {
+		return nil, err
+	}
+
+	return lines, nil
 }
