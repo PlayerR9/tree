@@ -42,6 +42,48 @@ type TreeNode[T any] struct {
 	Data                                                    T
 }
 
+// LinkWithParent implements the *TreeNode[T] interface.
+//
+// Children that are nil are ignored.
+func (tn *TreeNode[T]) LinkChildren(children []com.Noder) {
+	var conv []*TreeNode[T]
+
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+
+		tmp, ok := child.(*TreeNode[T])
+		if !ok {
+			continue
+		}
+
+		tmp.Parent = tn
+		conv = append(conv, tmp)
+	}
+
+	if len(children) == 0 {
+		return
+	}
+
+	conv[0].PrevSibling = nil
+	conv[len(conv)-1].NextSibling = nil
+
+	if len(conv) == 1 {
+		return
+	}
+
+	for i := 0; i < len(conv)-1; i++ {
+		conv[i].NextSibling = conv[i+1]
+	}
+
+	for i := 1; i < len(conv); i++ {
+		conv[i].PrevSibling = conv[i-1]
+	}
+
+	tn.FirstChild, tn.LastChild = conv[0], conv[len(conv)-1]
+}
+
 func (tn *TreeNode[T]) GetParent() com.Noder {
 	return tn.Parent
 }
@@ -138,10 +180,15 @@ func (tn *TreeNode[T]) String() string {
 //
 // It never returns nil and it does not copy the parent or the sibling pointers.
 func (tn *TreeNode[T]) Copy() common.Copier {
-	var child_copy []*TreeNode[T]
+	var child_copy []com.Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(*TreeNode[T]))
+		c_copy := c.Copy()
+
+		tmp, ok := c_copy.(com.Noder)
+		common.AssertF(ok, "c_copy should be of type com.Noder, got %T", c_copy)
+
+		child_copy = append(child_copy, tmp)
 	}
 
 	// Copy here the data of the node.
@@ -164,47 +211,6 @@ func (tn *TreeNode[T]) Iterator() common.Iterater[com.Noder] {
 		parent:  tn,
 		current: tn.FirstChild,
 	}
-}
-
-// LinkWithParent implements the *TreeNode[T] interface.
-//
-// Children that are nil are ignored.
-func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
-	if len(children) == 0 {
-		return
-	}
-
-	var valid_children []*TreeNode[T]
-
-	for _, child := range children {
-		if child == nil {
-			continue
-		}
-
-		child.Parent = tn
-		valid_children = append(valid_children, child)
-	}
-
-	if len(valid_children) == 0 {
-		return
-	}
-
-	valid_children[0].PrevSibling = nil
-	valid_children[len(valid_children)-1].NextSibling = nil
-
-	if len(valid_children) == 1 {
-		return
-	}
-
-	for i := 0; i < len(valid_children)-1; i++ {
-		valid_children[i].NextSibling = valid_children[i+1]
-	}
-
-	for i := 1; i < len(valid_children); i++ {
-		valid_children[i].PrevSibling = valid_children[i-1]
-	}
-
-	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
 // Cleanup implements the *TreeNode[T] interface.
@@ -277,27 +283,6 @@ func (tn *TreeNode[T]) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// GetAncestors implements the *TreeNode[T] interface.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *TreeNode[T]) GetAncestors() []*TreeNode[T] {
-	var ancestors []*TreeNode[T]
-
-	for node := tn; node.Parent != nil; node = node.Parent {
-		ancestors = append(ancestors, node.Parent)
-	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
-}
-
 // IsLeaf implements the *TreeNode[T] interface.
 func (tn *TreeNode[T]) IsLeaf() bool {
 	return tn.FirstChild == nil
@@ -335,7 +320,7 @@ func (tn *TreeNode[T]) IsSingleton() bool {
 //	└── 4
 //	└── 5
 //	└── 6
-func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
+func (tn *TreeNode[T]) RemoveNode() []com.Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -371,7 +356,7 @@ func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
 	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
-		return sub_roots
+		return nil
 	}
 
 	for _, child := range sub_roots {
@@ -383,7 +368,13 @@ func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
 	tn.FirstChild = nil
 	tn.LastChild = nil
 
-	return sub_roots
+	conv := make([]com.Noder, 0, len(sub_roots))
+
+	for _, child := range sub_roots {
+		conv = append(conv, child)
+	}
+
+	return conv
 }
 
 // NewTreeNode creates a new node with the given data.
@@ -617,7 +608,7 @@ func (tn *TreeNode[T]) IsChildOf(target *TreeNode[T]) bool {
 		return false
 	}
 
-	parents := target.GetAncestors()
+	parents := com.GetNodeAncestors(target)
 
 	for node := tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)

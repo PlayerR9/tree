@@ -64,15 +64,50 @@ type Noder interface {
 	// If child is nil or not of the correct type, it does nothing.
 	AddChild(child Noder)
 
-	uc.Copier
+	// LinkChildren links the given children to the node.
+	//
+	// Parameters:
+	//   - children: The children to link.
+	//
+	// Children that are either nil or not of the correct type are ignored.
+	LinkChildren(children []Noder)
 
+	// RemoveNode removes the node from the tree while shifting the children up one level to
+	// maintain the tree structure.
+	//
+	// Also, the returned children can be used to create a forest of trees if the root node
+	// is removed.
+	//
+	// Returns:
+	//   - []Noder: A slice of pointers to the children of the node iff the node is the root.
+	//     Nil otherwise.
+	//
+	// Example:
+	//
+	//	// Given the tree:
+	//	1
+	//	├── 2
+	//	└── 3
+	//		├── 4
+	//		└── 5
+	//	└── 6
+	//
+	//	// The tree after removing node 3:
+	//
+	//	1
+	//	├── 2
+	//	└── 4
+	//	└── 5
+	//	└── 6
+	RemoveNode() []Noder
+
+	uc.Copier
 	uc.Iterable[Noder]
 	utob.Cleaner
-
 	fmt.Stringer
 }
 
-// GetLeaves implements the *TreeNode[T] interface.
+// GetNodeLeaves returns the leaves of the given node.
 //
 // This is expensive as leaves are not stored and so, every time this function is called,
 // it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
@@ -81,14 +116,10 @@ type Noder interface {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func GetNodeLeaves(node Noder) []Noder {
-	if node == nil {
-		return nil
-	}
-
+func GetNodeLeaves[N Noder](node N) []N {
 	stack := lls.NewLinkedStack(node)
 
-	var leaves []Noder
+	var leaves []N
 
 	for {
 		top, ok := stack.Pop()
@@ -96,7 +127,7 @@ func GetNodeLeaves(node Noder) []Noder {
 			break
 		}
 
-		if top.GetFirstChild() == nil {
+		if top.IsLeaf() {
 			leaves = append(leaves, top)
 		} else {
 			iter := top.Iterator()
@@ -108,7 +139,10 @@ func GetNodeLeaves(node Noder) []Noder {
 					break
 				}
 
-				stack.Push(c)
+				tmp, ok := c.(N)
+				uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
+
+				stack.Push(tmp)
 			}
 		}
 	}
