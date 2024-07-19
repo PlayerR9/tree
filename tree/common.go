@@ -1,4 +1,4 @@
-package common
+package tree
 
 import (
 	"slices"
@@ -488,81 +488,6 @@ func InsertBranch[N Noder](tree *Tree[N], branch *Branch[N]) (*Tree[N], error) {
 	RegenerateLeaves(tree)
 
 	return tree, nil
-}
-
-// GetAncestors is used to get all the ancestors of the given node. This excludes
-// the node itself.
-//
-// Parameters:
-//   - node: The node to get the ancestors of.
-//
-// Returns:
-//   - []T: The ancestors of the node.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func GetNodeAncestors[N Noder](node N) []N {
-	var ancestors []N
-
-	for {
-		parent := node.GetParent()
-		if parent == nil {
-			break
-		}
-
-		tmp, ok := parent.(N)
-		uc.AssertF(ok, "parent should be of type %T, got %T", *new(N), parent)
-
-		ancestors = append(ancestors, tmp)
-
-		node = tmp
-	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
-}
-
-// FindCommonAncestor returns the first common ancestor of the two nodes.
-//
-// This function is expensive as it calls GetNodeAncestors two times.
-//
-// Parameters:
-//   - n1: The first node.
-//   - n2: The second node.
-//
-// Returns:
-//   - N: The common ancestor.
-//   - bool: True if the nodes have a common ancestor, false otherwise.
-func FindCommonAncestor[N Noder](n1, n2 N) (N, bool) {
-	if Noder(n1) == Noder(n2) {
-		return n1, true
-	}
-
-	ancestors1 := GetNodeAncestors(n1)
-	ancestors2 := GetNodeAncestors(n2)
-
-	if len(ancestors1) > len(ancestors2) {
-		ancestors1, ancestors2 = ancestors2, ancestors1
-	}
-
-	for _, node := range ancestors1 {
-		conv_node := Noder(node)
-
-		ok := slices.ContainsFunc(ancestors2, func(other N) bool {
-			return conv_node == Noder(other)
-		})
-		if ok {
-			return node, true
-		}
-	}
-
-	return *new(N), false
 }
 
 // rec_prune_func is an helper function that removes all the children of the

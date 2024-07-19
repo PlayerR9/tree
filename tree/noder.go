@@ -1,7 +1,8 @@
-package common
+package tree
 
 import (
 	"fmt"
+	"slices"
 
 	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
@@ -16,7 +17,8 @@ type Noder interface {
 	//   - bool: True if the node is a leaf, false otherwise.
 	IsLeaf() bool
 
-	// GetParent returns the parent of the node.
+	// GetParent returns the parent of the node. The returned parent is guaranteed to be
+	// of the same type as the node whenever it is not nil.
 	//
 	// Returns:
 	//   - Noder: The parent of the node. Nil if the node has no parent.
@@ -29,54 +31,46 @@ type Noder interface {
 	IsSingleton() bool
 
 	// DeleteChild deletes the child from the children of the node while
-	// returning the children of the target node.
-	//
-	// No nil nodes are returned.
+	// returning the children of the target node. Each returned child is guaranteed to be
+	// of the same type as the target node and not nil.
 	//
 	// Parameters:
 	//   - target: The child to remove.
 	//
 	// Returns:
-	//   - []Noder: A slice of the children of the target node.
-	//
-	// If target is nil or is not of the correct type, it does nothing and returns nil.
+	//   - []Noder: A slice of the children of the target node. Nil if either the target
+	//     is nil or not of the correct type.
 	DeleteChild(target Noder) []Noder
 
-	/*
-		// Size returns the number of nodes in the tree rooted at n.
-		//
-		// Returns:
-		//   - size: The number of nodes in the tree.
-		Size() int
-	*/
-
-	// GetFirstChild returns the first child of the node.
+	// GetFirstChild returns the first child of the node. The returned child is guaranteed
+	// to be of the same type as the node whenever it is not nil.
 	//
 	// Returns:
 	//   - Noder: The first child of the node. Nil if the node has no children.
 	GetFirstChild() Noder
 
-	// AddChild adds a child to the node.
+	// AddChild adds the target child to the node. Because this function clears the parent and sibling
+	// of the target, it does not add its relatives.
 	//
 	// Parameters:
 	//   - child: The child to add.
 	//
 	// If child is nil or not of the correct type, it does nothing.
-	AddChild(child Noder)
+	AddChild(target Noder)
 
-	// LinkChildren links the given children to the node.
+	// LinkChildren links the given children to the node. However, children that are either
+	// nil or not of the correct type are ignored.
 	//
 	// Parameters:
 	//   - children: The children to link.
-	//
-	// Children that are either nil or not of the correct type are ignored.
 	LinkChildren(children []Noder)
 
 	// RemoveNode removes the node from the tree while shifting the children up one level to
-	// maintain the tree structure.
+	// maintain the tree structure. The returned children can be used to create a forest of
+	// trees if the root node is removed.
 	//
-	// Also, the returned children can be used to create a forest of trees if the root node
-	// is removed.
+	// Finally, the returned children are guaranteed to be of the same type as the node and
+	// not nil.
 	//
 	// Returns:
 	//   - []Noder: A slice of pointers to the children of the node iff the node is the root.
@@ -189,4 +183,79 @@ func GetNodeSize(node Noder) int {
 	}
 
 	return size
+}
+
+// GetAncestors is used to get all the ancestors of the given node. This excludes
+// the node itself.
+//
+// Parameters:
+//   - node: The node to get the ancestors of.
+//
+// Returns:
+//   - []T: The ancestors of the node.
+//
+// This is expensive since ancestors are not stored and so, every time this
+// function is called, it has to traverse the tree to find the ancestors. Thus, it is
+// recommended to call this function once and then store the ancestors somewhere if needed.
+//
+// Despite the above, this function does not use recursion and is safe to use.
+//
+// Finally, no nil nodes are returned.
+func GetNodeAncestors[N Noder](node N) []N {
+	var ancestors []N
+
+	for {
+		parent := node.GetParent()
+		if parent == nil {
+			break
+		}
+
+		tmp, ok := parent.(N)
+		uc.AssertF(ok, "parent should be of type %T, got %T", *new(N), parent)
+
+		ancestors = append(ancestors, tmp)
+
+		node = tmp
+	}
+
+	slices.Reverse(ancestors)
+
+	return ancestors
+}
+
+// FindCommonAncestor returns the first common ancestor of the two nodes.
+//
+// This function is expensive as it calls GetNodeAncestors two times.
+//
+// Parameters:
+//   - n1: The first node.
+//   - n2: The second node.
+//
+// Returns:
+//   - N: The common ancestor.
+//   - bool: True if the nodes have a common ancestor, false otherwise.
+func FindCommonAncestor[N Noder](n1, n2 N) (N, bool) {
+	if Noder(n1) == Noder(n2) {
+		return n1, true
+	}
+
+	ancestors1 := GetNodeAncestors(n1)
+	ancestors2 := GetNodeAncestors(n2)
+
+	if len(ancestors1) > len(ancestors2) {
+		ancestors1, ancestors2 = ancestors2, ancestors1
+	}
+
+	for _, node := range ancestors1 {
+		conv_node := Noder(node)
+
+		ok := slices.ContainsFunc(ancestors2, func(other N) bool {
+			return conv_node == Noder(other)
+		})
+		if ok {
+			return node, true
+		}
+	}
+
+	return *new(N), false
 }

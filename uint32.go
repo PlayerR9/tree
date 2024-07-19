@@ -7,6 +7,7 @@ import (
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/tree/tree"
 )
 
 // Uint32NodeIterator is a pull-based iterator that iterates
@@ -17,9 +18,11 @@ type Uint32NodeIterator struct {
 
 // Consume implements the common.Iterater interface.
 //
-// *common.ErrExhaustedIter is the only error returned by this function and the returned
-// node is never nil.
-func (iter *Uint32NodeIterator) Consume() (*Uint32Node, error) {
+// The only error type that can be returned by this function is the *common.ErrExhaustedIter type.
+//
+// Moreover, the return value is always of type *Uint32Node and never nil; unless the iterator
+// has reached the end of the branch.
+func (iter *Uint32NodeIterator) Consume() (tree.Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -41,33 +44,238 @@ type Uint32Node struct {
 	Data uint32
 }
 
-// Iterator implements the Uint32Node interface.
-//
-// This function iterates over the children of the node, it is a pull-based iterator,
-// and never returns nil.
-func (tn *Uint32Node) Iterator() common.Iterater[*Uint32Node] {
-	return &Uint32NodeIterator{
-		parent: tn,
-		current: tn.FirstChild,
+// IsLeaf implements the tree.Noder interface.
+func (tn *Uint32Node) IsLeaf() bool {
+	return tn.FirstChild == nil
+}
+
+// GetParent implements the tree.Noder interface.
+func (tn *Uint32Node) GetParent() tree.Noder {
+	return tn.Parent
+}
+
+// IsSingleton implements the tree.Noder interface.
+func (tn *Uint32Node) IsSingleton() bool {
+	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
+}
+
+
+// DeleteChild implements the tree.Noder interface.
+func (tn *Uint32Node) DeleteChild(target tree.Noder) []tree.Noder {
+	if target == nil {
+		return nil
 	}
+
+	tmp, ok := target.(*Uint32Node)
+	if !ok {
+		return nil
+	}
+
+	children := tn.delete_child(tmp)
+
+	if len(children) == 0 {
+		return nil
+	}
+
+	for _, child := range children {
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
+	}
+
+	tn.FirstChild = nil
+	tn.LastChild = nil
+
+	conv := make([]tree.Noder, 0, len(children))
+
+	for _, child := range children {
+		conv = append(conv, child)
+	}
+
+	return conv
 }
 
-// String implements the Uint32Node interface.
-func (tn *Uint32Node) String() string {
-	// WARNING: Implement this function.
-	str := common.StringOf(tn.Data)
-
-	return str
+// GetFirstChild implements the tree.Noder interface.
+func (tn *Uint32Node) GetFirstChild() tree.Noder {
+	return tn.FirstChild
 }
 
-// Copy implements the Uint32Node interface.
+// AddChild implements the tree.Noder interface.
+func (tn *Uint32Node) AddChild(target tree.Noder) {
+	if target == nil {
+		return
+	}
+
+	tmp, ok := target.(*Uint32Node)
+	if !ok {
+		return
+	}
+	
+	tmp.NextSibling = nil
+	tmp.PrevSibling = nil
+
+	last_child := tn.LastChild
+
+	if last_child == nil {
+		tn.FirstChild = tmp
+	} else {
+		last_child.NextSibling = tmp
+		tmp.PrevSibling = last_child
+	}
+
+	tmp.Parent = tn
+	tn.LastChild = tmp
+}
+
+// LinkChildren implements the tree.Noder interface.
+func (tn *Uint32Node) LinkChildren(children []tree.Noder) {
+	var valid_children []*Uint32Node
+
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+
+		tmp, ok := child.(*Uint32Node)
+		if !ok {
+			continue
+		}
+
+		tmp.Parent = tn
+
+		valid_children = append(valid_children, tmp)
+	}
+	if len(valid_children) == 0 {
+		return
+	}
+
+	valid_children[0].PrevSibling = nil
+	valid_children[len(valid_children)-1].NextSibling = nil
+
+	if len(valid_children) == 1 {
+		return
+	}
+
+	for i := 0; i < len(valid_children)-1; i++ {
+		valid_children[i].NextSibling = valid_children[i+1]
+	}
+
+	for i := 1; i < len(valid_children); i++ {
+		valid_children[i].PrevSibling = valid_children[i-1]
+	}
+
+	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
+}
+
+// delete_child is a helper function to delete the child from the children of the node. No nil
+// nodes are returned when this function is called. However, if target is nil, then nothing happens.
 //
-// It never returns nil and it does not copy the parent or the sibling pointers.
+// Parameters:
+//   - target: The child to remove.
+//
+// Returns:
+//   - []Uint32Node: A slice of pointers to the children of the node.
+func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
+	ok := tn.HasChild(target)
+	if !ok {
+		return nil
+	}
+
+	prev := target.PrevSibling
+	next := target.NextSibling
+
+	if prev != nil {
+		prev.NextSibling = next
+	}
+
+	if next != nil {
+		next.PrevSibling = prev
+	}
+
+	if target == tn.FirstChild {
+		tn.FirstChild = next
+
+		if next == nil {
+			tn.LastChild = nil
+		}
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
+	}
+
+	target.Parent = nil
+	target.PrevSibling = nil
+	target.NextSibling = nil
+
+	children := target.GetChildren()
+
+	return children
+}
+
+// RemoveNode implements the tree.Noder interface.
+func (tn *Uint32Node) RemoveNode() []tree.Noder {
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+	parent := tn.Parent
+
+	var sub_roots []*Uint32Node
+
+	if parent == nil {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
+			sub_roots = append(sub_roots, c)
+		}
+	} else {
+		children := parent.delete_child(tn)
+
+		for _, child := range children {
+			child.Parent = parent
+		}
+	}
+
+	if prev != nil {
+		prev.NextSibling = next
+	} else {
+		parent.FirstChild = next
+	}
+
+	if next != nil {
+		next.PrevSibling = prev
+	} else {
+		parent.Parent.LastChild = prev
+	}
+
+	tn.Parent = nil
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
+
+	if len(sub_roots) == 0 {
+		return nil
+	}
+
+	for _, child := range sub_roots {
+		child.PrevSibling = nil
+		child.NextSibling = nil
+		child.Parent = nil
+	}
+
+	tn.FirstChild = nil
+	tn.LastChild = nil
+
+	conv := make([]tree.Noder, 0, len(sub_roots))
+	for _, child := range sub_roots {
+		conv = append(conv, child)
+	}
+
+	return conv
+}
+
+// Copy implements the tree.Noder interface.
+//
+// Although this function never returns nil, it does not copy the parent nor the sibling pointers.
 func (tn *Uint32Node) Copy() common.Copier {
-	var child_copy []*Uint32Node	
+	var child_copy []tree.Noder
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(*Uint32Node))
+		child_copy = append(child_copy, c.Copy().(tree.Noder))
 	}
 
 	// Copy here the data of the node.
@@ -81,16 +289,28 @@ func (tn *Uint32Node) Copy() common.Copier {
 	return tn_copy
 }
 
-// Cleanup implements the Uint32Node interface.
+// Iterator implements the tree.Noder interface.
 //
-// This is expensive as it has to traverse the whole tree to clean up the nodes, one
-// by one. While this is useful for freeing up memory, for large enough trees, it is
+// This function returns an iterator that iterates over the direct children of the node.
+// Implemented as a pull-based iterator, this function never returns nil and any of the
+// values is guaranteed to be a non-nil node of type Uint32Node.
+func (tn *Uint32Node) Iterator() common.Iterater[tree.Noder] {
+	return &Uint32NodeIterator{
+		parent: tn,
+		current: tn.FirstChild,
+	}
+}
+
+// Cleanup implements the tree.Noder interface.
+//
+// This function is expensive as it has to traverse the whole tree to clean up the nodes, one
+// by one. While this function is useful for freeing up memory, for large enough trees, it is
 // recommended to let the garbage collector handle the cleanup.
 //
-// Despite the above, this function does not use recursion and is safe to use (but
-// make sure goroutines are not running on the tree while this function is called).
+// Despite the above, this function does not use recursion but it is not safe to use in goroutines
+// as pointers may be dereferenced while another goroutine is still using them.
 //
-// Finally, it also logically removes the node from the siblings and the parent.
+// Finally, this function also logically removes the node from the siblings and the parent.
 func (tn *Uint32Node) Cleanup() {
 	type Helper struct {
 		previous, current *Uint32Node
@@ -151,78 +371,12 @@ func (tn *Uint32Node) Cleanup() {
 	tn.NextSibling = nil
 }
 
-// IsLeaf implements the Uint32Node interface.
-func (tn *Uint32Node) IsLeaf() bool {
-	return tn.FirstChild == nil
-}
+// String implements the tree.Noder interface.
+func (tn *Uint32Node) String() string {
+	// WARNING: Implement this function.
+	str := common.StringOf(tn.Data)
 
-// IsSingleton implements the Uint32Node interface.
-func (tn *Uint32Node) IsSingleton() bool {
-	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
-}
-
-// DeleteChild removes the given child from the children of the node.
-//
-// Parameters:
-//   - target: The child to remove.
-//
-// Returns:
-//   - []*Uint32Node: A slice of pointers to the children of the node. Nil if the node has no children.
-//
-// No nil nodes are returned.
-func (tn *Uint32Node) DeleteChild(target *Uint32Node) []*Uint32Node {
-	if target == nil {
-		return nil
-	}
-
-	children := tn.delete_child(target)
-
-	if len(children) == 0 {
-		return children
-	}
-
-	for _, child := range children {
-		child.PrevSibling = nil
-		child.NextSibling = nil
-		child.Parent = nil
-	}
-
-	tn.FirstChild = nil
-	tn.LastChild = nil
-
-	return children
-}
-
-// Size implements the Uint32Node interface.
-//
-// This is expensive as it has to traverse the whole tree to find the size of the tree.
-// Thus, it is recommended to call this function once and then store the size somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, the traversal is done in a depth-first manner.
-func (tn *Uint32Node) Size() int {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
-
-	var size int
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		size++
-
-		for c := top.FirstChild; c != nil; c = c.NextSibling {
-			stack.Push(c)
-		}
-	}
-
-	return size
+	return str
 }
 
 // NewUint32Node creates a new node with the given data.
@@ -237,220 +391,6 @@ func NewUint32Node(data uint32) *Uint32Node {
 	return &Uint32Node{
 		Data: data,
 	}
-}
-
-// LinkChildren links the parent with the children. It also links the children
-// with each other. Nil children are ignored.
-//
-// Parameters:
-//   - children: The children nodes.
-func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
-	if len(children) == 0 {
-		return
-	}
-
-	var valid_children []*Uint32Node
-
-	for _, child := range children {
-		if child == nil {
-			continue
-		}
-
-		child.Parent = tn
-		valid_children = append(valid_children, child)		
-	}
-	
-	if len(valid_children) == 0 {
-		return
-	}
-
-	valid_children[0].PrevSibling = nil
-	valid_children[len(valid_children)-1].NextSibling = nil
-
-	if len(valid_children) == 1 {
-		return
-	}
-
-	for i := 0; i < len(valid_children)-1; i++ {
-		valid_children[i].NextSibling = valid_children[i+1]
-	}
-
-	for i := 1; i < len(valid_children); i++ {
-		valid_children[i].PrevSibling = valid_children[i-1]
-	}
-
-	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
-}
-
-// AddChild adds a new child to the node. If the child is nil it does nothing.
-//
-// Parameters:
-//   - child: The child to add.
-//
-// This function clears the parent and sibling pointers of the child and so, it
-// does not add relatives to the child.
-func (tn *Uint32Node) AddChild(child *Uint32Node) {
-	if child == nil {
-		return
-	}
-	
-	child.NextSibling = nil
-	child.PrevSibling = nil
-
-	last_child := tn.LastChild
-
-	if last_child == nil {
-		tn.FirstChild = child
-	} else {
-		last_child.NextSibling = child
-		child.PrevSibling = last_child
-	}
-
-	child.Parent = tn
-	tn.LastChild = child
-}
-
-// RemoveNode removes the node from the tree while shifting the children up one level to
-// maintain the tree structure.
-//
-// Also, the returned children can be used to create a forest of trees if the root node
-// is removed.
-//
-// Returns:
-//   - []*Uint32Node: A slice of pointers to the children of the node iff the node is the root.
-//     Nil otherwise.
-//
-// Example:
-//
-//	// Given the tree:
-//	1
-//	├── 2
-//	└── 3
-//		├── 4
-//		└── 5
-//	└── 6
-//
-//	// The tree after removing node 3:
-//
-//	1
-//	├── 2
-//	└── 4
-//	└── 5
-//	└── 6
-func (tn *Uint32Node) RemoveNode() []*Uint32Node {
-	prev := tn.PrevSibling
-	next := tn.NextSibling
-	parent := tn.Parent
-
-	var sub_roots []*Uint32Node
-
-	if parent == nil {
-		for c := tn.FirstChild; c != nil; c = c.NextSibling {
-			sub_roots = append(sub_roots, c)
-		}
-	} else {
-		children := parent.delete_child(tn)
-
-		for _, child := range children {
-			child.Parent = parent
-		}
-	}
-
-	if prev != nil {
-		prev.NextSibling = next
-	} else {
-		parent.FirstChild = next
-	}
-
-	if next != nil {
-		next.PrevSibling = prev
-	} else {
-		parent.Parent.LastChild = prev
-	}
-
-	tn.Parent = nil
-	tn.PrevSibling = nil
-	tn.NextSibling = nil
-
-	if len(sub_roots) == 0 {
-		return sub_roots
-	}
-
-	for _, child := range sub_roots {
-		child.PrevSibling = nil
-		child.NextSibling = nil
-		child.Parent = nil
-	}
-
-	tn.FirstChild = nil
-	tn.LastChild = nil
-
-	return sub_roots
-}
-
-// GetLeaves returns all the leaves of the tree rooted at the node.
-//
-// Returns:
-//   - []*Uint32Node: A slice of pointers to the leaves of the tree.
-//
-// This is expensive as leaves are not stored and so, every time this function is called,
-// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
-// this function once and then store the leaves somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *Uint32Node) GetLeaves() []*Uint32Node {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
-
-	var leaves []*Uint32Node
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		if top.FirstChild == nil {
-			leaves = append(leaves, top)
-		} else {
-			for c := top.FirstChild; c != nil; c = c.NextSibling {
-				stack.Push(c)
-			}
-		}
-	}
-
-	return leaves
-}
-
-// GetAncestors returns all the ancestors of the node. This does not return the node itself.
-//
-// Returns:
-//   - []*Uint32Node: A slice of pointers to the ancestors of the node.
-//
-// The ancestors are returned in the opposite order of a DFS traversal. Therefore, the first element is the parent
-// of the node.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *Uint32Node) GetAncestors() []*Uint32Node {
-	var ancestors []*Uint32Node
-
-	for node := tn; node.Parent != nil; node = node.Parent {
-		ancestors = append(ancestors, node.Parent)
-	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
 }
 
 // GetLastSibling returns the last sibling of the node. If it has a parent,
@@ -501,14 +441,6 @@ func (tn *Uint32Node) GetFirstSibling() *Uint32Node {
 	}
 
 	return first_sibling
-}
-
-// IsRoot returns true if the node does not have a parent.
-//
-// Returns:
-//   - bool: True if the node is the root, false otherwise.
-func (tn *Uint32Node) IsRoot() bool {
-	return tn.Parent == nil
 }
 
 // AddChildren is a convenience function to add multiple children to the node at once.
@@ -612,51 +544,6 @@ func (tn *Uint32Node) HasChild(target *Uint32Node) bool {
 	return false
 }
 
-// delete_child is a helper function to delete the child from the children of the node.
-//
-// No nil nodes are returned.
-//
-// Parameters:
-//   - target: The child to remove.
-//
-// Returns:
-//   - []Uint32Node: A slice of pointers to the children of the node.
-func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
-	ok := tn.HasChild(target)
-	if !ok {
-		return nil
-	}
-
-	prev := target.PrevSibling
-	next := target.NextSibling
-
-	if prev != nil {
-		prev.NextSibling = next
-	}
-
-	if next != nil {
-		next.PrevSibling = prev
-	}
-
-	if target == tn.FirstChild {
-		tn.FirstChild = next
-
-		if next == nil {
-			tn.LastChild = nil
-		}
-	} else if target == tn.LastChild {
-		tn.LastChild = prev
-	}
-
-	target.Parent = nil
-	target.PrevSibling = nil
-	target.NextSibling = nil
-
-	children := target.GetChildren()
-
-	return children
-}
-
 // IsChildOf returns true if the node is a child of the parent. If target is nil,
 // it returns false.
 //
@@ -670,7 +557,7 @@ func (tn *Uint32Node) IsChildOf(target *Uint32Node) bool {
 		return false
 	}
 
-	parents := target.GetAncestors()
+	parents := tree.GetNodeAncestors(target)
 
 	for node := tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
@@ -681,82 +568,3 @@ func (tn *Uint32Node) IsChildOf(target *Uint32Node) bool {
 
 	return false
 }
-
-/*
-
-// FindCommonAncestor returns the first common ancestor of the two nodes.
-//
-// Parameters:
-//   - n1: The first node.
-//   - n2: The second node.
-//
-// Returns:
-//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
-func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
-	if n1 == nil {
-		return n2
-	} else if n2 == nil {
-		return n1
-	} else if n1 == n2 {
-		return n1
-	}
-
-	ancestors1 := n1.GetAncestors()
-	ancestors2 := n2.GetAncestors()
-
-	if len(ancestors1) > len(ancestors2) {
-		ancestors1, ancestors2 = ancestors2, ancestors1
-	}
-
-	for _, node := range ancestors1 {
-		ok := slices.Contains(ancestors2, node)
-		if ok {
-			return node
-		}
-	}
-
-	return nil
-}
-
-// FindBranchingPoint returns the first node in the path from n to the root
-// such that has more than one sibling.
-//
-// Returns:
-//   - *TreeNode[T]: The branching point.
-//   - *TreeNode[T]: The parent of the branching point.
-//   - bool: True if the node has a branching point, false otherwise.
-//
-// Behaviors:
-//   - If there is no branching point, it returns the root of the tree. However,
-//     if n is nil, it returns nil, nil, false and if the node has no parent, it
-//     returns nil, n, false.
-func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
-	if n == nil {
-		return nil, nil, false
-	}
-
-	parent := n.GetParent()
-	if parent == nil {
-		return nil, n, false
-	}
-
-	var has_branching_point bool
-
-	for !has_branching_point {
-		grand_parent := parent.GetParent()
-		if grand_parent == nil {
-			break
-		}
-
-		ok := parent.IsSingleton()
-		if !ok {
-			has_branching_point = true
-		} else {
-			n = parent
-			parent = grand_parent
-		}
-	}
-
-	return n, parent, has_branching_point
-}
-*/

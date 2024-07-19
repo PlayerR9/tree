@@ -1,5 +1,5 @@
-# treenode
-A Go package used for generating first child/next sibling tree nodes. It also features some already generated tree nodes.
+# tree
+A Go package used for generating first child/next sibling tree nodes. It also features some already generated tree nodes and operations on trees.
 
 
 ## Table of Contents
@@ -18,7 +18,7 @@ A Go package used for generating first child/next sibling tree nodes. It also fe
 
 To install the tool, run the following command:
 ```
-go get -u github.com/PlayerR9/treenode/cmd
+go get -u github.com/PlayerR9/tree/cmd
 ```
 
 
@@ -26,9 +26,9 @@ go get -u github.com/PlayerR9/treenode/cmd
 
 Once imported, you can use the tool to generate tree nodes for your own types. Like so:
 ```go
-import _ "github.com/PlayerR9/treenode"
+import _ "github.com/PlayerR9/tree"
 
-//go:generate go run github.com/PlayerR9/treenode/cmd -name=Foo -fields=value/int
+//go:generate go run github.com/PlayerR9/tree/cmd -name=Foo -fields=value/int
 ```
 
 This will generate a tree node with the name "Foo" that contains, among other things, the field "value" of type "int."
@@ -43,7 +43,7 @@ This command generates a tree node with the given fields that uses first child/n
 
 To use it, run the following command:
 
-//go:generate go run github.com/PlayerR9/treenode -name=<type_name> -fields=<field_list> [ -g=<generics>] [ -o=<output_file> ]
+//go:generate go run github.com/PlayerR9/tree/cmd -name=<type_name> -fields=<field_list> [ -g=<generics>] [ -o=<output_file> ]
 
 
 **Flag: Type Name**
@@ -64,7 +64,7 @@ The key indicates the name of the field while the value indicates the type of th
 
 For instance, running the following command:
 
-//go:generate treenode -name=TreeNode -fields=a/int,b/int,name/string
+//go:generate go run github.com/PlayerR9/tree/cmd -name=TreeNode -fields=a/int,b/int,name/string
 
 will generate a tree node with the following fields:
 
@@ -96,7 +96,7 @@ the generic and the value indicates the type of the generic.
 
 For instance, running the following command:
 
-//go:generate treenode -type=TreeNode -fields=a/MyType[T],b/MyType[C] -g=T/any,C/int
+//go:generate go run github.com/PlayerR9/tree/cmd -type=TreeNode -fields=a/MyType[T],b/MyType[C] -g=T/any,C/int
 
 will generate a tree node with the following fields:
 

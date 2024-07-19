@@ -7,6 +7,7 @@ import (
 
 	"github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	"github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/tree/tree"
 )
 
 // BoolNodeIterator is a pull-based iterator that iterates
@@ -17,9 +18,11 @@ type BoolNodeIterator struct {
 
 // Consume implements the common.Iterater interface.
 //
-// *common.ErrExhaustedIter is the only error returned by this function and the returned
-// node is never nil.
-func (iter *BoolNodeIterator) Consume() (*BoolNode, error) {
+// The only error type that can be returned by this function is the *common.ErrExhaustedIter type.
+//
+// Moreover, the return value is always of type *BoolNode and never nil; unless the iterator
+// has reached the end of the branch.
+func (iter *BoolNodeIterator) Consume() (tree.Noder, error) {
 	if iter.current == nil {
 		return nil, common.NewErrExhaustedIter()
 	}
@@ -38,147 +41,39 @@ func (iter *BoolNodeIterator) Restart() {
 // BoolNode is a node in a tree.
 type BoolNode struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *BoolNode
-	Data bool
+	Data                                                    bool
 }
 
-// Iterator implements the BoolNode interface.
-//
-// This function iterates over the children of the node, it is a pull-based iterator,
-// and never returns nil.
-func (tn *BoolNode) Iterator() common.Iterater[*BoolNode] {
-	return &BoolNodeIterator{
-		parent: tn,
-		current: tn.FirstChild,
-	}
-}
-
-// String implements the BoolNode interface.
-func (tn *BoolNode) String() string {
-	// WARNING: Implement this function.
-	str := common.StringOf(tn.Data)
-
-	return str
-}
-
-// Copy implements the BoolNode interface.
-//
-// It never returns nil and it does not copy the parent or the sibling pointers.
-func (tn *BoolNode) Copy() common.Copier {
-	var child_copy []*BoolNode	
-
-	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		child_copy = append(child_copy, c.Copy().(*BoolNode))
-	}
-
-	// Copy here the data of the node.
-
-	tn_copy := &BoolNode{
-	 	// Add here the copied data of the node.
-	}
-
-	tn_copy.LinkChildren(child_copy)
-
-	return tn_copy
-}
-
-// Cleanup implements the BoolNode interface.
-//
-// This is expensive as it has to traverse the whole tree to clean up the nodes, one
-// by one. While this is useful for freeing up memory, for large enough trees, it is
-// recommended to let the garbage collector handle the cleanup.
-//
-// Despite the above, this function does not use recursion and is safe to use (but
-// make sure goroutines are not running on the tree while this function is called).
-//
-// Finally, it also logically removes the node from the siblings and the parent.
-func (tn *BoolNode) Cleanup() {
-	type Helper struct {
-		previous, current *BoolNode
-	}
-
-	stack := Stacker.NewLinkedStack[*Helper]()
-
-	// Free the first node.
-	for c := tn.FirstChild; c != nil; c = c.NextSibling {
-		h := &Helper{
-			previous:	c.PrevSibling,
-			current: 	c,
-		}
-
-		stack.Push(h)
-	}
-
-	tn.FirstChild = nil
-	tn.LastChild = nil
-	tn.Parent = nil
-
-	// Free the rest of the nodes.
-	for {
-		h, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		for c := h.current.FirstChild; c != nil; c = c.NextSibling {
-			h := &Helper{
-				previous:	c.PrevSibling,
-				current: 	c,
-			}
-
-			stack.Push(h)
-		}
-
-		h.previous.NextSibling = nil
-		h.previous.PrevSibling = nil
-
-		h.current.FirstChild = nil
-		h.current.LastChild = nil
-		h.current.Parent = nil
-	}
-
-	prev := tn.PrevSibling
-	next := tn.NextSibling
-
-	if prev != nil {
-		prev.NextSibling = next
-	}
-
-	if next != nil {
-		next.PrevSibling = prev
-	}
-
-	tn.PrevSibling = nil
-	tn.NextSibling = nil
-}
-
-// IsLeaf implements the BoolNode interface.
+// IsLeaf implements the tree.Noder interface.
 func (tn *BoolNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
-// IsSingleton implements the BoolNode interface.
+// GetParent implements the tree.Noder interface.
+func (tn *BoolNode) GetParent() tree.Noder {
+	return tn.Parent
+}
+
+// IsSingleton implements the tree.Noder interface.
 func (tn *BoolNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
-// DeleteChild removes the given child from the children of the node.
-//
-// Parameters:
-//   - target: The child to remove.
-//
-// Returns:
-//   - []*BoolNode: A slice of pointers to the children of the node. Nil if the node has no children.
-//
-// No nil nodes are returned.
-func (tn *BoolNode) DeleteChild(target *BoolNode) []*BoolNode {
+// DeleteChild implements the tree.Noder interface.
+func (tn *BoolNode) DeleteChild(target tree.Noder) []tree.Noder {
 	if target == nil {
 		return nil
 	}
 
-	children := tn.delete_child(target)
+	tmp, ok := target.(*BoolNode)
+	if !ok {
+		return nil
+	}
+
+	children := tn.delete_child(tmp)
 
 	if len(children) == 0 {
-		return children
+		return nil
 	}
 
 	for _, child := range children {
@@ -190,65 +85,49 @@ func (tn *BoolNode) DeleteChild(target *BoolNode) []*BoolNode {
 	tn.FirstChild = nil
 	tn.LastChild = nil
 
-	return children
-}
+	conv := make([]tree.Noder, 0, len(children))
 
-// Size implements the BoolNode interface.
-//
-// This is expensive as it has to traverse the whole tree to find the size of the tree.
-// Thus, it is recommended to call this function once and then store the size somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, the traversal is done in a depth-first manner.
-func (tn *BoolNode) Size() int {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
-
-	var size int
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
-		}
-
-		size++
-
-		for c := top.FirstChild; c != nil; c = c.NextSibling {
-			stack.Push(c)
-		}
+	for _, child := range children {
+		conv = append(conv, child)
 	}
 
-	return size
+	return conv
 }
 
-// NewBoolNode creates a new node with the given data.
-//
-// Parameters:
-//   - Data: The Data of the node.
-//
-// Returns:
-//   - *BoolNode: A pointer to the newly created node. It is
-//   never nil.
-func NewBoolNode(data bool) *BoolNode {
-	return &BoolNode{
-		Data: data,
-	}
+// GetFirstChild implements the tree.Noder interface.
+func (tn *BoolNode) GetFirstChild() tree.Noder {
+	return tn.FirstChild
 }
 
-// LinkChildren links the parent with the children. It also links the children
-// with each other. Nil children are ignored.
-//
-// Parameters:
-//   - children: The children nodes.
-func (tn *BoolNode) LinkChildren(children []*BoolNode) {
-	if len(children) == 0 {
+// AddChild implements the tree.Noder interface.
+func (tn *BoolNode) AddChild(target tree.Noder) {
+	if target == nil {
 		return
 	}
 
+	tmp, ok := target.(*BoolNode)
+	if !ok {
+		return
+	}
+
+	tmp.NextSibling = nil
+	tmp.PrevSibling = nil
+
+	last_child := tn.LastChild
+
+	if last_child == nil {
+		tn.FirstChild = tmp
+	} else {
+		last_child.NextSibling = tmp
+		tmp.PrevSibling = last_child
+	}
+
+	tmp.Parent = tn
+	tn.LastChild = tmp
+}
+
+// LinkChildren implements the tree.Noder interface.
+func (tn *BoolNode) LinkChildren(children []tree.Noder) {
 	var valid_children []*BoolNode
 
 	for _, child := range children {
@@ -256,10 +135,15 @@ func (tn *BoolNode) LinkChildren(children []*BoolNode) {
 			continue
 		}
 
-		child.Parent = tn
-		valid_children = append(valid_children, child)		
+		tmp, ok := child.(*BoolNode)
+		if !ok {
+			continue
+		}
+
+		tmp.Parent = tn
+
+		valid_children = append(valid_children, tmp)
 	}
-	
 	if len(valid_children) == 0 {
 		return
 	}
@@ -282,62 +166,52 @@ func (tn *BoolNode) LinkChildren(children []*BoolNode) {
 	tn.FirstChild, tn.LastChild = valid_children[0], valid_children[len(valid_children)-1]
 }
 
-// AddChild adds a new child to the node. If the child is nil it does nothing.
+// delete_child is a helper function to delete the child from the children of the node. No nil
+// nodes are returned when this function is called. However, if target is nil, then nothing happens.
 //
 // Parameters:
-//   - child: The child to add.
-//
-// This function clears the parent and sibling pointers of the child and so, it
-// does not add relatives to the child.
-func (tn *BoolNode) AddChild(child *BoolNode) {
-	if child == nil {
-		return
-	}
-	
-	child.NextSibling = nil
-	child.PrevSibling = nil
-
-	last_child := tn.LastChild
-
-	if last_child == nil {
-		tn.FirstChild = child
-	} else {
-		last_child.NextSibling = child
-		child.PrevSibling = last_child
-	}
-
-	child.Parent = tn
-	tn.LastChild = child
-}
-
-// RemoveNode removes the node from the tree while shifting the children up one level to
-// maintain the tree structure.
-//
-// Also, the returned children can be used to create a forest of trees if the root node
-// is removed.
+//   - target: The child to remove.
 //
 // Returns:
-//   - []*BoolNode: A slice of pointers to the children of the node iff the node is the root.
-//     Nil otherwise.
-//
-// Example:
-//
-//	// Given the tree:
-//	1
-//	├── 2
-//	└── 3
-//		├── 4
-//		└── 5
-//	└── 6
-//
-//	// The tree after removing node 3:
-//
-//	1
-//	├── 2
-//	└── 4
-//	└── 5
-//	└── 6
-func (tn *BoolNode) RemoveNode() []*BoolNode {
+//   - []BoolNode: A slice of pointers to the children of the node.
+func (tn *BoolNode) delete_child(target *BoolNode) []*BoolNode {
+	ok := tn.HasChild(target)
+	if !ok {
+		return nil
+	}
+
+	prev := target.PrevSibling
+	next := target.NextSibling
+
+	if prev != nil {
+		prev.NextSibling = next
+	}
+
+	if next != nil {
+		next.PrevSibling = prev
+	}
+
+	if target == tn.FirstChild {
+		tn.FirstChild = next
+
+		if next == nil {
+			tn.LastChild = nil
+		}
+	} else if target == tn.LastChild {
+		tn.LastChild = prev
+	}
+
+	target.Parent = nil
+	target.PrevSibling = nil
+	target.NextSibling = nil
+
+	children := target.GetChildren()
+
+	return children
+}
+
+// RemoveNode implements the tree.Noder interface.
+func (tn *BoolNode) RemoveNode() []tree.Noder {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -373,7 +247,7 @@ func (tn *BoolNode) RemoveNode() []*BoolNode {
 	tn.NextSibling = nil
 
 	if len(sub_roots) == 0 {
-		return sub_roots
+		return nil
 	}
 
 	for _, child := range sub_roots {
@@ -385,72 +259,137 @@ func (tn *BoolNode) RemoveNode() []*BoolNode {
 	tn.FirstChild = nil
 	tn.LastChild = nil
 
-	return sub_roots
+	conv := make([]tree.Noder, 0, len(sub_roots))
+	for _, child := range sub_roots {
+		conv = append(conv, child)
+	}
+
+	return conv
 }
 
-// GetLeaves returns all the leaves of the tree rooted at the node.
+// Copy implements the tree.Noder interface.
 //
-// Returns:
-//   - []*BoolNode: A slice of pointers to the leaves of the tree.
-//
-// This is expensive as leaves are not stored and so, every time this function is called,
-// it has to do a DFS traversal to find the leaves. Thus, it is recommended to call
-// this function once and then store the leaves somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *BoolNode) GetLeaves() []*BoolNode {
-	// It is safe to change the stack implementation as long as
-	// it is not limited in size. If it is, make sure to check the error
-	// returned by the Push and Pop methods.
-	stack := Stacker.NewLinkedStack(tn)
+// Although this function never returns nil, it does not copy the parent nor the sibling pointers.
+func (tn *BoolNode) Copy() common.Copier {
+	var child_copy []tree.Noder
 
-	var leaves []*BoolNode
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
+		child_copy = append(child_copy, c.Copy().(tree.Noder))
+	}
 
+	// Copy here the data of the node.
+
+	tn_copy := &BoolNode{
+		// Add here the copied data of the node.
+	}
+
+	tn_copy.LinkChildren(child_copy)
+
+	return tn_copy
+}
+
+// Iterator implements the tree.Noder interface.
+//
+// This function returns an iterator that iterates over the direct children of the node.
+// Implemented as a pull-based iterator, this function never returns nil and any of the
+// values is guaranteed to be a non-nil node of type BoolNode.
+func (tn *BoolNode) Iterator() common.Iterater[tree.Noder] {
+	return &BoolNodeIterator{
+		parent:  tn,
+		current: tn.FirstChild,
+	}
+}
+
+// Cleanup implements the tree.Noder interface.
+//
+// This function is expensive as it has to traverse the whole tree to clean up the nodes, one
+// by one. While this function is useful for freeing up memory, for large enough trees, it is
+// recommended to let the garbage collector handle the cleanup.
+//
+// Despite the above, this function does not use recursion but it is not safe to use in goroutines
+// as pointers may be dereferenced while another goroutine is still using them.
+//
+// Finally, this function also logically removes the node from the siblings and the parent.
+func (tn *BoolNode) Cleanup() {
+	type Helper struct {
+		previous, current *BoolNode
+	}
+
+	stack := Stacker.NewLinkedStack[*Helper]()
+
+	// Free the first node.
+	for c := tn.FirstChild; c != nil; c = c.NextSibling {
+		h := &Helper{
+			previous: c.PrevSibling,
+			current:  c,
+		}
+
+		stack.Push(h)
+	}
+
+	tn.FirstChild = nil
+	tn.LastChild = nil
+	tn.Parent = nil
+
+	// Free the rest of the nodes.
 	for {
-		top, ok := stack.Pop()
+		h, ok := stack.Pop()
 		if !ok {
 			break
 		}
 
-		if top.FirstChild == nil {
-			leaves = append(leaves, top)
-		} else {
-			for c := top.FirstChild; c != nil; c = c.NextSibling {
-				stack.Push(c)
+		for c := h.current.FirstChild; c != nil; c = c.NextSibling {
+			h := &Helper{
+				previous: c.PrevSibling,
+				current:  c,
 			}
+
+			stack.Push(h)
 		}
+
+		h.previous.NextSibling = nil
+		h.previous.PrevSibling = nil
+
+		h.current.FirstChild = nil
+		h.current.LastChild = nil
+		h.current.Parent = nil
 	}
 
-	return leaves
+	prev := tn.PrevSibling
+	next := tn.NextSibling
+
+	if prev != nil {
+		prev.NextSibling = next
+	}
+
+	if next != nil {
+		next.PrevSibling = prev
+	}
+
+	tn.PrevSibling = nil
+	tn.NextSibling = nil
 }
 
-// GetAncestors returns all the ancestors of the node. This does not return the node itself.
+// String implements the tree.Noder interface.
+func (tn *BoolNode) String() string {
+	// WARNING: Implement this function.
+	str := common.StringOf(tn.Data)
+
+	return str
+}
+
+// NewBoolNode creates a new node with the given data.
+//
+// Parameters:
+//   - Data: The Data of the node.
 //
 // Returns:
-//   - []*BoolNode: A slice of pointers to the ancestors of the node.
-//
-// The ancestors are returned in the opposite order of a DFS traversal. Therefore, the first element is the parent
-// of the node.
-//
-// This is expensive since ancestors are not stored and so, every time this
-// function is called, it has to traverse the tree to find the ancestors. Thus, it is
-// recommended to call this function once and then store the ancestors somewhere if needed.
-//
-// Despite the above, this function does not use recursion and is safe to use.
-//
-// Finally, no nil nodes are returned.
-func (tn *BoolNode) GetAncestors() []*BoolNode {
-	var ancestors []*BoolNode
-
-	for node := tn; node.Parent != nil; node = node.Parent {
-		ancestors = append(ancestors, node.Parent)
+//   - *BoolNode: A pointer to the newly created node. It is
+//     never nil.
+func NewBoolNode(data bool) *BoolNode {
+	return &BoolNode{
+		Data: data,
 	}
-
-	slices.Reverse(ancestors)
-
-	return ancestors
 }
 
 // GetLastSibling returns the last sibling of the node. If it has a parent,
@@ -503,14 +442,6 @@ func (tn *BoolNode) GetFirstSibling() *BoolNode {
 	return first_sibling
 }
 
-// IsRoot returns true if the node does not have a parent.
-//
-// Returns:
-//   - bool: True if the node is the root, false otherwise.
-func (tn *BoolNode) IsRoot() bool {
-	return tn.Parent == nil
-}
-
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
 // same as the behaviors of the BoolNode.AddChild function.
@@ -521,7 +452,7 @@ func (tn *BoolNode) AddChildren(children []*BoolNode) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -612,51 +543,6 @@ func (tn *BoolNode) HasChild(target *BoolNode) bool {
 	return false
 }
 
-// delete_child is a helper function to delete the child from the children of the node.
-//
-// No nil nodes are returned.
-//
-// Parameters:
-//   - target: The child to remove.
-//
-// Returns:
-//   - []BoolNode: A slice of pointers to the children of the node.
-func (tn *BoolNode) delete_child(target *BoolNode) []*BoolNode {
-	ok := tn.HasChild(target)
-	if !ok {
-		return nil
-	}
-
-	prev := target.PrevSibling
-	next := target.NextSibling
-
-	if prev != nil {
-		prev.NextSibling = next
-	}
-
-	if next != nil {
-		next.PrevSibling = prev
-	}
-
-	if target == tn.FirstChild {
-		tn.FirstChild = next
-
-		if next == nil {
-			tn.LastChild = nil
-		}
-	} else if target == tn.LastChild {
-		tn.LastChild = prev
-	}
-
-	target.Parent = nil
-	target.PrevSibling = nil
-	target.NextSibling = nil
-
-	children := target.GetChildren()
-
-	return children
-}
-
 // IsChildOf returns true if the node is a child of the parent. If target is nil,
 // it returns false.
 //
@@ -670,7 +556,7 @@ func (tn *BoolNode) IsChildOf(target *BoolNode) bool {
 		return false
 	}
 
-	parents := target.GetAncestors()
+	parents := tree.GetNodeAncestors(target)
 
 	for node := tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
@@ -681,82 +567,3 @@ func (tn *BoolNode) IsChildOf(target *BoolNode) bool {
 
 	return false
 }
-
-/*
-
-// FindCommonAncestor returns the first common ancestor of the two nodes.
-//
-// Parameters:
-//   - n1: The first node.
-//   - n2: The second node.
-//
-// Returns:
-//   - *TreeNode[T]: A pointer to the common ancestor. Nil if no such node is found.
-func FindCommonAncestor[T any](n1, n2 *TreeNode[T]) *TreeNode[T] {
-	if n1 == nil {
-		return n2
-	} else if n2 == nil {
-		return n1
-	} else if n1 == n2 {
-		return n1
-	}
-
-	ancestors1 := n1.GetAncestors()
-	ancestors2 := n2.GetAncestors()
-
-	if len(ancestors1) > len(ancestors2) {
-		ancestors1, ancestors2 = ancestors2, ancestors1
-	}
-
-	for _, node := range ancestors1 {
-		ok := slices.Contains(ancestors2, node)
-		if ok {
-			return node
-		}
-	}
-
-	return nil
-}
-
-// FindBranchingPoint returns the first node in the path from n to the root
-// such that has more than one sibling.
-//
-// Returns:
-//   - *TreeNode[T]: The branching point.
-//   - *TreeNode[T]: The parent of the branching point.
-//   - bool: True if the node has a branching point, false otherwise.
-//
-// Behaviors:
-//   - If there is no branching point, it returns the root of the tree. However,
-//     if n is nil, it returns nil, nil, false and if the node has no parent, it
-//     returns nil, n, false.
-func FindBranchingPoint[T any](n *TreeNode[T]) (*TreeNode[T], *TreeNode[T], bool) {
-	if n == nil {
-		return nil, nil, false
-	}
-
-	parent := n.GetParent()
-	if parent == nil {
-		return nil, n, false
-	}
-
-	var has_branching_point bool
-
-	for !has_branching_point {
-		grand_parent := parent.GetParent()
-		if grand_parent == nil {
-			break
-		}
-
-		ok := parent.IsSingleton()
-		if !ok {
-			has_branching_point = true
-		} else {
-			n = parent
-			parent = grand_parent
-		}
-	}
-
-	return n, parent, has_branching_point
-}
-*/

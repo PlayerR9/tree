@@ -1,4 +1,4 @@
-package common
+package tree
 
 // ErrNodeNotPartOfTree is an error that is returned when a node is not part of a tree.
 type ErrNodeNotPartOfTree struct{}
