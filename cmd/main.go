@@ -76,7 +76,7 @@ import (
 	"text/template"
 
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	ggen "github.com/PlayerR9/MyGoLib/Utility/go_generator"
+	ggen "github.com/PlayerR9/go_generator/pkg"
 )
 
 var (
