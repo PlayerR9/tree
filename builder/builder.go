@@ -1,11 +1,10 @@
-package Tree
+package builder
 
 import (
-	"fmt"
-
-	lls "github.com/PlayerR9/MyGoLib/ListLike/Stacker"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	com "github.com/PlayerR9/tree/common"
+	lls "github.com/PlayerR9/stack"
+	tn "github.com/PlayerR9/tree"
+	tr "github.com/PlayerR9/tree/tree"
 )
 
 // NextsFunc is a function that returns the next elements.
@@ -17,22 +16,22 @@ import (
 // Returns:
 //   - []T: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem T, info com.Infoer) ([]T, error)
+type NextsFunc[T any] func(elem T, info tr.Infoer) ([]T, error)
 
 // Builder is a struct that builds a tree.
 type Builder[T any] struct {
 	// info is the info of the builder.
-	info com.Infoer
+	info tr.Infoer
 
 	// f is the next function.
-	f NextsFunc[*TreeNode[T]]
+	f NextsFunc[*tn.TreeNode[T]]
 }
 
 // SetInfo sets the info of the builder.
 //
 // Parameters:
 //   - info: The info to set.
-func (b *Builder[T]) SetInfo(info com.Infoer) {
+func (b *Builder[T]) SetInfo(info tr.Infoer) {
 	b.info = info
 }
 
@@ -40,7 +39,7 @@ func (b *Builder[T]) SetInfo(info com.Infoer) {
 //
 // Parameters:
 //   - f: The function to set.
-func (b *Builder[T]) SetNextFunc(f NextsFunc[*TreeNode[T]]) {
+func (b *Builder[T]) SetNextFunc(f NextsFunc[*tn.TreeNode[T]]) {
 	b.f = f
 }
 
@@ -59,36 +58,29 @@ func (b *Builder[T]) SetNextFunc(f NextsFunc[*TreeNode[T]]) {
 // Behaviors:
 //   - The 'info' parameter is copied for each node and it specifies the initial info
 //     before traversing the tree.
-func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
+func (b *Builder[T]) Build(elem T) (*tr.Tree[*tn.TreeNode[T]], error) {
 	if b.f == nil {
 		return nil, nil
 	}
 
 	// 1. Handle the root node
-	root := NewTreeNode(elem)
+	root := tn.NewTreeNode(elem)
 
 	nexts, err := b.f(root, b.info)
 	if err != nil {
 		return nil, err
 	}
 
-	tree := com.NewTree[*Tree[T], *TreeNode[T]](root)
+	tree := tr.NewTree(root)
 
 	if len(nexts) == 0 {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*stackElement[T]]()
+	S := lls.NewLinkedStack[*stack_element[T]]()
 
 	for _, next := range nexts {
-		root := tree.Root()
-
-		tmp, ok := root.(*TreeNode[T])
-		if !ok {
-			return nil, fmt.Errorf("root is not a tree: %T", root)
-		}
-
-		se := new_stack_element(tmp, next, b.info)
+		se := new_stack_element(tree.Root(), next, b.info)
 
 		S.Push(se)
 	}
@@ -127,7 +119,7 @@ func (b *Builder[T]) Build(elem T) (*Tree[T], error) {
 
 	b.Reset()
 
-	com.RegenerateLeaves(tree)
+	tr.RegenerateLeaves(tree)
 
 	return tree, nil
 }

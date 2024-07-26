@@ -5,8 +5,8 @@ package tree
 import (
 	"slices"
 
-	"github.com/PlayerR9/stack"
 	"github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/stack"
 	"github.com/PlayerR9/tree/tree"
 )
 

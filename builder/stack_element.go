@@ -1,16 +1,17 @@
-package Tree
+package builder
 
 import (
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	tn "github.com/PlayerR9/tree"
 )
 
-// stackElement is a stack element.
-type stackElement[T any] struct {
+// stack_element is a stack element.
+type stack_element[T any] struct {
 	// prev is the previous node.
-	prev *TreeNode[T]
+	prev *tn.TreeNode[T]
 
 	// elem is the current node.
-	elem *TreeNode[T]
+	elem *tn.TreeNode[T]
 
 	// info is the info of the current node.
 	info uc.Copier
@@ -25,8 +26,8 @@ type stackElement[T any] struct {
 //
 // Returns:
 //   - *stackElement: A pointer to the stack element.
-func new_stack_element[T any](prev, data *TreeNode[T], info uc.Copier) *stackElement[T] {
-	se := &stackElement[T]{
+func new_stack_element[T any](prev, data *tn.TreeNode[T], info uc.Copier) *stack_element[T] {
+	se := &stack_element[T]{
 		prev: prev,
 		elem: data,
 		info: info,
@@ -40,7 +41,7 @@ func new_stack_element[T any](prev, data *TreeNode[T], info uc.Copier) *stackEle
 // Returns:
 //   - Tree.*TreeNode[T]: The data of the stack element.
 //   - bool: True if the data is valid, otherwise false.
-func (se *stackElement[T]) get_data() (*TreeNode[T], bool) {
+func (se *stack_element[T]) get_data() (*tn.TreeNode[T], bool) {
 	if se.elem == nil {
 		return nil, false
 	}
@@ -52,7 +53,7 @@ func (se *stackElement[T]) get_data() (*TreeNode[T], bool) {
 //
 // Returns:
 //   - common.Copier: The info of the stack element.
-func (se *stackElement[T]) get_info() uc.Copier {
+func (se *stack_element[T]) get_info() uc.Copier {
 	return se.info
 }
 
@@ -60,7 +61,7 @@ func (se *stackElement[T]) get_info() uc.Copier {
 //
 // Returns:
 //   - bool: True if the link is successful, otherwise false.
-func (se *stackElement[T]) link_to_prev() bool {
+func (se *stack_element[T]) link_to_prev() bool {
 	if se.prev == nil {
 		return false
 	}
@@ -74,6 +75,6 @@ func (se *stackElement[T]) link_to_prev() bool {
 //
 // Returns:
 //   - Tree.*TreeNode[T]: The current node.
-func (se *stackElement[T]) get_elem() *TreeNode[T] {
+func (se *stack_element[T]) get_elem() *tn.TreeNode[T] {
 	return se.elem
 }
