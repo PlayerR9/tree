@@ -1,10 +1,8 @@
-package builder
+package tree
 
 import (
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	lls "github.com/PlayerR9/stack"
-	tn "github.com/PlayerR9/tree"
-	tr "github.com/PlayerR9/tree/tree"
 )
 
 // NextsFunc is a function that returns the next elements.
@@ -14,14 +12,14 @@ import (
 //   - info: The info of the element.
 //
 // Returns:
-//   - []*tn.TreeNode[T]: The next elements.
+//   - []Noder: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem *tn.TreeNode[T], info tr.Infoer) ([]*tn.TreeNode[T], error)
+type NextsFunc[T any] func(elem Noder, info Infoer) ([]Noder, error)
 
 // Builder is a struct that builds a tree.
 type Builder[T any] struct {
 	// info is the info of the builder.
-	info tr.Infoer
+	info Infoer
 
 	// f is the next function.
 	f NextsFunc[T]
@@ -31,7 +29,7 @@ type Builder[T any] struct {
 //
 // Parameters:
 //   - info: The info to set.
-func (b *Builder[T]) SetInfo(info tr.Infoer) {
+func (b *Builder[T]) SetInfo(info Infoer) {
 	b.info = info
 }
 
@@ -58,29 +56,27 @@ func (b *Builder[T]) SetNextFunc(f NextsFunc[T]) {
 // Behaviors:
 //   - The 'info' parameter is copied for each node and it specifies the initial info
 //     before traversing the tree.
-func (b *Builder[T]) Build(elem T) (*tr.Tree[*tn.TreeNode[T]], error) {
-	if b.f == nil {
+func (b *Builder[T]) Build(root Noder) (*Tree[Noder], error) {
+	if root == nil || b.f == nil {
 		return nil, nil
 	}
 
 	// 1. Handle the root node
-	root := tn.NewTreeNode(elem)
-
 	nexts, err := b.f(root, b.info)
 	if err != nil {
 		return nil, err
 	}
 
-	tree := tr.NewTree(root)
+	tree := NewTree(root)
 
 	if len(nexts) == 0 {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*stack_element[T]]()
+	S := lls.NewLinkedStack[*stack_element]()
 
 	for _, next := range nexts {
-		se := new_stack_element[T](tree.Root(), next, b.info)
+		se := new_stack_element(tree.Root(), next, b.info)
 
 		S.Push(se)
 	}
@@ -119,7 +115,7 @@ func (b *Builder[T]) Build(elem T) (*tr.Tree[*tn.TreeNode[T]], error) {
 
 	b.Reset()
 
-	tr.RegenerateLeaves(tree)
+	RegenerateLeaves(tree)
 
 	return tree, nil
 }

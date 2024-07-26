@@ -1,17 +1,16 @@
-package builder
+package tree
 
 import (
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	tn "github.com/PlayerR9/tree"
 )
 
 // stack_element is a stack element.
-type stack_element[T any] struct {
+type stack_element struct {
 	// prev is the previous node.
-	prev *tn.TreeNode[T]
+	prev Noder
 
 	// elem is the current node.
-	elem *tn.TreeNode[T]
+	elem Noder
 
 	// info is the info of the current node.
 	info uc.Copier
@@ -26,8 +25,8 @@ type stack_element[T any] struct {
 //
 // Returns:
 //   - *stackElement: A pointer to the stack element.
-func new_stack_element[T any](prev, data *tn.TreeNode[T], info uc.Copier) *stack_element[T] {
-	se := &stack_element[T]{
+func new_stack_element(prev, data Noder, info uc.Copier) *stack_element {
+	se := &stack_element{
 		prev: prev,
 		elem: data,
 		info: info,
@@ -41,7 +40,7 @@ func new_stack_element[T any](prev, data *tn.TreeNode[T], info uc.Copier) *stack
 // Returns:
 //   - Tree.*TreeNode[T]: The data of the stack element.
 //   - bool: True if the data is valid, otherwise false.
-func (se *stack_element[T]) get_data() (*tn.TreeNode[T], bool) {
+func (se *stack_element) get_data() (Noder, bool) {
 	if se.elem == nil {
 		return nil, false
 	}
@@ -53,7 +52,7 @@ func (se *stack_element[T]) get_data() (*tn.TreeNode[T], bool) {
 //
 // Returns:
 //   - common.Copier: The info of the stack element.
-func (se *stack_element[T]) get_info() uc.Copier {
+func (se *stack_element) get_info() uc.Copier {
 	return se.info
 }
 
@@ -61,7 +60,7 @@ func (se *stack_element[T]) get_info() uc.Copier {
 //
 // Returns:
 //   - bool: True if the link is successful, otherwise false.
-func (se *stack_element[T]) link_to_prev() bool {
+func (se *stack_element) link_to_prev() bool {
 	if se.prev == nil {
 		return false
 	}
@@ -75,6 +74,6 @@ func (se *stack_element[T]) link_to_prev() bool {
 //
 // Returns:
 //   - Tree.*TreeNode[T]: The current node.
-func (se *stack_element[T]) get_elem() *tn.TreeNode[T] {
+func (se *stack_element) get_elem() Noder {
 	return se.elem
 }
