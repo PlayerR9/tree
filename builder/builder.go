@@ -16,7 +16,7 @@ import (
 // Returns:
 //   - []T: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem T, info tr.Infoer) ([]T, error)
+type NextsFunc[T any] func(elem *tn.TreeNode[T], info tr.Infoer) ([]T, error)
 
 // Builder is a struct that builds a tree.
 type Builder[T any] struct {
@@ -24,7 +24,7 @@ type Builder[T any] struct {
 	info tr.Infoer
 
 	// f is the next function.
-	f NextsFunc[*tn.TreeNode[T]]
+	f NextsFunc[T]
 }
 
 // SetInfo sets the info of the builder.
@@ -39,7 +39,7 @@ func (b *Builder[T]) SetInfo(info tr.Infoer) {
 //
 // Parameters:
 //   - f: The function to set.
-func (b *Builder[T]) SetNextFunc(f NextsFunc[*tn.TreeNode[T]]) {
+func (b *Builder[T]) SetNextFunc(f NextsFunc[T]) {
 	b.f = f
 }
 
@@ -80,7 +80,7 @@ func (b *Builder[T]) Build(elem T) (*tr.Tree[*tn.TreeNode[T]], error) {
 	S := lls.NewLinkedStack[*stack_element[T]]()
 
 	for _, next := range nexts {
-		se := new_stack_element(tree.Root(), next, b.info)
+		se := new_stack_element[T](tree.Root(), next, b.info)
 
 		S.Push(se)
 	}
