@@ -75,8 +75,8 @@ import (
 	"strings"
 	"text/template"
 
+	ggen "github.com/PlayerR9/MyGoLib/Generator"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	ggen "github.com/PlayerR9/go_generator/pkg"
 )
 
 var (
@@ -151,7 +151,7 @@ func main() {
 		Logger.Fatalf("Could not parse flags: %s", err.Error())
 	}
 
-	type_name := uc.AssertNil(TypeNameFlag, "TypeNameFlag")
+	type_name := uc.AssertDerefNil(TypeNameFlag, "TypeNameFlag")
 
 	err = ggen.IsValidName(type_name, nil, ggen.Exported)
 	if err != nil {
@@ -233,6 +233,8 @@ func main() {
 	if err != nil {
 		Logger.Fatalf("Could not generate code: %s", err.Error())
 	}
+
+	Logger.Printf("Generated %s", filename)
 }
 
 // templ is the template for the tree node.
