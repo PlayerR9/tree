@@ -14,9 +14,9 @@ import (
 //   - info: The info of the element.
 //
 // Returns:
-//   - []T: The next elements.
+//   - []*tn.TreeNode[T]: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem *tn.TreeNode[T], info tr.Infoer) ([]T, error)
+type NextsFunc[T any] func(elem *tn.TreeNode[T], info tr.Infoer) ([]*tn.TreeNode[T], error)
 
 // Builder is a struct that builds a tree.
 type Builder[T any] struct {
