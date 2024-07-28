@@ -1,6 +1,8 @@
 package tree
 
 import (
+	"errors"
+
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
 	lls "github.com/PlayerR9/stack"
 )
@@ -12,24 +14,36 @@ import (
 //   - info: The info of the element.
 //
 // Returns:
-//   - []Noder: The next elements.
+//   - []N: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[T any] func(elem Noder, info Infoer) ([]Noder, error)
+type NextsFunc[N Noder] func(elem N, info Infoer) ([]N, error)
+
+// stack_element is a stack element.
+type stack_element[N Noder] struct {
+	// prev is the previous node.
+	prev N
+
+	// elem is the current node.
+	elem N
+
+	// info is the info of the current node.
+	info uc.Copier
+}
 
 // Builder is a struct that builds a tree.
-type Builder[T any] struct {
+type Builder[N Noder] struct {
 	// info is the info of the builder.
 	info Infoer
 
 	// f is the next function.
-	f NextsFunc[T]
+	f NextsFunc[N]
 }
 
 // SetInfo sets the info of the builder.
 //
 // Parameters:
 //   - info: The info to set.
-func (b *Builder[T]) SetInfo(info Infoer) {
+func (b *Builder[N]) SetInfo(info Infoer) {
 	b.info = info
 }
 
@@ -37,8 +51,17 @@ func (b *Builder[T]) SetInfo(info Infoer) {
 //
 // Parameters:
 //   - f: The function to set.
-func (b *Builder[T]) SetNextFunc(f NextsFunc[T]) {
+//
+// Returns:
+//   - error: An error of type *common.ErrInvalidParameter if 'f' is nil.
+func (b *Builder[N]) SetNextFunc(f NextsFunc[N]) error {
+	if f == nil {
+		return uc.NewErrNilParameter("f")
+	}
+
 	b.f = f
+
+	return nil
 }
 
 // MakeTree creates a tree from the given element.
@@ -56,9 +79,12 @@ func (b *Builder[T]) SetNextFunc(f NextsFunc[T]) {
 // Behaviors:
 //   - The 'info' parameter is copied for each node and it specifies the initial info
 //     before traversing the tree.
-func (b *Builder[T]) Build(root Noder) (*Tree[Noder], error) {
-	if root == nil || b.f == nil {
-		return nil, nil
+func (b *Builder[N]) Build(root N) (*Tree[N], error) {
+	if b.f == nil {
+		return nil, uc.NewErrInvalidUsage(
+			errors.New("no next function is set"),
+			"Please call Builder.SetNextFunc() before building the tree",
+		)
 	}
 
 	// 1. Handle the root node
@@ -73,10 +99,14 @@ func (b *Builder[T]) Build(root Noder) (*Tree[Noder], error) {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*stack_element]()
+	S := lls.NewLinkedStack[*stack_element[N]]()
 
 	for _, next := range nexts {
-		se := new_stack_element(tree.Root(), next, b.info)
+		se := &stack_element[N]{
+			prev: tree.Root(),
+			elem: next,
+			info: b.info.Copy().(Infoer),
+		}
 
 		S.Push(se)
 	}
@@ -87,27 +117,23 @@ func (b *Builder[T]) Build(root Noder) (*Tree[Noder], error) {
 			break
 		}
 
-		data, ok := top.get_data()
-		uc.Assert(ok, "Missing data")
-
-		top_inf := top.get_info()
-
-		nexts, err := b.f(data, top_inf)
+		nexts, err := b.f(top.elem, top.info)
 		if err != nil {
 			return nil, err
 		}
 
-		ok = top.link_to_prev()
-		uc.Assert(ok, "Cannot link to previous node")
+		top.prev.AddChild(top.elem)
 
 		if len(nexts) == 0 {
 			continue
 		}
 
-		top_elem := top.get_elem()
-
 		for _, next := range nexts {
-			se := new_stack_element(top_elem, next, top_inf)
+			se := &stack_element[N]{
+				prev: top.elem,
+				elem: next,
+				info: top.info.Copy().(Infoer),
+			}
 
 			S.Push(se)
 		}
@@ -121,7 +147,7 @@ func (b *Builder[T]) Build(root Noder) (*Tree[Noder], error) {
 }
 
 // Reset resets the builder.
-func (b *Builder[T]) Reset() {
+func (b *Builder[N]) Reset() {
 	b.info = nil
 	b.f = nil
 }
