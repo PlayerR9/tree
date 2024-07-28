@@ -3,8 +3,8 @@ package tree
 import (
 	"fmt"
 
-	llq "github.com/PlayerR9/MyGoLib/ListLike/Queuer"
 	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	llq "github.com/PlayerR9/queue/queue"
 	lls "github.com/PlayerR9/stack"
 )
 
@@ -285,7 +285,9 @@ func BFS[N Noder](tree *Tree[N], init Infoer, f ObserverFunc[N]) error {
 
 	trav := new_traversor(tree.root, init)
 
-	Q := llq.NewLinkedQueue(trav)
+	Q := llq.NewLinkedQueue[*traversor[N]]()
+
+	Q.Enqueue(trav)
 
 	for {
 		first, ok := Q.Dequeue()
