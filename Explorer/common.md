@@ -89,3 +89,4 @@ func filterInvalidBranches[O any](branches [][]uc.Pair[EvalStatus, O]) ([][]uc.P
 
 	return [][]uc.Pair[EvalStatus, O]{elems}, len(elems)
 }
+

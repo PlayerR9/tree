@@ -3,7 +3,7 @@ package tree
 import (
 	"fmt"
 
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	uc "github.com/PlayerR9/lib_units/common"
 	llq "github.com/PlayerR9/queue/queue"
 	lls "github.com/PlayerR9/stack"
 )

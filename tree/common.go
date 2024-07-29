@@ -2,89 +2,10 @@ package tree
 
 import (
 	"slices"
-	"strings"
-	"unicode/utf8"
 
-	ffs "github.com/PlayerR9/MyGoLib/Formatting/FString"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	us "github.com/PlayerR9/MyGoLib/Units/slice"
+	uc "github.com/PlayerR9/lib_units/common"
+	us "github.com/PlayerR9/lib_units/slices"
 )
-
-// TreeFormatter is a formatter that formats the tree.
-type TreeFormatter struct {
-	// spacing is the spacing between nodes.
-	spacing string
-
-	// leaf_prefix is the prefix for leaves.
-	leaf_prefix string
-
-	// node_prefix is the prefix for nodes.
-	node_prefix string
-}
-
-// NewTreeFormatter creates a new tree formatter.
-//
-// Returns:
-//   - *TreeFormatter: The tree formatter. Never nil.
-//
-// The default values are:
-//   - spacing: "│   "
-//   - leaf_prefix: "├── "
-//   - node_prefix: "└── "
-func NewTreeFormatter() *TreeFormatter {
-	return &TreeFormatter{
-		spacing:     "|   ",
-		leaf_prefix: "├── ",
-		node_prefix: "└── ",
-	}
-}
-
-// WithSpacing sets the spacing between nodes.
-//
-// If spacing is an empty string, it is set to three spaces.
-//
-// Parameters:
-//   - spacing: The spacing between nodes.
-//
-// Returns:
-//   - ffs.Option: The option function.
-func WithSpacing(spacing string) ffs.Option {
-	size := utf8.RuneCountInString(spacing)
-	if size <= 1 {
-		spacing = "   "
-	}
-
-	p1 := strings.Repeat("─", size-1)
-	p2 := strings.Repeat(spacing, size)
-
-	return func(s ffs.Settinger) {
-		tf, ok := s.(*TreeFormatter)
-		if !ok {
-			return
-		}
-
-		var builder strings.Builder
-
-		builder.WriteRune('|')
-		builder.WriteString(p2)
-
-		tf.spacing = builder.String()
-		builder.Reset()
-
-		builder.WriteRune('├')
-		builder.WriteString(p1)
-		builder.WriteRune(' ')
-
-		tf.leaf_prefix = builder.String()
-		builder.Reset()
-
-		builder.WriteRune('└')
-		builder.WriteString(p1)
-		builder.WriteRune(' ')
-
-		tf.node_prefix = builder.String()
-	}
-}
 
 // RegenerateLeaves regenerates the leaves of the tree. No op if the tree is nil.
 //

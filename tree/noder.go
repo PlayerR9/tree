@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	utob "github.com/PlayerR9/MyGoLib/Utility/object"
+	uc "github.com/PlayerR9/lib_units/common"
 )
 
 // Noder is an interface that represents a node in a tree.
@@ -94,9 +93,18 @@ type Noder interface {
 	//	└── 6
 	RemoveNode() []Noder
 
+	// Cleanup cleans the node and returns its children.
+	// This function logically removes the node from the siblings and the parent.
+	//
+	// Finally, it is not safe to use in goroutines as pointers may be dereferenced while another
+	// goroutine is still using them.
+	//
+	// Returns:
+	//   - []Noder: The children of the node.
+	Cleanup() []Noder
+
 	uc.Copier
 	uc.Iterable[Noder]
-	utob.Cleaner
 	fmt.Stringer
 }
 

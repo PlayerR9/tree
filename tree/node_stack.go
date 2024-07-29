@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlayerR9/MyGoLib/Units/common"
+	"github.com/PlayerR9/lib_units/common"
 )
 
 // stack_node_N is a node in the linked stack.

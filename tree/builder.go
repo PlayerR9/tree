@@ -3,7 +3,7 @@ package tree
 import (
 	"errors"
 
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
+	uc "github.com/PlayerR9/lib_units/common"
 	lls "github.com/PlayerR9/stack"
 )
 

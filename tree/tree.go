@@ -1,11 +1,8 @@
 package tree
 
 import (
-	"strings"
-
-	ffs "github.com/PlayerR9/MyGoLib/Formatting/FString"
-	uc "github.com/PlayerR9/MyGoLib/Units/common"
-	us "github.com/PlayerR9/MyGoLib/Units/slice"
+	uc "github.com/PlayerR9/lib_units/common"
+	us "github.com/PlayerR9/lib_units/slices"
 )
 
 // Tree is a generic data structure that represents a tree.
@@ -37,9 +34,7 @@ func (t *Tree[N]) Copy() uc.Copier {
 	return tree
 }
 
-// FString implements the FString.FStringer interface.
-//
-// By default, it uses a three-space indentation.
+// String implements the fmt.Stringer interface.
 //
 // Format:
 //
@@ -52,65 +47,29 @@ func (t *Tree[N]) Copy() uc.Copier {
 //	|
 //	| // ...
 //	// ...
-func (t *Tree[N]) FString(trav *ffs.Traversor, opts ...ffs.Option) error {
-	if trav == nil {
-		return nil
-	}
+func (t *Tree[N]) String() string {
+	str, err := PrintTree(t.root)
+	uc.AssertErr(err, "PrintTree(%s)", t.root.String())
 
-	iter := NewDFSIterator(t)
-
-	elem, err := iter.Consume()
-	if err != nil {
-		return err
-	}
-
-	// Deal with root.
-	err = trav.AddLine(elem.Node.String())
-	if err != nil {
-		return err
-	}
-
-	// Deal with children.
-
-	form := NewTreeFormatter()
-
-	for _, opt := range opts {
-		opt(form)
-	}
-
-	for {
-		node, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		err = trav.AppendString(strings.Repeat(form.spacing, node.Depth))
-		if err != nil {
-			return err
-		}
-
-		ok := node.Node.IsLeaf()
-		if ok {
-			err = trav.AppendString(form.leaf_prefix)
-		} else {
-			err = trav.AppendString(form.node_prefix)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		trav.AcceptLine()
-	}
-
-	return nil
+	return str
 }
 
 // Cleanup implements the object.Cleaner interface.
 func (t *Tree[N]) Cleanup() {
 	root := t.root
 
-	root.Cleanup()
+	to_delete := []Noder{root}
+
+	for len(to_delete) > 0 {
+		n := to_delete[0]
+		to_delete = to_delete[1:]
+
+		to_add := n.Cleanup()
+
+		if len(to_add) > 0 {
+			to_delete = append(to_delete, to_add...)
+		}
+	}
 }
 
 // NewTree creates a new tree from the given root.
