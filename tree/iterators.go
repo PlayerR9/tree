@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	uc "github.com/PlayerR9/lib_units/common"
-	llq "github.com/PlayerR9/queue/queue"
-	lls "github.com/PlayerR9/stack"
+	lls "github.com/PlayerR9/listlike"
+	llq "github.com/PlayerR9/listlike/queue"
 )
 
 // IteratorNode is a node in the iterator.

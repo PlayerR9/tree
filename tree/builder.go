@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	uc "github.com/PlayerR9/lib_units/common"
-	lls "github.com/PlayerR9/stack"
+	lls "github.com/PlayerR9/listlike"
 )
 
 // NextsFunc is a function that returns the next elements.
