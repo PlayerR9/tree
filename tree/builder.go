@@ -18,8 +18,8 @@ import (
 //   - error: An error if the function fails.
 type NextsFunc[N Noder] func(elem N, info Infoer) ([]N, error)
 
-// stack_element is a stack element.
-type stack_element[N Noder] struct {
+// builder_stack_element is a stack element.
+type builder_stack_element[N Noder] struct {
 	// prev is the previous node.
 	prev N
 
@@ -99,10 +99,10 @@ func (b *Builder[N]) Build(root N) (*Tree[N], error) {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*stack_element[N]]()
+	S := lls.NewLinkedStack[*builder_stack_element[N]]()
 
 	for _, next := range nexts {
-		se := &stack_element[N]{
+		se := &builder_stack_element[N]{
 			prev: tree.Root(),
 			elem: next,
 			info: b.info.Copy().(Infoer),
@@ -129,7 +129,7 @@ func (b *Builder[N]) Build(root N) (*Tree[N], error) {
 		}
 
 		for _, next := range nexts {
-			se := &stack_element[N]{
+			se := &builder_stack_element[N]{
 				prev: top.elem,
 				elem: next,
 				info: top.info.Copy().(Infoer),

@@ -8,8 +8,8 @@ import (
 	luc "github.com/PlayerR9/lib_units/common"
 )
 
-// StackElement is a stack element.
-type StackElement[T Noder] struct {
+// printer_stack_element is a stack element.
+type printer_stack_element[T Noder] struct {
 	// indent is the indentation.
 	indent string
 
@@ -46,14 +46,14 @@ func PrintTree[T Noder](root T) (string, error) {
 		seen:  make(map[Noder]bool),
 	}
 
-	se := &StackElement[T]{
+	se := &printer_stack_element[T]{
 		indent:     "",
 		node:       root,
 		same_level: false,
 		is_last:    true,
 	}
 
-	stack := []*StackElement[T]{se}
+	stack := []*printer_stack_element[T]{se}
 
 	for len(stack) > 0 {
 		top := stack[len(stack)-1]
@@ -82,7 +82,7 @@ func PrintTree[T Noder](root T) (string, error) {
 // Returns:
 //   - []*StackElement: The list of stack elements.
 //   - error: An error if traversing fails.
-func (p *Printer[T]) trav(elem *StackElement[T]) ([]*StackElement[T], error) {
+func (p *Printer[T]) trav(elem *printer_stack_element[T]) ([]*printer_stack_element[T], error) {
 	luc.AssertNil(elem, "elem")
 
 	var builder strings.Builder
@@ -119,7 +119,7 @@ func (p *Printer[T]) trav(elem *StackElement[T]) ([]*StackElement[T], error) {
 		return nil, nil
 	}
 
-	var elems []*StackElement[T]
+	var elems []*printer_stack_element[T]
 
 	var indent strings.Builder
 
@@ -143,7 +143,7 @@ func (p *Printer[T]) trav(elem *StackElement[T]) ([]*StackElement[T], error) {
 		node, ok := value.(T)
 		luc.Assert(ok, fmt.Sprintf("expected %T, got %T", *new(T), value))
 
-		se := &StackElement[T]{
+		se := &printer_stack_element[T]{
 			indent:     indent.String(),
 			node:       node,
 			same_level: false,
