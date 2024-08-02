@@ -332,8 +332,8 @@ func ExtractBranch[N Noder](tree *Tree[N], leaf N, delete bool) *Branch[N] {
 		return nil
 	}
 
-	branch, err := NewBranch[N](leaf)
-	uc.AssertErr(err, "NewBranch[%T](%s)", leaf, leaf.String())
+	branch, _ := NewBranch[N](leaf)
+	// uc.AssertErr(err, "NewBranch[%T](%s)", leaf, leaf.String())
 
 	if !delete {
 		return branch
@@ -385,8 +385,8 @@ func InsertBranch[N Noder](tree *Tree[N], branch *Branch[N]) (*Tree[N], error) {
 
 		for c != nil && !found {
 			if c == from {
-				tmp, ok := c.(N)
-				uc.AssertF(ok, "from should be of type %T, got %T", *new(N), c)
+				tmp := c.(N)
+				// uc.AssertF(ok, "from should be of type %T, got %T", *new(N), c)
 
 				next = tmp
 				found = true
@@ -436,15 +436,15 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 	}
 
 	iter := n.Iterator()
-	uc.Assert(iter != nil, "iter is nil")
+	// uc.Assert(iter != nil, "iter is nil")
 
 	// Handle first node
 
-	node, err := iter.Consume()
-	uc.AssertErr(err, "iter.Consume()")
+	node, _ := iter.Consume()
+	// uc.AssertErr(err, "iter.Consume()")
 
-	tmp, ok := node.(N)
-	uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
+	tmp := node.(N)
+	// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
 
 	high, ok := rec_prune_first_func(filter, tmp)
 	if ok {
@@ -462,8 +462,8 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 			break
 		}
 
-		tmp, ok := node.(N)
-		uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
+		tmp := node.(N)
+		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
 
 		high, ok := rec_prune_func(filter, highest, tmp)
 		if !ok {
@@ -472,8 +472,8 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 
 		n.DeleteChild(node)
 
-		highest, ok = FindCommonAncestor(highest, high)
-		uc.Assert(ok, "could not find common ancestor")
+		highest, _ = FindCommonAncestor(highest, high)
+		// uc.Assert(ok, "could not find common ancestor")
 	}
 
 	return highest, false
@@ -499,14 +499,14 @@ func rec_prune_func[N Noder](filter func(node N) bool, highest N, n N) (N, bool)
 		// Delete all children
 		n.Cleanup()
 
-		ancestors, ok := FindCommonAncestor(highest, n)
-		uc.Assert(ok, "could not find common ancestor")
+		ancestors, _ := FindCommonAncestor(highest, n)
+		// uc.Assert(ok, "could not find common ancestor")
 
 		return ancestors, true
 	}
 
 	iter := n.Iterator()
-	uc.Assert(iter != nil, "iter is nil")
+	// uc.Assert(iter != nil, "iter is nil")
 
 	for {
 		node, err := iter.Consume()
@@ -514,8 +514,8 @@ func rec_prune_func[N Noder](filter func(node N) bool, highest N, n N) (N, bool)
 			break
 		}
 
-		tmp, ok := node.(N)
-		uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
+		tmp, _ := node.(N)
+		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
 
 		high, ok := rec_prune_func(filter, highest, tmp)
 		if !ok {
@@ -524,8 +524,8 @@ func rec_prune_func[N Noder](filter func(node N) bool, highest N, n N) (N, bool)
 
 		n.DeleteChild(node)
 
-		highest, ok = FindCommonAncestor(highest, high)
-		uc.Assert(ok, "could not find common ancestor")
+		highest, _ = FindCommonAncestor(highest, high)
+		// uc.Assert(ok, "could not find common ancestor")
 	}
 
 	return highest, false
@@ -578,7 +578,7 @@ func rec_snake_traversal[N Noder](n N) [][]N {
 	var result [][]N
 
 	iter := n.Iterator()
-	uc.Assert(iter != nil, "iter is nil")
+	// uc.Assert(iter != nil, "iter is nil")
 
 	for {
 		node, err := iter.Consume()
@@ -586,8 +586,8 @@ func rec_snake_traversal[N Noder](n N) [][]N {
 			break
 		}
 
-		tmp, ok := node.(N)
-		uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
+		tmp := node.(N)
+		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
 
 		subResults := rec_snake_traversal(tmp)
 
@@ -686,10 +686,10 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 		// Remove any node that has been seen from the frontier.
 		frontier = us.SliceFilter(frontier, f)
 
-		tmp, ok := leaf.(N)
-		uc.AssertF(ok, "leaf should be of type %T, got %T", *new(N), leaf)
+		tmp := leaf.(N)
+		// uc.AssertF(ok, "leaf should be of type %T, got %T", *new(N), leaf)
 
-		ok = filter(tmp)
+		ok := filter(tmp)
 
 		parent := leaf.GetParent()
 
@@ -715,8 +715,8 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 			if len(children) != 0 {
 				// We obtained a forest as we reached the root
 				for _, child := range children {
-					tmp, ok := child.(N)
-					uc.AssertF(ok, "child should be of type %T, got %T", *new(N), child)
+					tmp := child.(N)
+					// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), child)
 
 					forest = append(forest, NewTree(tmp))
 				}
@@ -755,7 +755,7 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 //   - The leaf is replaced with the children.
 //   - The size of the tree is updated.
 func replaceLeafWithTree[N Noder](tree *Tree[N], at int, values []Noder) {
-	uc.AssertParam("at", at >= 0 && at < len(tree.leaves), uc.NewErrOutOfBounds(at, 0, len(tree.leaves)))
+	// uc.AssertParam("at", at >= 0 && at < len(tree.leaves), uc.NewErrOutOfBounds(at, 0, len(tree.leaves)))
 
 	leaf := tree.leaves[at]
 

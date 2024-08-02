@@ -62,8 +62,11 @@ type Branch[T Noder] struct {
 	to_node T
 }
 
-// Copy implements the uc.Copier interface.
-func (b *Branch[T]) Copy() uc.Copier {
+// Copy is a method that returns a copy of the branch.
+//
+// Returns:
+//   - *Branch: A copy of the branch.
+func (b *Branch[T]) Copy() *Branch[T] {
 	from_copy := b.from_node.Copy().(T)
 	to_copy := b.to_node.Copy().(T)
 
@@ -94,10 +97,10 @@ func (b *Branch[T]) Slice() []T {
 		slice = append(slice, n)
 
 		fc := n.GetFirstChild()
-		uc.Assert(fc != nil, "first child should not be nil")
+		// uc.Assert(fc != nil, "first child should not be nil")
 
-		tmp, ok := fc.(T)
-		uc.AssertF(ok, "first child should be of type %T, got %T", *new(T), fc)
+		tmp := fc.(T)
+		// uc.AssertF(ok, "first child should be of type %T, got %T", *new(T), fc)
 
 		n = tmp
 	}

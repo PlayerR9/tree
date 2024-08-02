@@ -1,7 +1,6 @@
 package tree
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
@@ -83,7 +82,7 @@ func PrintTree[T Noder](root T) (string, error) {
 //   - []*StackElement: The list of stack elements.
 //   - error: An error if traversing fails.
 func (p *Printer[T]) trav(elem *printer_stack_element[T]) ([]*printer_stack_element[T], error) {
-	luc.AssertNil(elem, "elem")
+	// luc.AssertNil(elem, "elem")
 
 	var builder strings.Builder
 
@@ -140,8 +139,8 @@ func (p *Printer[T]) trav(elem *printer_stack_element[T]) ([]*printer_stack_elem
 			return nil, err
 		}
 
-		node, ok := value.(T)
-		luc.Assert(ok, fmt.Sprintf("expected %T, got %T", *new(T), value))
+		node := value.(T)
+		// luc.Assert(ok, fmt.Sprintf("expected %T, got %T", *new(T), value))
 
 		se := &printer_stack_element[T]{
 			indent:     indent.String(),

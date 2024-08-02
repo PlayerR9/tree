@@ -4,9 +4,18 @@ import (
 	"fmt"
 
 	uc "github.com/PlayerR9/lib_units/common"
-	lls "github.com/PlayerR9/listlike"
 	llq "github.com/PlayerR9/listlike/queue"
+	lls "github.com/PlayerR9/listlike/stack"
 )
+
+// Infoer is an interface that provides the info of the element.
+type Infoer interface {
+	// Copy returns a copy of the info.
+	//
+	// Returns:
+	//   - Infoer: A copy of the info.
+	Copy() Infoer
+}
 
 // IteratorNode is a node in the iterator.
 type IteratorNode[N Noder] struct {
@@ -43,8 +52,8 @@ func (iter *DFSIterator[N]) Consume() (*IteratorNode[N], error) {
 			break
 		}
 
-		tmp, ok := c.(N)
-		uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
+		tmp := c.(N)
+		// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
 
 		iter.stack.Push(&IteratorNode[N]{
 			Node:  tmp,
@@ -118,8 +127,8 @@ func (iter *BFSIterator[N]) Consume() (*IteratorNode[N], error) {
 			break
 		}
 
-		tmp, ok := c.(N)
-		uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
+		tmp := c.(N)
+		// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
 
 		iter.queue.Enqueue(&IteratorNode[N]{
 			Node:  tmp,
@@ -165,11 +174,6 @@ func NewBFSIterator[N Noder](tree *Tree[N]) *BFSIterator[N] {
 	})
 
 	return iter
-}
-
-// Infoer is an interface that provides the info of the element.
-type Infoer interface {
-	uc.Copier
 }
 
 // ObserverFunc is a function that observes a node.
@@ -247,7 +251,7 @@ func DFS[N Noder](tree *Tree[N], init Infoer, f ObserverFunc[N]) error {
 		}
 
 		iter := top.elem.Iterator()
-		uc.Assert(iter != nil, "Iterator is nil")
+		// uc.Assert(iter != nil, "Iterator is nil")
 
 		for {
 			c, err := iter.Consume()
@@ -303,7 +307,7 @@ func BFS[N Noder](tree *Tree[N], init Infoer, f ObserverFunc[N]) error {
 		}
 
 		iter := first.elem.Iterator()
-		uc.Assert(iter != nil, "Iterator is nil")
+		// uc.Assert(iter != nil, "Iterator is nil")
 
 		for {
 			c, err := iter.Consume()

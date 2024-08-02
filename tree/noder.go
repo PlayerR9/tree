@@ -103,7 +103,12 @@ type Noder interface {
 	//   - []Noder: The children of the node.
 	Cleanup() []Noder
 
-	uc.Copier
+	// Copy returns a copy of the node.
+	//
+	// Returns:
+	//   - Noder: A copy of the node.
+	Copy() Noder
+
 	uc.Iterable[Noder]
 	fmt.Stringer
 }
@@ -134,7 +139,7 @@ func GetNodeLeaves[N Noder](node N) []N {
 			leaves = append(leaves, top)
 		} else {
 			iter := top.Iterator()
-			uc.Assert(iter != nil, "Iterator should not be nil")
+			// uc.Assert(iter != nil, "Iterator should not be nil")
 
 			for {
 				c, err := iter.Consume()
@@ -142,8 +147,8 @@ func GetNodeLeaves[N Noder](node N) []N {
 					break
 				}
 
-				tmp, ok := c.(N)
-				uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
+				tmp := c.(N)
+				// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
 
 				lls.Push(tmp)
 			}
@@ -181,7 +186,7 @@ func GetNodeSize(node Noder) int {
 		size++
 
 		iter := top.Iterator()
-		uc.Assert(iter != nil, "Iterator should not be nil")
+		// uc.Assert(iter != nil, "Iterator should not be nil")
 
 		for {
 			c, err := iter.Consume()
@@ -221,8 +226,8 @@ func GetNodeAncestors[N Noder](node N) []N {
 			break
 		}
 
-		tmp, ok := parent.(N)
-		uc.AssertF(ok, "parent should be of type %T, got %T", *new(N), parent)
+		tmp := parent.(N)
+		// uc.AssertF(ok, "parent should be of type %T, got %T", *new(N), parent)
 
 		ancestors = append(ancestors, tmp)
 

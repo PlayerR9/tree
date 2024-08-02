@@ -1,7 +1,6 @@
 package tree
 
 import (
-	uc "github.com/PlayerR9/lib_units/common"
 	us "github.com/PlayerR9/lib_units/slices"
 )
 
@@ -17,8 +16,11 @@ type Tree[N Noder] struct {
 	size int
 }
 
-// Copy implements the common.Copier interface.
-func (t *Tree[N]) Copy() uc.Copier {
+// Copy is a method that copies the tree.
+//
+// Returns:
+//   - *Tree: A copy of the tree.
+func (t *Tree[N]) Copy() *Tree[N] {
 	root := t.root
 
 	var tree *Tree[N]
@@ -48,8 +50,8 @@ func (t *Tree[N]) Copy() uc.Copier {
 //	| // ...
 //	// ...
 func (t *Tree[N]) String() string {
-	str, err := PrintTree(t.root)
-	uc.AssertErr(err, "PrintTree(%s)", t.root.String())
+	str, _ := PrintTree(t.root)
+	// uc.AssertErr(err, "PrintTree(%s)", t.root.String())
 
 	return str
 }
@@ -160,7 +162,7 @@ func (t *Tree[N]) GetDirectChildren() []N {
 	var children []N
 
 	iter := t.root.Iterator()
-	uc.Assert(iter != nil, "Unexpected nil iterator")
+	// uc.Assert(iter != nil, "Unexpected nil iterator")
 
 	for {
 		node, err := iter.Consume()
@@ -168,8 +170,8 @@ func (t *Tree[N]) GetDirectChildren() []N {
 			break
 		}
 
-		tmp, ok := node.(N)
-		uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
+		tmp := node.(N)
+		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
 
 		children = append(children, tmp)
 	}

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	uc "github.com/PlayerR9/lib_units/common"
-	lls "github.com/PlayerR9/listlike"
+	lls "github.com/PlayerR9/listlike/stack"
 )
 
 // NextsFunc is a function that returns the next elements.
@@ -27,7 +27,7 @@ type builder_stack_element[N Noder] struct {
 	elem N
 
 	// info is the info of the current node.
-	info uc.Copier
+	info Infoer
 }
 
 // Builder is a struct that builds a tree.
