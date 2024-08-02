@@ -19,7 +19,6 @@
 //go:generate go run cmd/main.go -name=Uint32Node -fields=Data/uint32 -o=uint32.go
 //go:generate go run cmd/main.go -name=Uint64Node -fields=Data/uint64 -o=uint64.go
 //go:generate go run cmd/main.go -name=UintptrNode -fields=Data/uintptr -o=uintptr.go
-//go:generate go run cmd/main.go -name=StatusNode -fields=Status/S,Data/T -g=S/common.Enumer,T/any -o=status.go
 package tree
 
 import _ "github.com/PlayerR9/listlike"
