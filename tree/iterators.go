@@ -210,7 +210,7 @@ func new_traversor[T Noder](node T, init Infoer) *traversor[T] {
 	}
 
 	if init != nil {
-		t.info = init.Copy().(Infoer)
+		t.info = init.Copy()
 	} else {
 		t.info = nil
 	}

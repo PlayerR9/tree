@@ -101,41 +101,81 @@ func (b *Builder[N]) Build(root N) (*Tree[N], error) {
 
 	S := lls.NewLinkedStack[*builder_stack_element[N]]()
 
-	for _, next := range nexts {
-		se := &builder_stack_element[N]{
-			prev: tree.Root(),
-			elem: next,
-			info: b.info.Copy().(Infoer),
-		}
-
-		S.Push(se)
-	}
-
-	for {
-		top, ok := S.Pop()
-		if !ok {
-			break
-		}
-
-		nexts, err := b.f(top.elem, top.info)
-		if err != nil {
-			return nil, err
-		}
-
-		top.prev.AddChild(top.elem)
-
-		if len(nexts) == 0 {
-			continue
-		}
-
+	if b.info == nil {
 		for _, next := range nexts {
 			se := &builder_stack_element[N]{
-				prev: top.elem,
+				prev: tree.Root(),
 				elem: next,
-				info: top.info.Copy().(Infoer),
 			}
 
 			S.Push(se)
+		}
+
+		for {
+			top, ok := S.Pop()
+			if !ok {
+				break
+			}
+
+			nexts, err := b.f(top.elem, nil)
+			if err != nil {
+				return nil, err
+			}
+
+			top.prev.AddChild(top.elem)
+
+			if len(nexts) == 0 {
+				continue
+			}
+
+			for _, next := range nexts {
+				se := &builder_stack_element[N]{
+					prev: top.elem,
+					elem: next,
+					info: nil,
+				}
+
+				S.Push(se)
+			}
+		}
+
+	} else {
+		for _, next := range nexts {
+			se := &builder_stack_element[N]{
+				prev: tree.Root(),
+				elem: next,
+				info: b.info.Copy(),
+			}
+
+			S.Push(se)
+		}
+
+		for {
+			top, ok := S.Pop()
+			if !ok {
+				break
+			}
+
+			nexts, err := b.f(top.elem, top.info)
+			if err != nil {
+				return nil, err
+			}
+
+			top.prev.AddChild(top.elem)
+
+			if len(nexts) == 0 {
+				continue
+			}
+
+			for _, next := range nexts {
+				se := &builder_stack_element[N]{
+					prev: top.elem,
+					elem: next,
+					info: top.info.Copy(),
+				}
+
+				S.Push(se)
+			}
 		}
 	}
 
