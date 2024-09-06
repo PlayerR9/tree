@@ -3,7 +3,7 @@ package tree
 import (
 	"fmt"
 
-	uc "github.com/PlayerR9/lib_units/common"
+	gcers "github.com/PlayerR9/go-commons/errors"
 	llq "github.com/PlayerR9/listlike/queue"
 	lls "github.com/PlayerR9/listlike/stack"
 )
@@ -41,7 +41,7 @@ type DFSIterator[N Noder] struct {
 func (iter *DFSIterator[N]) Consume() (*IteratorNode[N], error) {
 	top, ok := iter.stack.Pop()
 	if !ok {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, gcers.NewErrExhaustedIter()
 	}
 
 	sub_iter := top.Node.Iterator()
@@ -116,7 +116,7 @@ type BFSIterator[N Noder] struct {
 func (iter *BFSIterator[N]) Consume() (*IteratorNode[N], error) {
 	first, ok := iter.queue.Dequeue()
 	if !ok {
-		return nil, uc.NewErrExhaustedIter()
+		return nil, gcers.NewErrExhaustedIter()
 	}
 
 	sub_iter := first.Node.Iterator()

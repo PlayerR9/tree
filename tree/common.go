@@ -3,8 +3,8 @@ package tree
 import (
 	"slices"
 
-	uc "github.com/PlayerR9/lib_units/common"
-	us "github.com/PlayerR9/lib_units/slices"
+	gcers "github.com/PlayerR9/go-commons/errors"
+	gcslc "github.com/PlayerR9/go-commons/slices"
 )
 
 // RegenerateLeaves regenerates the leaves of the tree. No op if the tree is nil.
@@ -252,7 +252,7 @@ func FindBranchingPoint(n Noder) (Noder, Noder, bool) {
 //   - error: An error if the node is not a part of the tree.
 func DeleteBranchContaining[N Noder](tree *Tree[N], n N) error {
 	if tree == nil {
-		uc.NewErrNilParameter("tree")
+		gcers.NewErrNilParameter("tree")
 	}
 
 	child, parent, hasBranching := FindBranchingPoint(n)
@@ -684,7 +684,7 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 		seen[leaf] = true
 
 		// Remove any node that has been seen from the frontier.
-		frontier = us.SliceFilter(frontier, f)
+		frontier = gcslc.SliceFilter(frontier, f)
 
 		tmp := leaf.(N)
 		// uc.AssertF(ok, "leaf should be of type %T, got %T", *new(N), leaf)

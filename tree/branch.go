@@ -1,57 +1,11 @@
 package tree
 
 import (
-	"errors"
 	"fmt"
+	"iter"
 
-	uc "github.com/PlayerR9/lib_units/common"
+	dbg "github.com/PlayerR9/go-debug/assert"
 )
-
-// BranchIterator is the pull-based iterator for the branch.
-type BranchIterator[T Noder] struct {
-	// from_node is the node from which the branch starts.
-	from_node T
-
-	// to_node is the node to which the branch ends.
-	to_node T
-
-	// current is the current node of the iterator.
-	current T
-}
-
-// Consume implements the common.Iterater interface.
-//
-// This scans from the root node to the leaf node.
-//
-// Errors:
-//   - *common.ErrExhaustedIter: If the iterator has reached the end of the branch.
-//   - error: If the first child of the current node is not of the correct type or an impossible case occurs.
-func (bi *BranchIterator[T]) Consume() (T, error) {
-	value := bi.current
-
-	if Noder(bi.current) == Noder(bi.to_node) {
-		return *new(T), uc.NewErrExhaustedIter()
-	}
-
-	fc := bi.current.GetFirstChild()
-	if fc == nil {
-		return *new(T), errors.New("impossible case: no children but not reached the branch's end point")
-	}
-
-	tmp, ok := fc.(T)
-	if !ok {
-		return *new(T), fmt.Errorf("first child should be of type %T, got %T", *new(T), fc)
-	}
-
-	bi.current = tmp
-
-	return value, nil
-}
-
-// Restart implements the common.Iterater interface.
-func (bi *BranchIterator[T]) Restart() {
-	bi.current = bi.from_node
-}
 
 // Branch represents a branch in a tree.
 type Branch[T Noder] struct {
@@ -79,13 +33,21 @@ func (b *Branch[T]) Copy() *Branch[T] {
 }
 
 // Iterator implements the uc.Iterable interface.
-func (b *Branch[T]) Iterator() uc.Iterater[T] {
-	iter := &BranchIterator[T]{
-		from_node: b.from_node,
-		current:   b.from_node,
+func (b *Branch[T]) Iterator() iter.Seq[T] {
+	fn := func(yield func(T) bool) {
+		for n := b.from_node; Noder(n) != Noder(b.to_node); {
+			fc := n.GetFirstChild()
+			dbg.AssertNotNil(fc, "fc")
+
+			tmp := dbg.AssertConv[T](fc, "fc")
+
+			if !yield(tmp) {
+				return
+			}
+		}
 	}
 
-	return iter
+	return fn
 }
 
 // Slice implements the uc.Slicer interface.

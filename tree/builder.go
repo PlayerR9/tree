@@ -3,7 +3,7 @@ package tree
 import (
 	"errors"
 
-	uc "github.com/PlayerR9/lib_units/common"
+	gcers "github.com/PlayerR9/go-commons/errors"
 	lls "github.com/PlayerR9/listlike/stack"
 )
 
@@ -56,7 +56,7 @@ func (b *Builder[N]) SetInfo(info Infoer) {
 //   - error: An error of type *common.ErrInvalidParameter if 'f' is nil.
 func (b *Builder[N]) SetNextFunc(f NextsFunc[N]) error {
 	if f == nil {
-		return uc.NewErrNilParameter("f")
+		return gcers.NewErrNilParameter("f")
 	}
 
 	b.f = f
@@ -81,7 +81,7 @@ func (b *Builder[N]) SetNextFunc(f NextsFunc[N]) error {
 //     before traversing the tree.
 func (b *Builder[N]) Build(root N) (*Tree[N], error) {
 	if b.f == nil {
-		return nil, uc.NewErrInvalidUsage(
+		return nil, gcers.NewErrInvalidUsage(
 			errors.New("no next function is set"),
 			"Please call Builder.SetNextFunc() before building the tree",
 		)

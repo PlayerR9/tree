@@ -5,10 +5,19 @@ import (
 	"flag"
 	"fmt"
 
-	ggen "github.com/PlayerR9/lib_units/generator"
+	ggen "github.com/PlayerR9/go-generator/generator"
 )
 
 var (
+	// OutputFlag is the flag for the output.
+	OutputFlag *ggen.OutputLocVal
+
+	// StructFieldsFlag is the flag for the struct fields.
+	StructFieldsFlag *ggen.StructFieldsVal
+
+	// GenericsSignFlag is the flag for the generics sign.
+	GenericsSignFlag *ggen.GenericsSignVal
+
 	// TypeNameFlag is the flag for the type name.
 	TypeNameFlag *string
 )
@@ -19,16 +28,13 @@ func init() {
 			" Must start with an upper case letter and must be a valid Go identifier.",
 	)
 
-	ggen.SetOutputFlag("<type_name>_treenode.go", false)
-	ggen.SetStructFieldsFlag("fields", true, -1, "The fields to generate the code for.")
-	ggen.SetGenericsSignFlag("g", false, -1)
+	OutputFlag = ggen.NewOutputFlag("<type_name>_treenode.go", false)
+	StructFieldsFlag = ggen.NewStructFieldsFlag("fields", true, -1, "The fields to generate the code for.")
+	GenericsSignFlag = ggen.NewGenericsSignFlag("g", false, -1)
 }
 
 func Parse() (string, error) {
-	err := ggen.ParseFlags()
-	if err != nil {
-		return "", fmt.Errorf("could not parse flags: %w", err)
-	}
+	ggen.ParseFlags()
 
 	if TypeNameFlag == nil {
 		return "", errors.New("flag TypeNameFlag must be set")
@@ -36,7 +42,7 @@ func Parse() (string, error) {
 
 	type_name := *TypeNameFlag
 
-	err = ggen.IsValidName(type_name, nil, ggen.Exported)
+	err := ggen.IsValidVariableName(type_name, nil, ggen.Exported)
 	if err != nil {
 		return "", fmt.Errorf("invalid type name: %w", err)
 	}

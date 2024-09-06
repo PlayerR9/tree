@@ -1,7 +1,7 @@
 package tree
 
 import (
-	us "github.com/PlayerR9/lib_units/slices"
+	gcslc "github.com/PlayerR9/go-commons/slices"
 )
 
 // Tree is a generic data structure that represents a tree.
@@ -126,7 +126,7 @@ func (t *Tree[N]) Size() int {
 // Returns:
 //   - error: An error of type *ErrMissingRoot if the tree does not have a root.
 func (t *Tree[N]) SetChildren(children []*Tree[N]) error {
-	children = us.FilterNilValues(children)
+	children = gcslc.FilterNilValues(children)
 	if len(children) == 0 {
 		return nil
 	}

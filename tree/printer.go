@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	luc "github.com/PlayerR9/lib_units/common"
+	gcers "github.com/PlayerR9/go-commons/errors"
 )
 
 // printer_stack_element is a stack element.
@@ -132,7 +132,7 @@ func (p *Printer[T]) trav(elem *printer_stack_element[T]) ([]*printer_stack_elem
 
 	for {
 		value, err := iter.Consume()
-		ok := luc.IsDone(err)
+		ok := gcers.IsDone(err)
 		if ok {
 			break
 		} else if err != nil {

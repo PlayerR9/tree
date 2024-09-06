@@ -3,9 +3,8 @@ package internal
 import (
 	"log"
 	"os"
-	"strings"
 
-	ggen "github.com/PlayerR9/lib_units/generator"
+	ggen "github.com/PlayerR9/go-generator/generator"
 )
 
 var (
@@ -25,7 +24,7 @@ func init() {
 	}
 
 	tmp.AddDoFunc(func(data *GenData) error {
-		tn_type_sig, err := ggen.MakeTypeSig(data.TypeName, "")
+		tn_type_sig, err := ggen.MakeTypeSign(GenericsSignFlag, data.TypeName, "")
 		if err != nil {
 			return err
 		}
@@ -36,35 +35,13 @@ func init() {
 	})
 
 	tmp.AddDoFunc(func(data *GenData) error {
-		tn_iterator_sig, err := ggen.MakeTypeSig(data.TypeName, "Iterator")
-		if err != nil {
-			return err
-		}
-
-		data.IteratorSig = tn_iterator_sig
+		data.Generics = GenericsSignFlag.String()
 
 		return nil
 	})
 
 	tmp.AddDoFunc(func(data *GenData) error {
-		data.Generics = ggen.GenericsSigFlag.String()
-
-		return nil
-	})
-
-	tmp.AddDoFunc(func(data *GenData) error {
-		var builder strings.Builder
-
-		builder.WriteString(data.TypeName)
-		builder.WriteString("Iterator")
-
-		data.IteratorName = builder.String()
-
-		return nil
-	})
-
-	tmp.AddDoFunc(func(data *GenData) error {
-		param_list, err := ggen.MakeParameterList()
+		param_list, err := StructFieldsFlag.MakeParameterList()
 		if err != nil {
 			return err
 		}
@@ -75,7 +52,7 @@ func init() {
 	})
 
 	tmp.AddDoFunc(func(data *GenData) error {
-		assignment_map, err := ggen.MakeAssignmentList()
+		assignment_map, err := StructFieldsFlag.MakeAssignmentList()
 		if err != nil {
 			return err
 		}
@@ -86,7 +63,7 @@ func init() {
 	})
 
 	tmp.AddDoFunc(func(data *GenData) error {
-		data.Fields = ggen.StructFieldsFlag.Fields()
+		data.Fields = StructFieldsFlag.Fields()
 
 		return nil
 	})
@@ -107,12 +84,6 @@ type GenData struct {
 
 	// Fields is the list of fields.
 	Fields map[string]string
-
-	// IteratorName is the name of the iterator.
-	IteratorName string
-
-	// IteratorSig is the signature of the iterator.
-	IteratorSig string
 
 	// ParamList is the list of parameters.
 	ParamList string
@@ -137,9 +108,11 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/PlayerR9/lib_units/common"
+	"github.com/PlayerR9/go-commons/errors"
 	"github.com/PlayerR9/tree/tree"
 )
+
+
 
 // {{ .IteratorName }} is a pull-based iterator that iterates
 // over the children of a {{ .TypeName }}.
@@ -147,15 +120,15 @@ type {{ .IteratorName }}{{ .Generics }} struct {
 	parent, current *{{ .TypeSig }}
 }
 
-// Consume implements the common.Iterater interface.
+// Consume implements the errors.Iterater interface.
 //
-// The only error type that can be returned by this function is the *common.ErrExhaustedIter type.
+// The only error type that can be returned by this function is the *errors.ErrExhaustedIter type.
 //
 // Moreover, the return value is always of type *{{ .TypeSig }} and never nil; unless the iterator
 // has reached the end of the branch.
 func (iter *{{ .IteratorSig }}) Consume() (tree.Noder, error) {
 	if iter.current == nil {
-		return nil, common.NewErrExhaustedIter()
+		return nil, errors.NewErrExhaustedIter()
 	}
 
 	node := iter.current
@@ -164,7 +137,7 @@ func (iter *{{ .IteratorSig }}) Consume() (tree.Noder, error) {
 	return node, nil
 }
 
-// Restart implements the common.Iterater interface.
+// Restart implements the errors.Iterater interface.
 func (iter *{{ .IteratorSig }}) Restart() {
 	iter.current = iter.parent.FirstChild
 }
@@ -456,7 +429,7 @@ func (tn *{{ .TypeSig }}) Copy() tree.Noder {
 // This function returns an iterator that iterates over the direct children of the node.
 // Implemented as a pull-based iterator, this function never returns nil and any of the
 // values is guaranteed to be a non-nil node of type {{ .TypeSig }}.
-func (tn *{{ .TypeSig }}) Iterator() common.Iterater[tree.Noder] {
+func (tn *{{ .TypeSig }}) Iterator() errors.Iterater[tree.Noder] {
 	return &{{ .IteratorSig }}{
 		parent: tn,
 		current: tn.FirstChild,

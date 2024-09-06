@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	uc "github.com/PlayerR9/lib_units/common"
+	gcers "github.com/PlayerR9/go-commons/errors"
 )
 
 // Noder is an interface that represents a node in a tree.
@@ -109,7 +109,7 @@ type Noder interface {
 	//   - Noder: A copy of the node.
 	Copy() Noder
 
-	uc.Iterable[Noder]
+	gcers.Iterable[Noder]
 	fmt.Stringer
 }
 

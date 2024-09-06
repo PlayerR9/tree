@@ -86,7 +86,7 @@ func main() {
 		TypeName: type_name,
 	}
 
-	res, err := pkg.Generator.Generate(type_name, "_treenode.go", g)
+	res, err := pkg.Generator.Generate(pkg.OutputFlag, type_name+"_treenode.go", g)
 	if err != nil {
 		pkg.Logger.Fatalf("Could not generate code: %s", err.Error())
 	}
