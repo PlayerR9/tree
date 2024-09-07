@@ -1,33 +1,12 @@
 package tree
 
 import (
-	"fmt"
+	"iter"
 	"slices"
-
-	gcers "github.com/PlayerR9/go-commons/errors"
 )
 
-// Noder is an interface that represents a node in a tree.
+/* // Noder is an interface that represents a node in a tree.
 type Noder interface {
-	// IsLeaf returns true if the node is a leaf.
-	//
-	// Returns:
-	//   - bool: True if the node is a leaf, false otherwise.
-	IsLeaf() bool
-
-	// GetParent returns the parent of the node. The returned parent is guaranteed to be
-	// of the same type as the node whenever it is not nil.
-	//
-	// Returns:
-	//   - Noder: The parent of the node. Nil if the node has no parent.
-	GetParent() Noder
-
-	// IsSingleton returns true if the node is a singleton (i.e., has only one child).
-	//
-	// Returns:
-	//   - bool: True if the node is a singleton, false otherwise.
-	IsSingleton() bool
-
 	// DeleteChild deletes the child from the children of the node while
 	// returning the children of the target node. Each returned child is guaranteed to be
 	// of the same type as the target node and not nil.
@@ -55,13 +34,6 @@ type Noder interface {
 	//
 	// If child is nil or not of the correct type, it does nothing.
 	AddChild(target Noder)
-
-	// LinkChildren links the given children to the node. However, children that are either
-	// nil or not of the correct type are ignored.
-	//
-	// Parameters:
-	//   - children: The children to link.
-	LinkChildren(children []Noder)
 
 	// RemoveNode removes the node from the tree while shifting the children up one level to
 	// maintain the tree structure. The returned children can be used to create a forest of
@@ -102,15 +74,78 @@ type Noder interface {
 	// Returns:
 	//   - []Noder: The children of the node.
 	Cleanup() []Noder
+} */
 
-	// Copy returns a copy of the node.
+type Noder interface {
+	comparable
+
+	// IsLeaf checks whether the node is a leaf.
 	//
 	// Returns:
-	//   - Noder: A copy of the node.
-	Copy() Noder
+	//   - bool: True if the node is a leaf, false otherwise.
+	IsLeaf() bool
 
-	gcers.Iterable[Noder]
-	fmt.Stringer
+	// IsSingleton checks whether the node is a singleton.
+	//
+	// Returns:
+	//   - bool: True if the node is a singleton, false otherwise.
+	IsSingleton() bool
+
+	// String returns a string representation of the node.
+	//
+	// Returns:
+	//   - string: A string representation of the node.
+	String() string
+}
+
+// DeepCopy is a method that deep copies the node.
+//
+// Parameters:
+//   - node: The node to copy.
+//
+// Returns:
+//   - T: The copied node.
+func DeepCopy[T interface {
+	Child() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}](node T) T {
+	n := node.Copy()
+
+	var children []T
+
+	for child := range node.Child() {
+		child_copy := DeepCopy(child)
+		children = append(children, child_copy)
+	}
+
+	n.LinkChildren(children)
+
+	return n
+}
+
+// RootOf returns the root of the given node.
+//
+// Parameters:
+//   - node: The node to get the root of.
+//
+// Returns:
+//   - T: The root of the given node.
+func RootOf[T interface {
+	GetParent() (T, bool)
+	Noder
+}](node T) T {
+	for {
+		parent, ok := node.GetParent()
+		if !ok {
+			break
+		}
+
+		node = parent
+	}
+
+	return node
 }
 
 // GetNodeLeaves returns the leaves of the given node.
@@ -122,35 +157,24 @@ type Noder interface {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func GetNodeLeaves[N Noder](node N) []N {
-	lls := NewLinkedNStack[N]()
+func GetNodeLeaves[T interface {
+	Child() iter.Seq[T]
+	Copy() T
+	Noder
+}](node T) []T {
+	var leaves []T
 
-	lls.Push(node)
+	stack := []T{node}
 
-	var leaves []N
-
-	for {
-		top, ok := lls.Pop()
-		if !ok {
-			break
-		}
+	for len(stack) > 0 {
+		top := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
 
 		if top.IsLeaf() {
 			leaves = append(leaves, top)
 		} else {
-			iter := top.Iterator()
-			// uc.Assert(iter != nil, "Iterator should not be nil")
-
-			for {
-				c, err := iter.Consume()
-				if err != nil {
-					break
-				}
-
-				tmp := c.(N)
-				// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), c)
-
-				lls.Push(tmp)
+			for child := range top.Child() {
+				stack = append(stack, child)
 			}
 		}
 	}
@@ -166,35 +190,22 @@ func GetNodeLeaves[N Noder](node N) []N {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, the traversal is done in a depth-first manner.
-func GetNodeSize(node Noder) int {
-	if node == nil {
-		return 0
-	}
-
-	lls := NewLinkedNStack[Noder]()
-
-	lls.Push(node)
-
+func GetNodeSize[T interface {
+	Child() iter.Seq[T]
+	Noder
+}](node T) int {
 	var size int
 
-	for {
-		top, ok := lls.Pop()
-		if !ok {
-			break
-		}
+	stack := []T{node}
+
+	for len(stack) > 0 {
+		top := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
 
 		size++
 
-		iter := top.Iterator()
-		// uc.Assert(iter != nil, "Iterator should not be nil")
-
-		for {
-			c, err := iter.Consume()
-			if err != nil {
-				break
-			}
-
-			lls.Push(c)
+		for child := range top.Child() {
+			stack = append(stack, child)
 		}
 	}
 
@@ -217,21 +228,21 @@ func GetNodeSize(node Noder) int {
 // Despite the above, this function does not use recursion and is safe to use.
 //
 // Finally, no nil nodes are returned.
-func GetNodeAncestors[N Noder](node N) []N {
-	var ancestors []N
+func GetNodeAncestors[T interface {
+	GetParent() (T, bool)
+	Noder
+}](node T) []T {
+	var ancestors []T
 
 	for {
-		parent := node.GetParent()
-		if parent == nil {
+		parent, ok := node.GetParent()
+		if !ok {
 			break
 		}
 
-		tmp := parent.(N)
-		// uc.AssertF(ok, "parent should be of type %T, got %T", *new(N), parent)
+		ancestors = append(ancestors, parent)
 
-		ancestors = append(ancestors, tmp)
-
-		node = tmp
+		node = parent
 	}
 
 	slices.Reverse(ancestors)
@@ -248,10 +259,13 @@ func GetNodeAncestors[N Noder](node N) []N {
 //   - n2: The second node.
 //
 // Returns:
-//   - N: The common ancestor.
+//   - T: The common ancestor.
 //   - bool: True if the nodes have a common ancestor, false otherwise.
-func FindCommonAncestor[N Noder](n1, n2 N) (N, bool) {
-	if Noder(n1) == Noder(n2) {
+func FindCommonAncestor[T interface {
+	GetParent() (T, bool)
+	Noder
+}](n1, n2 T) (T, bool) {
+	if n1 == n2 {
 		return n1, true
 	}
 
@@ -263,15 +277,28 @@ func FindCommonAncestor[N Noder](n1, n2 N) (N, bool) {
 	}
 
 	for _, node := range ancestors1 {
-		conv_node := Noder(node)
-
-		ok := slices.ContainsFunc(ancestors2, func(other N) bool {
-			return conv_node == Noder(other)
-		})
-		if ok {
+		if slices.Contains(ancestors2, node) {
 			return node, true
 		}
 	}
 
-	return *new(N), false
+	return *new(T), false
+}
+
+// Cleanup is used to delete all the children of the given node.
+//
+// Parameters:
+//   - node: The node to delete the children of.
+func Cleanup[T interface {
+	Cleanup() []T
+	Noder
+}](node T) {
+	queue := node.Cleanup()
+
+	for len(queue) > 0 {
+		first := queue[0]
+		queue = queue[1:]
+
+		queue = append(queue, first.Cleanup()...)
+	}
 }

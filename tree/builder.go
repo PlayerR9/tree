@@ -2,9 +2,9 @@ package tree
 
 import (
 	"errors"
+	"iter"
 
 	gcers "github.com/PlayerR9/go-commons/errors"
-	lls "github.com/PlayerR9/listlike/stack"
 )
 
 // NextsFunc is a function that returns the next elements.
@@ -14,54 +14,78 @@ import (
 //   - info: The info of the element.
 //
 // Returns:
-//   - []N: The next elements.
+//   - []T: The next elements.
 //   - error: An error if the function fails.
-type NextsFunc[N Noder] func(elem N, info Infoer) ([]N, error)
+type NextsFunc[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}, I interface {
+	Copy() I
+}] func(elem T, info I) ([]T, error)
 
 // builder_stack_element is a stack element.
-type builder_stack_element[N Noder] struct {
+type builder_stack_element[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}, I interface {
+	Copy() I
+}] struct {
 	// prev is the previous node.
-	prev N
+	prev T
 
 	// elem is the current node.
-	elem N
+	elem T
 
 	// info is the info of the current node.
-	info Infoer
+	info I
 }
 
 // Builder is a struct that builds a tree.
-type Builder[N Noder] struct {
+type Builder[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}, I interface {
+	Copy() I
+}] struct {
 	// info is the info of the builder.
-	info Infoer
+	info I
 
 	// f is the next function.
-	f NextsFunc[N]
+	f NextsFunc[T, I]
 }
 
-// SetInfo sets the info of the builder.
-//
-// Parameters:
-//   - info: The info to set.
-func (b *Builder[N]) SetInfo(info Infoer) {
-	b.info = info
-}
-
-// SetNextFunc sets the next function of the builder.
-//
-// Parameters:
-//   - f: The function to set.
-//
-// Returns:
-//   - error: An error of type *common.ErrInvalidParameter if 'f' is nil.
-func (b *Builder[N]) SetNextFunc(f NextsFunc[N]) error {
+func NewBuilder[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}, I interface {
+	Copy() I
+}](info I, f NextsFunc[T, I]) (*Builder[T, I], error) {
 	if f == nil {
-		return gcers.NewErrNilParameter("f")
+		return nil, gcers.NewErrNilParameter("f")
 	}
 
-	b.f = f
-
-	return nil
+	return &Builder[T, I]{
+		info: info,
+		f:    f,
+	}, nil
 }
 
 // MakeTree creates a tree from the given element.
@@ -79,14 +103,7 @@ func (b *Builder[N]) SetNextFunc(f NextsFunc[N]) error {
 // Behaviors:
 //   - The 'info' parameter is copied for each node and it specifies the initial info
 //     before traversing the tree.
-func (b *Builder[N]) Build(root N) (*Tree[N], error) {
-	if b.f == nil {
-		return nil, gcers.NewErrInvalidUsage(
-			errors.New("no next function is set"),
-			"Please call Builder.SetNextFunc() before building the tree",
-		)
-	}
-
+func (b *Builder[T, I]) Build(root T) (*Tree[T], error) {
 	// 1. Handle the root node
 	nexts, err := b.f(root, b.info)
 	if err != nil {
@@ -99,95 +116,143 @@ func (b *Builder[N]) Build(root N) (*Tree[N], error) {
 		return tree, nil
 	}
 
-	S := lls.NewLinkedStack[*builder_stack_element[N]]()
+	stack := make([]builder_stack_element[T, I], 0, len(nexts))
 
-	if b.info == nil {
+	for _, next := range nexts {
+		se := builder_stack_element[T, I]{
+			prev: tree.Root(),
+			elem: next,
+			info: b.info.Copy(),
+		}
+
+		stack = append(stack, se)
+	}
+
+	for len(stack) > 0 {
+		top := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		nexts, err := b.f(top.elem, top.info)
+		if err != nil {
+			return nil, err
+		}
+
+		top.prev.AddChild(top.elem)
+
+		if len(nexts) == 0 {
+			continue
+		}
+
 		for _, next := range nexts {
-			se := &builder_stack_element[N]{
-				prev: tree.Root(),
+			se := builder_stack_element[T, I]{
+				prev: top.elem,
 				elem: next,
+				info: top.info.Copy(),
 			}
 
-			S.Push(se)
-		}
-
-		for {
-			top, ok := S.Pop()
-			if !ok {
-				break
-			}
-
-			nexts, err := b.f(top.elem, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			top.prev.AddChild(top.elem)
-
-			if len(nexts) == 0 {
-				continue
-			}
-
-			for _, next := range nexts {
-				se := &builder_stack_element[N]{
-					prev: top.elem,
-					elem: next,
-					info: nil,
-				}
-
-				S.Push(se)
-			}
-		}
-
-	} else {
-		for _, next := range nexts {
-			se := &builder_stack_element[N]{
-				prev: tree.Root(),
-				elem: next,
-				info: b.info.Copy(),
-			}
-
-			S.Push(se)
-		}
-
-		for {
-			top, ok := S.Pop()
-			if !ok {
-				break
-			}
-
-			nexts, err := b.f(top.elem, top.info)
-			if err != nil {
-				return nil, err
-			}
-
-			top.prev.AddChild(top.elem)
-
-			if len(nexts) == 0 {
-				continue
-			}
-
-			for _, next := range nexts {
-				se := &builder_stack_element[N]{
-					prev: top.elem,
-					elem: next,
-					info: top.info.Copy(),
-				}
-
-				S.Push(se)
-			}
+			stack = append(stack, se)
 		}
 	}
 
-	b.Reset()
-
-	RegenerateLeaves(tree)
+	tree.RegenerateLeaves()
 
 	return tree, nil
 }
 
 // Reset resets the builder.
-func (b *Builder[N]) Reset() {
-	b.info = nil
+func (b *Builder[T, I]) Reset() {
 	b.f = nil
+}
+
+// MakeTree creates a tree from the given element.
+//
+// Parameters:
+//   - elem: The element to start the tree from.
+//   - info: The info of the element.
+//   - f: The function that, given an element and info, returns the next elements.
+//     (i.e., the children of the element).
+//
+// Returns:
+//   - *Tree: The tree created from the element.
+//   - error: An error if the next function fails.
+//
+// Behaviors:
+//   - The 'info' parameter is copied for each node and it specifies the initial info
+//     before traversing the tree.
+func Build[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	LinkChildren(children []T)
+	Noder
+}](root T, fn func(elem T) ([]T, error)) (*Tree[T], error) {
+	if fn == nil {
+		return nil, gcers.NewErrInvalidUsage(
+			errors.New("no next function is set"),
+			"Please call Builder.SetNextFunc() before building the tree",
+		)
+	}
+
+	// 1. Handle the root node
+	nexts, err := fn(root)
+	if err != nil {
+		return nil, err
+	}
+
+	tree := NewTree(root)
+
+	if len(nexts) == 0 {
+		return tree, nil
+	}
+
+	// StackElement is a stack element.
+	type StackElement struct {
+		// prev is the previous node.
+		prev T
+
+		// elem is the current node.
+		elem T
+	}
+
+	stack := make([]StackElement, 0, len(nexts))
+
+	for _, next := range nexts {
+		se := StackElement{
+			prev: tree.Root(),
+			elem: next,
+		}
+
+		stack = append(stack, se)
+	}
+
+	for len(stack) > 0 {
+		top := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		nexts, err := fn(top.elem)
+		if err != nil {
+			return nil, err
+		}
+
+		top.prev.AddChild(top.elem)
+
+		if len(nexts) == 0 {
+			continue
+		}
+
+		for _, next := range nexts {
+			se := StackElement{
+				prev: top.elem,
+				elem: next,
+			}
+
+			stack = append(stack, se)
+		}
+	}
+
+	tree.RegenerateLeaves()
+
+	return tree, nil
 }

@@ -20,7 +20,3 @@
 //go:generate go run cmd/main.go -name=Uint64Node -fields=Data/uint64 -o=uint64.go
 //go:generate go run cmd/main.go -name=UintptrNode -fields=Data/uintptr -o=uintptr.go
 package tree
-
-import _ "github.com/PlayerR9/listlike"
-
-//go:generate go run github.com/PlayerR9/listlike/cmd/stack -type=N -g=N/Noder -o=tree/node_stack.go

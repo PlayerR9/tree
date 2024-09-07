@@ -1,201 +1,14 @@
 package tree
 
 import (
+	"errors"
+	"fmt"
+	"iter"
 	"slices"
 
 	gcers "github.com/PlayerR9/go-commons/errors"
 	gcslc "github.com/PlayerR9/go-commons/slices"
 )
-
-// RegenerateLeaves regenerates the leaves of the tree. No op if the tree is nil.
-//
-// Parameters:
-//   - tree: The tree to regenerate the leaves of.
-//
-// Behaviors:
-//   - The leaves are updated in a DFS order.
-//   - Expensive operation; use it only when necessary (i.e., leaves changed unexpectedly.)
-//   - This also updates the size of the tree.
-func RegenerateLeaves[N Noder](tree *Tree[N]) {
-	if tree == nil {
-		return
-	}
-
-	var leaves []N
-
-	iter := NewDFSIterator(tree)
-
-	var size int
-
-	for {
-		elem, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		size++
-
-		ok := elem.Node.IsLeaf()
-		if ok {
-			leaves = append(leaves, elem.Node)
-		}
-	}
-
-	tree.leaves = leaves
-	tree.size = size
-}
-
-// UpdateLeaves updates the leaves of the tree. No op if the tree is nil.
-//
-// Parameters:
-//   - tree: The tree to update.
-//
-// Behaviors:
-//   - The leaves are updated in a DFS order.
-//   - Less expensive than RegenerateLeaves. However, if nodes has been deleted
-//     from the tree, this may give unexpected results.
-//   - This also updates the size of the tree.
-func UpdateLeaves[N Noder](tree *Tree[N]) {
-	if tree == nil {
-		return
-	}
-
-	if len(tree.leaves) == 0 {
-		tree.leaves = []N{tree.root}
-		tree.size = 1
-
-		return
-	}
-
-	var new_leaves []N
-	size := tree.size - len(tree.leaves)
-
-	lls := NewLinkedNStack[N]()
-
-	lls.PushMany(tree.leaves)
-
-	for {
-		top, ok := lls.Pop()
-		if !ok {
-			break
-		}
-
-		size++
-
-		ok = top.IsLeaf()
-		if ok {
-			new_leaves = append(new_leaves, top)
-		}
-	}
-
-	tree.leaves = new_leaves
-	tree.size = size
-}
-
-// HasChild returns true if the tree has the given child in any of its nodes
-// in a BFS order.
-//
-// Parameters:
-//   - tree: The tree to filter.
-//   - filter: The filter to apply. Must return true iff the node is the one we are looking for.
-//     This function must assume node is never nil.
-//
-// Returns:
-//   - bool: True if the tree has the child, false otherwise.
-//
-// If either tree or filter is nil, false is returned.
-func HasChild[N Noder](tree *Tree[N], filter func(node N) bool) bool {
-	if tree == nil || filter == nil {
-		return false
-	}
-
-	iter := NewBFSIterator(tree)
-
-	for {
-		value, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		ok := filter(value.Node)
-		if ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-// FilterChildren returns all the children of the tree that satisfy the given filter
-// in a BFS order.
-//
-// Parameters:
-//   - tree: The tree to filter.
-//   - filter: The filter to apply. Must return true iff the node is the one we want to keep.
-//     This function must assume node is never nil.
-//
-// Returns:
-//   - []T: A slice of the children that satisfy the filter.
-//   - bool: True if all the nodes are of type T, false otherwise.
-//
-// If either tree or filter is nil, an empty slice and false are returned.
-func FilterChildren[N Noder](tree *Tree[N], filter func(node N) bool) ([]N, bool) {
-	if tree == nil || filter == nil {
-		return nil, true
-	}
-
-	iter := NewBFSIterator(tree)
-
-	var children []N
-
-	for {
-		value, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		ok := filter(value.Node)
-		if ok {
-			children = append(children, value.Node)
-		}
-	}
-
-	return children, true
-}
-
-// SearchNodes searches for the first node that satisfies the given filter in a BFS order.
-//
-// Parameters:
-//   - tree: The tree to search.
-//   - filter: The filter to apply. Must return true iff the node is the one we are looking for.
-//     This function must assume node is never nil.
-//
-// Returns:
-//   - T: The node that satisfies the filter.
-//   - bool: True if the node was found, false otherwise.
-//
-// Nodes that are not of type T will be ignored. If either tree or filter is nil, false is returned.
-func SearchNodes[N Noder](tree *Tree[N], filter func(node N) bool) (N, bool) {
-	if tree == nil || filter == nil {
-		return *new(N), false
-	}
-
-	iter := NewBFSIterator(tree)
-
-	for {
-		value, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		ok := filter(value.Node)
-		if ok {
-			return value.Node, true
-		}
-	}
-
-	return *new(N), false
-}
 
 // FindBranchingPoint returns the first node in the path from n to the root
 // such that has more than one sibling.
@@ -212,25 +25,28 @@ func SearchNodes[N Noder](tree *Tree[N], filter func(node N) bool) (N, bool) {
 //   - If there is no branching point, it returns the root of the tree. However,
 //     if n is nil, it returns nil, nil, false and if the node has no parent, it
 //     returns nil, n, false.
-func FindBranchingPoint(n Noder) (Noder, Noder, bool) {
-	if n == nil {
-		return nil, nil, false
-	}
-
-	parent := n.GetParent()
-	if parent == nil {
-		return nil, n, false
+func FindBranchingPoint[T interface {
+	Child() iter.Seq[T]
+	BackwardChild() iter.Seq[T]
+	Copy() T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](n T) (T, *T, bool) {
+	parent, ok := n.GetParent()
+	if !ok {
+		return n, nil, false
 	}
 
 	var has_branching_point bool
 
 	for !has_branching_point {
-		grand_parent := parent.GetParent()
-		if grand_parent == nil {
+		grand_parent, ok := parent.GetParent()
+		if !ok {
 			break
 		}
 
-		ok := parent.IsSingleton()
+		ok = parent.IsSingleton()
 		if !ok {
 			has_branching_point = true
 		} else {
@@ -239,7 +55,7 @@ func FindBranchingPoint(n Noder) (Noder, Noder, bool) {
 		}
 	}
 
-	return n, parent, has_branching_point
+	return n, &parent, has_branching_point
 }
 
 // DeleteBranchContaining deletes the branch containing the given node.
@@ -250,18 +66,35 @@ func FindBranchingPoint(n Noder) (Noder, Noder, bool) {
 //
 // Returns:
 //   - error: An error if the node is not a part of the tree.
-func DeleteBranchContaining[N Noder](tree *Tree[N], n N) error {
+func DeleteBranchContaining[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	DeleteChild(child T) []T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], n T) error {
 	if tree == nil {
-		gcers.NewErrNilParameter("tree")
+		return gcers.NewErrNilParameter("tree")
 	}
 
-	child, parent, hasBranching := FindBranchingPoint(n)
+	child, tmp, hasBranching := FindBranchingPoint(n)
+	if tmp == nil {
+		return errors.New("not a branch")
+	}
+
+	parent := *tmp
+
 	if !hasBranching {
-		if parent != Noder(tree.root) {
+		if parent != tree.root {
 			return NewErrNodeNotPartOfTree()
 		}
 
 		tree.Cleanup()
+
+		return nil
 	}
 
 	children := parent.DeleteChild(child)
@@ -269,12 +102,12 @@ func DeleteBranchContaining[N Noder](tree *Tree[N], n N) error {
 	for i := 0; i < len(children); i++ {
 		current := children[i]
 
-		current.Cleanup()
-
-		children[i] = nil
+		Cleanup(current)
 	}
 
-	RegenerateLeaves(tree)
+	children = children[:0:0]
+
+	tree.RegenerateLeaves()
 
 	return nil
 }
@@ -288,18 +121,30 @@ func DeleteBranchContaining[N Noder](tree *Tree[N], n N) error {
 //
 // Returns:
 //   - bool: False if the whole tree can be deleted, true otherwise.
-func Prune[N Noder](tree *Tree[N], filter func(node N) bool) bool {
+func Prune[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	DeleteChild(child T) []T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], filter func(node T) bool) bool {
 	if tree == nil {
 		return false
 	}
 
 	for tree.size != 0 {
-		target, ok := SearchNodes(tree, filter)
+		target, ok := tree.SearchNodes(filter)
 		if !ok {
 			return true
 		}
 
-		DeleteBranchContaining(tree, target)
+		err := DeleteBranchContaining(tree, target)
+		if err != nil {
+			panic(fmt.Sprintf("failed to delete branch: %v", err))
+		}
 	}
 
 	return false
@@ -318,33 +163,52 @@ func Prune[N Noder](tree *Tree[N], filter func(node N) bool) bool {
 //
 // Behaviors:
 //   - If delete is true, then the branch is deleted from the tree.
-func ExtractBranch[N Noder](tree *Tree[N], leaf N, delete bool) *Branch[N] {
+func ExtractBranch[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	DeleteChild(child T) []T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], leaf T, delete bool) *Branch[T] {
 	if tree == nil {
 		return nil
 	}
 
-	conv_node := Noder(leaf)
+	_, ok := leaf.GetParent()
+	if !ok {
+		return nil
+	}
 
-	found := slices.ContainsFunc(tree.leaves, func(node N) bool {
-		return Noder(node) == conv_node
-	})
+	found := slices.Contains(tree.leaves, leaf)
 	if !found {
 		return nil
 	}
 
-	branch, _ := NewBranch[N](leaf)
-	// uc.AssertErr(err, "NewBranch[%T](%s)", leaf, leaf.String())
+	branch, err := NewBranch[T](leaf)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	if !delete {
 		return branch
 	}
 
 	child, parent, ok := FindBranchingPoint(leaf)
-	if !ok {
-		parent.DeleteChild(child)
+	if parent == nil {
+		panic("IMPOSSIBLE: should be a branch")
 	}
 
-	RegenerateLeaves(tree)
+	if ok {
+		(*parent).DeleteChild(child)
+		tree.RegenerateLeaves()
+	} else {
+		tree.Cleanup()
+		tree.root = nil
+		tree.size = 0
+	}
 
 	return branch
 }
@@ -358,41 +222,54 @@ func ExtractBranch[N Noder](tree *Tree[N], leaf N, delete bool) *Branch[N] {
 // Returns:
 //   - T: The updated tree.
 //   - error: An error if the insertion fails.
-func InsertBranch[N Noder](tree *Tree[N], branch *Branch[N]) (*Tree[N], error) {
+func InsertBranch[T interface {
+	AddChild(child T)
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	GetFirstChild() (T, bool)
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], branch *Branch[T]) (*Tree[T], error) {
 	if branch == nil {
 		return tree, nil
 	} else if tree == nil {
-		return NewTree[N](branch.from_node), nil
+		return NewTree[T](branch.from_node), nil
 	}
 
 	root := tree.root
 
-	var from Noder
+	var from T
 
 	from = branch.from_node
 
-	if Noder(root) != from {
+	if root != from {
 		return tree, nil
 	}
 
-	for from != Noder(branch.to_node) {
-		from = from.GetFirstChild()
+	var ok bool
 
-		var next N
+	for from != branch.to_node {
+		from, ok = from.GetFirstChild()
+		if !ok {
+			panic("IMPOSSIBLE: somehow the 'to_node' is not in the 'from' branch")
+		}
+
+		var next T
 		var found bool
 
-		c := root.GetFirstChild()
-
-		for c != nil && !found {
-			if c == from {
-				tmp := c.(N)
-				// uc.AssertF(ok, "from should be of type %T, got %T", *new(N), c)
-
-				next = tmp
-				found = true
+		for !found {
+			c, ok := root.GetFirstChild()
+			if !ok {
+				break
 			}
 
-			c = c.GetFirstChild()
+			if c == from {
+				next = c
+				found = true
+			}
 		}
 
 		if !found {
@@ -407,7 +284,7 @@ func InsertBranch[N Noder](tree *Tree[N], branch *Branch[N]) (*Tree[N], error) {
 	// added in the tree as new children.
 	root.AddChild(from)
 
-	RegenerateLeaves(tree)
+	tree.RegenerateLeaves()
 
 	return tree, nil
 }
@@ -425,7 +302,13 @@ func InsertBranch[N Noder](tree *Tree[N], branch *Branch[N]) (*Tree[N], error) {
 //
 // Behaviors:
 //   - This function is recursive.
-func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
+func rec_prune_first_func[T interface {
+	Child() iter.Seq[T]
+	Cleanup() []T
+	DeleteChild(node T) []T
+	GetParent() (T, bool)
+	Noder
+}](filter func(node T) bool, n T) (T, bool) {
 	ok := filter(n)
 
 	if ok {
@@ -435,18 +318,17 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 		return n, true
 	}
 
-	iter := n.Iterator()
-	// uc.Assert(iter != nil, "iter is nil")
+	next, close := iter.Pull(n.Child())
+	defer close()
 
 	// Handle first node
 
-	node, _ := iter.Consume()
-	// uc.AssertErr(err, "iter.Consume()")
+	node, ok := next()
+	if !ok {
+		panic("implement me")
+	}
 
-	tmp := node.(N)
-	// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
-
-	high, ok := rec_prune_first_func(filter, tmp)
+	high, ok := rec_prune_first_func(filter, node)
 	if ok {
 		n.DeleteChild(node)
 
@@ -457,23 +339,22 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 	highest := high
 
 	for {
-		node, err := iter.Consume()
-		if err != nil {
+		node, ok := next()
+		if !ok {
 			break
 		}
 
-		tmp := node.(N)
-		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
-
-		high, ok := rec_prune_func(filter, highest, tmp)
+		high, ok := rec_prune_func(filter, highest, node)
 		if !ok {
 			continue
 		}
 
 		n.DeleteChild(node)
 
-		highest, _ = FindCommonAncestor(highest, high)
-		// uc.Assert(ok, "could not find common ancestor")
+		highest, ok = FindCommonAncestor(highest, high)
+		if !ok {
+			panic("could not find common ancestor")
+		}
 	}
 
 	return highest, false
@@ -492,40 +373,39 @@ func rec_prune_first_func[N Noder](filter func(node N) bool, n N) (N, bool) {
 //
 // Behaviors:
 //   - This function is recursive.
-func rec_prune_func[N Noder](filter func(node N) bool, highest N, n N) (N, bool) {
+func rec_prune_func[T interface {
+	Child() iter.Seq[T]
+	Cleanup() []T
+	DeleteChild(node T) []T
+	GetParent() (T, bool)
+	Noder
+}](filter func(node T) bool, highest T, n T) (T, bool) {
 	ok := filter(n)
 
 	if ok {
 		// Delete all children
 		n.Cleanup()
 
-		ancestors, _ := FindCommonAncestor(highest, n)
-		// uc.Assert(ok, "could not find common ancestor")
+		ancestors, ok := FindCommonAncestor(highest, n)
+		if !ok {
+			panic("could not find common ancestor")
+		}
 
 		return ancestors, true
 	}
 
-	iter := n.Iterator()
-	// uc.Assert(iter != nil, "iter is nil")
-
-	for {
-		node, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		tmp, _ := node.(N)
-		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
-
-		high, ok := rec_prune_func(filter, highest, tmp)
+	for child := range n.Child() {
+		high, ok := rec_prune_func(filter, highest, child)
 		if !ok {
 			continue
 		}
 
-		n.DeleteChild(node)
+		n.DeleteChild(child)
 
-		highest, _ = FindCommonAncestor(highest, high)
-		// uc.Assert(ok, "could not find common ancestor")
+		highest, ok = FindCommonAncestor(highest, high)
+		if !ok {
+			panic("could not find common ancestor")
+		}
 	}
 
 	return highest, false
@@ -542,7 +422,16 @@ func rec_prune_func[N Noder](filter func(node N) bool, highest N, n N) (N, bool)
 //
 // Behaviors:
 //   - The root node is not pruned.
-func PruneFunc[N Noder](tree *Tree[N], filter func(node N) bool) bool {
+func PruneFunc[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	DeleteChild(child T) []T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], filter func(node T) bool) bool {
 	if filter == nil {
 		return false
 	}
@@ -556,64 +445,6 @@ func PruneFunc[N Noder](tree *Tree[N], filter func(node N) bool) bool {
 	tree.size = GetNodeSize(highest)
 
 	return false
-}
-
-// rec_snake_traversal is an helper function that returns all the paths
-// from n to the leaves of the tree rooted at n.
-//
-// Returns:
-//   - [][]T: A slice of slices of elements.
-//
-// Behaviors:
-//   - The paths are returned in the order of a BFS traversal.
-//   - It is a recursive function.
-func rec_snake_traversal[N Noder](n N) [][]N {
-	ok := n.IsLeaf()
-	if ok {
-		return [][]N{
-			{n},
-		}
-	}
-
-	var result [][]N
-
-	iter := n.Iterator()
-	// uc.Assert(iter != nil, "iter is nil")
-
-	for {
-		node, err := iter.Consume()
-		if err != nil {
-			break
-		}
-
-		tmp := node.(N)
-		// uc.AssertF(ok, "node should be of type %T, got %T", *new(N), node)
-
-		subResults := rec_snake_traversal(tmp)
-
-		for _, tmp := range subResults {
-			tmp = append([]N{n}, tmp...)
-			result = append(result, tmp)
-		}
-	}
-
-	return result
-}
-
-// SnakeTraversal returns all the paths from the root to the leaves of the tree.
-//
-// Returns:
-//   - [][]T: A slice of slices of elements. Nil if the tree is empty.
-//
-// Behaviors:
-//   - The paths are returned in the order of a BFS traversal.
-func SnakeTraversal[N Noder](tree *Tree[N]) [][]N {
-	if tree == nil {
-		return nil
-	}
-
-	sol := rec_snake_traversal(tree.root)
-	return sol
 }
 
 // PruneBranches removes all the children of the node that satisfy the given filter.
@@ -630,7 +461,16 @@ func SnakeTraversal[N Noder](tree *Tree[N]) [][]N {
 // Behaviors:
 //   - If the root satisfies the filter, the tree is cleaned up.
 //   - It is a recursive function.
-func PruneBranches[N Noder](tree *Tree[N], filter func(node N) bool) bool {
+func PruneBranches[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	DeleteChild(child T) []T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], filter func(node T) bool) bool {
 	if tree == nil || filter == nil {
 		return false
 	}
@@ -660,22 +500,30 @@ func PruneBranches[N Noder](tree *Tree[N], filter func(node N) bool) bool {
 //   - If this function returns only one tree, this is the updated tree. But, if
 //     it returns more than one tree, then we have deleted the root of the tree and
 //     obtained a forest.
-func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tree[N]) {
+func SkipFilter[T interface {
+	BackwardChild() iter.Seq[T]
+	Child() iter.Seq[T]
+	Cleanup() []T
+	Copy() T
+	GetParent() (T, bool)
+	LinkChildren(children []T)
+	Noder
+}](tree *Tree[T], filter func(node T) bool) (forest []*Tree[T]) {
 	if tree == nil {
 		return nil
 	} else if filter == nil {
-		return []*Tree[N]{tree}
+		return []*Tree[T]{tree}
 	}
 
-	frontier := make([]Noder, 0, len(tree.leaves))
+	frontier := make([]T, 0, len(tree.leaves))
 	for _, leaf := range tree.leaves {
 		frontier = append(frontier, leaf)
 	}
 
-	seen := make(map[Noder]bool)
-	var leaves []N
+	seen := make(map[T]bool)
+	var leaves []T
 
-	f := func(n Noder) bool {
+	f := func(n T) bool {
 		return !seen[n]
 	}
 
@@ -686,21 +534,18 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 		// Remove any node that has been seen from the frontier.
 		frontier = gcslc.SliceFilter(frontier, f)
 
-		tmp := leaf.(N)
-		// uc.AssertF(ok, "leaf should be of type %T, got %T", *new(N), leaf)
+		ok := filter(leaf)
 
-		ok := filter(tmp)
-
-		parent := leaf.GetParent()
+		parent, has_parent := leaf.GetParent()
 
 		if !ok {
-			if parent == nil {
+			if !has_parent {
 				// We reached the root
 				frontier = frontier[1:]
 			} else {
 				ok := leaf.IsLeaf()
 				if ok {
-					leaves = append(leaves, tmp)
+					leaves = append(leaves, leaf)
 				}
 
 				if !seen[parent] {
@@ -715,8 +560,8 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 			if len(children) != 0 {
 				// We obtained a forest as we reached the root
 				for _, child := range children {
-					tmp := child.(N)
-					// uc.AssertF(ok, "child should be of type %T, got %T", *new(N), child)
+					tmp := child.(T)
+					// uc.AssertF(ok, "child should be of type %T, got %T", *new(T), child)
 
 					forest = append(forest, NewTree(tmp))
 				}
@@ -738,80 +583,8 @@ func SkipFilter[N Noder](tree *Tree[N], filter func(node N) bool) (forest []*Tre
 	if len(forest) == 0 {
 		tree.leaves = leaves
 
-		forest = []*Tree[N]{tree}
+		forest = []*Tree[T]{tree}
 	}
 
 	return
-}
-
-// replaceLeafWithTree is a helper function that replaces a leaf with a tree.
-//
-// Parameters:
-//   - tree: The tree to replace.
-//   - at: The index of the leaf to replace.
-//   - children: The children of the leaf.
-//
-// Behaviors:
-//   - The leaf is replaced with the children.
-//   - The size of the tree is updated.
-func replaceLeafWithTree[N Noder](tree *Tree[N], at int, values []Noder) {
-	// uc.AssertParam("at", at >= 0 && at < len(tree.leaves), uc.NewErrOutOfBounds(at, 0, len(tree.leaves)))
-
-	leaf := tree.leaves[at]
-
-	// Make the subtree
-	leaf.LinkChildren(values)
-
-	// Update the size of the tree
-	tree.size += len(values) - 1
-
-	// Replace the current leaf with the leaf's children
-	sub_leaves := GetNodeLeaves(leaf)
-
-	if at == len(tree.leaves)-1 {
-		tree.leaves = append(tree.leaves[:at], sub_leaves...)
-	} else if at == 0 {
-		tree.leaves = append(sub_leaves, tree.leaves[at+1:]...)
-	} else {
-		tree.leaves = append(tree.leaves[:at], append(sub_leaves, tree.leaves[at+1:]...)...)
-	}
-}
-
-// ProcessLeaves applies the given function to the leaves of the tree and replaces
-// the leaves with the children returned by the function.
-//
-// Parameters:
-//   - f: The function to apply to the leaves.
-//
-// Returns:
-//   - error: An error returned by the function.
-//
-// Behaviors:
-//   - The function is applied to the leaves in order.
-//   - The function must return a slice of values of type N.
-//   - If the function returns an error, the process stops and the error is returned.
-//   - The leaves are replaced with the children returned by the function.
-func ProcessLeaves[N Noder](tree *Tree[N], f func(node N) ([]N, error)) error {
-	if f == nil {
-		return nil
-	}
-
-	for i, leaf := range tree.leaves {
-		children, err := f(leaf)
-		if err != nil {
-			return err
-		}
-
-		if len(children) != 0 {
-			conv := make([]Noder, 0, len(children))
-
-			for _, child := range children {
-				conv = append(conv, child)
-			}
-
-			replaceLeafWithTree(tree, i, conv)
-		}
-	}
-
-	return nil
 }
