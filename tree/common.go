@@ -202,7 +202,7 @@ func ExtractBranch[T interface {
 	}
 
 	if ok {
-		(*parent).DeleteChild(child)
+		_ = (*parent).DeleteChild(child)
 		tree.RegenerateLeaves()
 	} else {
 		tree.Cleanup()
@@ -328,7 +328,7 @@ func rec_prune_first_func[T interface {
 
 	high, ok := rec_prune_first_func(filter, node)
 	if ok {
-		n.DeleteChild(node)
+		_ = n.DeleteChild(node)
 
 		return high, true
 	}
@@ -347,7 +347,7 @@ func rec_prune_first_func[T interface {
 			continue
 		}
 
-		n.DeleteChild(node)
+		_ = n.DeleteChild(node)
 
 		highest, ok = FindCommonAncestor(highest, high)
 		if !ok {
@@ -382,7 +382,7 @@ func rec_prune_func[T interface {
 
 	if ok {
 		// Delete all children
-		n.Cleanup()
+		_ = n.Cleanup()
 
 		ancestors, ok := FindCommonAncestor(highest, n)
 		if !ok {
@@ -398,7 +398,7 @@ func rec_prune_func[T interface {
 			continue
 		}
 
-		n.DeleteChild(child)
+		_ = n.DeleteChild(child)
 
 		highest, ok = FindCommonAncestor(highest, high)
 		if !ok {
@@ -505,6 +505,7 @@ func SkipFilter[T interface {
 	Copy() T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
+	RemoveNode() []T
 	Noder
 }](tree *Tree[T], filter func(node T) bool) (forest []*Tree[T]) {
 	if tree == nil {
@@ -558,10 +559,7 @@ func SkipFilter[T interface {
 			if len(children) != 0 {
 				// We obtained a forest as we reached the root
 				for _, child := range children {
-					tmp := child.(T)
-					// uc.AssertF(ok, "child should be of type %T, got %T", *new(T), child)
-
-					forest = append(forest, NewTree(tmp))
+					forest = append(forest, NewTree(child))
 				}
 
 				// We reached the root
