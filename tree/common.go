@@ -206,8 +206,6 @@ func ExtractBranch[T interface {
 		tree.RegenerateLeaves()
 	} else {
 		tree.Cleanup()
-		tree.root = nil
-		tree.size = 0
 	}
 
 	return branch

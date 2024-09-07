@@ -29,8 +29,8 @@ type Tree[T interface {
 func (t *Tree[T]) Cleanup() {
 	Cleanup(t.root)
 
-	t.size = 0
-	t.leaves = nil
+	t.size = 1
+	t.leaves = []T{t.root}
 }
 
 // DeepCopy is a method that deeply copies the tree.

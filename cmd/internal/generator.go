@@ -107,40 +107,11 @@ package {{ .PackageName }}
 import (
 	"fmt"
 	"slices"
+	"iter"
 
 	"github.com/PlayerR9/go-commons/errors"
 	"github.com/PlayerR9/tree/tree"
 )
-
-
-
-// {{ .IteratorName }} is a pull-based iterator that iterates
-// over the children of a {{ .TypeName }}.
-type {{ .IteratorName }}{{ .Generics }} struct {
-	parent, current *{{ .TypeSig }}
-}
-
-// Consume implements the errors.Iterater interface.
-//
-// The only error type that can be returned by this function is the *errors.ErrExhaustedIter type.
-//
-// Moreover, the return value is always of type *{{ .TypeSig }} and never nil; unless the iterator
-// has reached the end of the branch.
-func (iter *{{ .IteratorSig }}) Consume() (tree.Noder, error) {
-	if iter.current == nil {
-		return nil, errors.NewErrExhaustedIter()
-	}
-
-	node := iter.current
-	iter.current = iter.current.NextSibling
-
-	return node, nil
-}
-
-// Restart implements the errors.Iterater interface.
-func (iter *{{ .IteratorSig }}) Restart() {
-	iter.current = iter.parent.FirstChild
-}
 
 // {{ .TypeName }} is a node in a tree.
 type {{ .TypeName }}{{ .Generics }} struct {
@@ -154,11 +125,6 @@ type {{ .TypeName }}{{ .Generics }} struct {
 // IsLeaf implements the tree.Noder interface.
 func (tn *{{ .TypeSig }}) IsLeaf() bool {
 	return tn.FirstChild == nil
-}
-
-// GetParent implements the tree.Noder interface.
-func (tn *{{ .TypeSig }}) GetParent() tree.Noder {
-	return tn.Parent
 }
 
 // IsSingleton implements the tree.Noder interface.
@@ -424,18 +390,6 @@ func (tn *{{ .TypeSig }}) Copy() tree.Noder {
 	return tn_copy
 }
 
-// Iterator implements the tree.Noder interface.
-//
-// This function returns an iterator that iterates over the direct children of the node.
-// Implemented as a pull-based iterator, this function never returns nil and any of the
-// values is guaranteed to be a non-nil node of type {{ .TypeSig }}.
-func (tn *{{ .TypeSig }}) Iterator() errors.Iterater[tree.Noder] {
-	return &{{ .IteratorSig }}{
-		parent: tn,
-		current: tn.FirstChild,
-	}
-}
-
 // String implements the tree.Noder interface.
 func (tn *{{ .TypeSig }}) String() string {
 	return fmt.Sprintf("{{ .TypeSig }}[%v]", tn.Data)
@@ -471,6 +425,45 @@ func New{{ .TypeName }}{{ .Generics }}({{ .ParamList }}) *{{ .TypeSig }} {
 }
 
 {{- end }}
+
+// BackwardChild scans the children of the node in reverse order (i.e., from the
+// last child to the first one) and yields them one by one.
+//
+// Returns:
+//   - iter.Seq[*{{ .TypeSig }}]: A sequence of the children of the node.
+func (tn *{{ .TypeSig }}) BackwardChild() iter.Seq[*{{ .TypeSig }}] {
+	return func(yield func(*{{ .TypeSig }}) bool) {
+		for c := tn.LastChild; c != nil; c = c.PrevSibling {
+			if !yield(c) {
+				return
+			}
+		}
+	}
+}
+
+// Child scans the children of the node in order (i.e., from the
+// first child to the last one) and yields them one by one.
+//
+// Returns:
+//   - iter.Seq[*{{ .TypeSig }}]: A sequence of the children of the node.
+func (tn *{{ .TypeSig }}) Child() iter.Seq[*{{ .TypeSig }}] {
+	return func(yield func(*{{ .TypeSig }}) bool) {
+		for c := tn.FirstChild; c != nil; c = c.NextSibling {
+			if !yield(c) {
+				return
+			}
+		}
+	}
+}
+
+// GetParent returns the parent of the node.
+//
+// Returns:
+//   - *{{ .TypeSig }}: The parent of the node.
+//   - bool: True if the node has a parent, false otherwise.
+func (tn *{{ .TypeSig }}) GetParent() (*{{ .TypeSig }}, bool) {
+	return tn.Parent, tn.Parent == nil
+}
 
 // GetLastSibling returns the last sibling of the node. If it has a parent,
 // it returns the last child of the parent. Otherwise, it returns the last
