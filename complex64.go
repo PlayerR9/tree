@@ -32,7 +32,6 @@ func (tn *Complex64Node) String() string {
 
 	builder.WriteString("Complex64Node[")
 	builder.WriteString(strconv.FormatComplex(complex128(tn.Data), 'f', -1, 64))
-
 	builder.WriteRune(']')
 
 	return builder.String()

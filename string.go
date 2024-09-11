@@ -31,7 +31,6 @@ func (tn *StringNode) String() string {
 
 	builder.WriteString("StringNode[")
 	builder.WriteString(tn.Data)
-
 	builder.WriteRune(']')
 
 	return builder.String()

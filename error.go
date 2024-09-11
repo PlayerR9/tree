@@ -31,7 +31,6 @@ func (tn *ErrorNode) String() string {
 
 	builder.WriteString("ErrorNode[")
 	builder.WriteString(tn.Data.Error())
-
 	builder.WriteRune(']')
 
 	return builder.String()

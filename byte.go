@@ -31,7 +31,6 @@ func (tn *ByteNode) String() string {
 
 	builder.WriteString("ByteNode[")
 	builder.WriteString(string(tn.Data))
-
 	builder.WriteRune(']')
 
 	return builder.String()

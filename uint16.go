@@ -32,7 +32,6 @@ func (tn *Uint16Node) String() string {
 
 	builder.WriteString("Uint16Node[")
 	builder.WriteString(strconv.FormatUint(uint64(tn.Data), 10))
-
 	builder.WriteRune(']')
 
 	return builder.String()

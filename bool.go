@@ -32,7 +32,6 @@ func (tn *BoolNode) String() string {
 
 	builder.WriteString("BoolNode[")
 	builder.WriteString(strconv.FormatBool(tn.Data))
-
 	builder.WriteRune(']')
 
 	return builder.String()

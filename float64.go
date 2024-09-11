@@ -32,7 +32,6 @@ func (tn *Float64Node) String() string {
 
 	builder.WriteString("Float64Node[")
 	builder.WriteString(strconv.FormatFloat(tn.Data, 'f', -1, 64))
-
 	builder.WriteRune(']')
 
 	return builder.String()

@@ -32,7 +32,6 @@ func (tn *TreeNode[T]) String() string {
 
 	builder.WriteString("TreeNode[T][")
 	builder.WriteString(fmt.Sprintf("%v", tn.Data))
-
 	builder.WriteRune(']')
 
 	return builder.String()
