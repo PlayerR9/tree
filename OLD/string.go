@@ -2,51 +2,50 @@
 package tree
 
 import (
-	"slices"
 	"iter"
+	"slices"
 	"strings"
-	"strconv"
 
-	"github.com/PlayerR9/tree/tree"
+	"github.com/PlayerR9/tree/OLD/tree"
 )
 
-// Complex64Node is a node in a tree.
-type Complex64Node struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Complex64Node
-	Data complex64
+// StringNode is a node in a tree.
+type StringNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *StringNode
+	Data                                                    string
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Complex64Node) IsLeaf() bool {
+func (tn *StringNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Complex64Node) IsSingleton() bool {
+func (tn *StringNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Complex64Node) String() string {
+func (tn *StringNode) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("Complex64Node[")
-	builder.WriteString(strconv.FormatComplex(complex128(tn.Data), 'f', -1, 64))
+	builder.WriteString("StringNode[")
+	builder.WriteString(tn.Data)
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewComplex64Node creates a new node with the given data.
+// NewStringNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Complex64Node: A pointer to the newly created node. It is
-//   never nil.
-func NewComplex64Node(data complex64) *Complex64Node {
-	return &Complex64Node{
+//   - *StringNode: A pointer to the newly created node. It is
+//     never nil.
+func NewStringNode(data string) *StringNode {
+	return &StringNode{
 		Data: data,
 	}
 }
@@ -58,11 +57,11 @@ func NewComplex64Node(data complex64) *Complex64Node {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *Complex64Node) AddChild(target *Complex64Node) {
+func (tn *StringNode) AddChild(target *StringNode) {
 	if target == nil {
 		return
 	}
-	
+
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +82,9 @@ func (tn *Complex64Node) AddChild(target *Complex64Node) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Complex64Node]: A sequence of the children of the node.
-func (tn *Complex64Node) BackwardChild() iter.Seq[*Complex64Node] {
-	return func(yield func(*Complex64Node) bool) {
+//   - iter.Seq[*StringNode]: A sequence of the children of the node.
+func (tn *StringNode) BackwardChild() iter.Seq[*StringNode] {
+	return func(yield func(*StringNode) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +97,9 @@ func (tn *Complex64Node) BackwardChild() iter.Seq[*Complex64Node] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Complex64Node]: A sequence of the children of the node.
-func (tn *Complex64Node) Child() iter.Seq[*Complex64Node] {
-	return func(yield func(*Complex64Node) bool) {
+//   - iter.Seq[*StringNode]: A sequence of the children of the node.
+func (tn *StringNode) Child() iter.Seq[*StringNode] {
+	return func(yield func(*StringNode) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +115,9 @@ func (tn *Complex64Node) Child() iter.Seq[*Complex64Node] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*Complex64Node: The children of the node.
-func (tn *Complex64Node) Cleanup() []*Complex64Node {
-	var children []*Complex64Node
+//   - []*StringNode: The children of the node.
+func (tn *StringNode) Cleanup() []*StringNode {
+	var children []*StringNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +147,8 @@ func (tn *Complex64Node) Cleanup() []*Complex64Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Complex64Node) Copy() *Complex64Node {
-	return &Complex64Node{
+func (tn *StringNode) Copy() *StringNode {
+	return &StringNode{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +160,8 @@ func (tn *Complex64Node) Copy() *Complex64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Complex64Node: A slice of pointers to the children of the node.
-func (tn *Complex64Node) delete_child(target *Complex64Node) []*Complex64Node {
+//   - []StringNode: A slice of pointers to the children of the node.
+func (tn *StringNode) delete_child(target *StringNode) []*StringNode {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +204,8 @@ func (tn *Complex64Node) delete_child(target *Complex64Node) []*Complex64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*Complex64Node: A slice of the children of the target node.
-func (tn *Complex64Node) DeleteChild(target *Complex64Node) []*Complex64Node {
+//   - []*StringNode: A slice of the children of the target node.
+func (tn *StringNode) DeleteChild(target *StringNode) []*StringNode {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +230,18 @@ func (tn *Complex64Node) DeleteChild(target *Complex64Node) []*Complex64Node {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *Complex64Node: The first child of the node.
+//   - *StringNode: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Complex64Node) GetFirstChild() (*Complex64Node, bool) {
+func (tn *StringNode) GetFirstChild() (*StringNode, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *Complex64Node: The parent of the node.
+//   - *StringNode: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Complex64Node) GetParent() (*Complex64Node, bool) {
+func (tn *StringNode) GetParent() (*StringNode, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +249,8 @@ func (tn *Complex64Node) GetParent() (*Complex64Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *Complex64Node) LinkChildren(children []*Complex64Node) {
-	var valid_children []*Complex64Node
+func (tn *StringNode) LinkChildren(children []*StringNode) {
+	var valid_children []*StringNode
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +288,7 @@ func (tn *Complex64Node) LinkChildren(children []*Complex64Node) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*Complex64Node: A slice of pointers to the children of the node iff the node is the root.
+//   - []*StringNode: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +307,12 @@ func (tn *Complex64Node) LinkChildren(children []*Complex64Node) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *Complex64Node) RemoveNode() []*Complex64Node {
+func (tn *StringNode) RemoveNode() []*StringNode {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*Complex64Node
+	var sub_roots []*StringNode
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +360,15 @@ func (tn *Complex64Node) RemoveNode() []*Complex64Node {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Complex64Node.AddChild function.
+// same as the behaviors of the StringNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Complex64Node) AddChildren(children []*Complex64Node) {
+func (tn *StringNode) AddChildren(children []*StringNode) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +425,9 @@ func (tn *Complex64Node) AddChildren(children []*Complex64Node) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*Complex64Node: A slice of pointers to the children of the node.
-func (tn *Complex64Node) GetChildren() []*Complex64Node {
-	var children []*Complex64Node
+//   - []*StringNode: A slice of pointers to the children of the node.
+func (tn *StringNode) GetChildren() []*StringNode {
+	var children []*StringNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +445,7 @@ func (tn *Complex64Node) GetChildren() []*Complex64Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Complex64Node) HasChild(target *Complex64Node) bool {
+func (tn *StringNode) HasChild(target *StringNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +467,7 @@ func (tn *Complex64Node) HasChild(target *Complex64Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Complex64Node) IsChildOf(target *Complex64Node) bool {
+func (tn *StringNode) IsChildOf(target *StringNode) bool {
 	if target == nil {
 		return false
 	}

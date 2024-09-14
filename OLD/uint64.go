@@ -2,50 +2,51 @@
 package tree
 
 import (
-	"slices"
 	"iter"
+	"slices"
+	"strconv"
 	"strings"
 
-	"github.com/PlayerR9/tree/tree"
+	"github.com/PlayerR9/tree/OLD/tree"
 )
 
-// ErrorNode is a node in a tree.
-type ErrorNode struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *ErrorNode
-	Data error
+// Uint64Node is a node in a tree.
+type Uint64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint64Node
+	Data                                                    uint64
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *ErrorNode) IsLeaf() bool {
+func (tn *Uint64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *ErrorNode) IsSingleton() bool {
+func (tn *Uint64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *ErrorNode) String() string {
+func (tn *Uint64Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("ErrorNode[")
-	builder.WriteString(tn.Data.Error())
+	builder.WriteString("Uint64Node[")
+	builder.WriteString(strconv.FormatUint(tn.Data, 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewErrorNode creates a new node with the given data.
+// NewUint64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *ErrorNode: A pointer to the newly created node. It is
-//   never nil.
-func NewErrorNode(data error) *ErrorNode {
-	return &ErrorNode{
+//   - *Uint64Node: A pointer to the newly created node. It is
+//     never nil.
+func NewUint64Node(data uint64) *Uint64Node {
+	return &Uint64Node{
 		Data: data,
 	}
 }
@@ -57,11 +58,11 @@ func NewErrorNode(data error) *ErrorNode {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *ErrorNode) AddChild(target *ErrorNode) {
+func (tn *Uint64Node) AddChild(target *Uint64Node) {
 	if target == nil {
 		return
 	}
-	
+
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -82,9 +83,9 @@ func (tn *ErrorNode) AddChild(target *ErrorNode) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*ErrorNode]: A sequence of the children of the node.
-func (tn *ErrorNode) BackwardChild() iter.Seq[*ErrorNode] {
-	return func(yield func(*ErrorNode) bool) {
+//   - iter.Seq[*Uint64Node]: A sequence of the children of the node.
+func (tn *Uint64Node) BackwardChild() iter.Seq[*Uint64Node] {
+	return func(yield func(*Uint64Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -97,9 +98,9 @@ func (tn *ErrorNode) BackwardChild() iter.Seq[*ErrorNode] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*ErrorNode]: A sequence of the children of the node.
-func (tn *ErrorNode) Child() iter.Seq[*ErrorNode] {
-	return func(yield func(*ErrorNode) bool) {
+//   - iter.Seq[*Uint64Node]: A sequence of the children of the node.
+func (tn *Uint64Node) Child() iter.Seq[*Uint64Node] {
+	return func(yield func(*Uint64Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -115,9 +116,9 @@ func (tn *ErrorNode) Child() iter.Seq[*ErrorNode] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*ErrorNode: The children of the node.
-func (tn *ErrorNode) Cleanup() []*ErrorNode {
-	var children []*ErrorNode
+//   - []*Uint64Node: The children of the node.
+func (tn *Uint64Node) Cleanup() []*Uint64Node {
+	var children []*Uint64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -147,8 +148,8 @@ func (tn *ErrorNode) Cleanup() []*ErrorNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *ErrorNode) Copy() *ErrorNode {
-	return &ErrorNode{
+func (tn *Uint64Node) Copy() *Uint64Node {
+	return &Uint64Node{
 		Data: tn.Data,
 	}
 }
@@ -160,8 +161,8 @@ func (tn *ErrorNode) Copy() *ErrorNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []ErrorNode: A slice of pointers to the children of the node.
-func (tn *ErrorNode) delete_child(target *ErrorNode) []*ErrorNode {
+//   - []Uint64Node: A slice of pointers to the children of the node.
+func (tn *Uint64Node) delete_child(target *Uint64Node) []*Uint64Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -204,8 +205,8 @@ func (tn *ErrorNode) delete_child(target *ErrorNode) []*ErrorNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*ErrorNode: A slice of the children of the target node.
-func (tn *ErrorNode) DeleteChild(target *ErrorNode) []*ErrorNode {
+//   - []*Uint64Node: A slice of the children of the target node.
+func (tn *Uint64Node) DeleteChild(target *Uint64Node) []*Uint64Node {
 	if target == nil {
 		return nil
 	}
@@ -230,18 +231,18 @@ func (tn *ErrorNode) DeleteChild(target *ErrorNode) []*ErrorNode {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *ErrorNode: The first child of the node.
+//   - *Uint64Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *ErrorNode) GetFirstChild() (*ErrorNode, bool) {
+func (tn *Uint64Node) GetFirstChild() (*Uint64Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *ErrorNode: The parent of the node.
+//   - *Uint64Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *ErrorNode) GetParent() (*ErrorNode, bool) {
+func (tn *Uint64Node) GetParent() (*Uint64Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -249,8 +250,8 @@ func (tn *ErrorNode) GetParent() (*ErrorNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *ErrorNode) LinkChildren(children []*ErrorNode) {
-	var valid_children []*ErrorNode
+func (tn *Uint64Node) LinkChildren(children []*Uint64Node) {
+	var valid_children []*Uint64Node
 
 	for _, child := range children {
 		if child == nil {
@@ -288,7 +289,7 @@ func (tn *ErrorNode) LinkChildren(children []*ErrorNode) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*ErrorNode: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Uint64Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -307,12 +308,12 @@ func (tn *ErrorNode) LinkChildren(children []*ErrorNode) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *ErrorNode) RemoveNode() []*ErrorNode {
+func (tn *Uint64Node) RemoveNode() []*Uint64Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*ErrorNode
+	var sub_roots []*Uint64Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -360,15 +361,15 @@ func (tn *ErrorNode) RemoveNode() []*ErrorNode {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the ErrorNode.AddChild function.
+// same as the behaviors of the Uint64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *ErrorNode) AddChildren(children []*ErrorNode) {
+func (tn *Uint64Node) AddChildren(children []*Uint64Node) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -425,9 +426,9 @@ func (tn *ErrorNode) AddChildren(children []*ErrorNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*ErrorNode: A slice of pointers to the children of the node.
-func (tn *ErrorNode) GetChildren() []*ErrorNode {
-	var children []*ErrorNode
+//   - []*Uint64Node: A slice of pointers to the children of the node.
+func (tn *Uint64Node) GetChildren() []*Uint64Node {
+	var children []*Uint64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -445,7 +446,7 @@ func (tn *ErrorNode) GetChildren() []*ErrorNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *ErrorNode) HasChild(target *ErrorNode) bool {
+func (tn *Uint64Node) HasChild(target *Uint64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -467,7 +468,7 @@ func (tn *ErrorNode) HasChild(target *ErrorNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *ErrorNode) IsChildOf(target *ErrorNode) bool {
+func (tn *Uint64Node) IsChildOf(target *Uint64Node) bool {
 	if target == nil {
 		return false
 	}

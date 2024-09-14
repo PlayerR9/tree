@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"slices"
 	"iter"
-	"strings"
+	"slices"
 	"strconv"
+	"strings"
 
-	"github.com/PlayerR9/tree/tree"
+	"github.com/PlayerR9/tree/OLD/tree"
 )
 
-// Float64Node is a node in a tree.
-type Float64Node struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Float64Node
-	Data float64
+// Int8Node is a node in a tree.
+type Int8Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int8Node
+	Data                                                    int8
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Float64Node) IsLeaf() bool {
+func (tn *Int8Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Float64Node) IsSingleton() bool {
+func (tn *Int8Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Float64Node) String() string {
+func (tn *Int8Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("Float64Node[")
-	builder.WriteString(strconv.FormatFloat(tn.Data, 'f', -1, 64))
+	builder.WriteString("Int8Node[")
+	builder.WriteString(strconv.FormatInt(int64(tn.Data), 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewFloat64Node creates a new node with the given data.
+// NewInt8Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Float64Node: A pointer to the newly created node. It is
-//   never nil.
-func NewFloat64Node(data float64) *Float64Node {
-	return &Float64Node{
+//   - *Int8Node: A pointer to the newly created node. It is
+//     never nil.
+func NewInt8Node(data int8) *Int8Node {
+	return &Int8Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewFloat64Node(data float64) *Float64Node {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *Float64Node) AddChild(target *Float64Node) {
+func (tn *Int8Node) AddChild(target *Int8Node) {
 	if target == nil {
 		return
 	}
-	
+
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *Float64Node) AddChild(target *Float64Node) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Float64Node]: A sequence of the children of the node.
-func (tn *Float64Node) BackwardChild() iter.Seq[*Float64Node] {
-	return func(yield func(*Float64Node) bool) {
+//   - iter.Seq[*Int8Node]: A sequence of the children of the node.
+func (tn *Int8Node) BackwardChild() iter.Seq[*Int8Node] {
+	return func(yield func(*Int8Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *Float64Node) BackwardChild() iter.Seq[*Float64Node] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Float64Node]: A sequence of the children of the node.
-func (tn *Float64Node) Child() iter.Seq[*Float64Node] {
-	return func(yield func(*Float64Node) bool) {
+//   - iter.Seq[*Int8Node]: A sequence of the children of the node.
+func (tn *Int8Node) Child() iter.Seq[*Int8Node] {
+	return func(yield func(*Int8Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *Float64Node) Child() iter.Seq[*Float64Node] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*Float64Node: The children of the node.
-func (tn *Float64Node) Cleanup() []*Float64Node {
-	var children []*Float64Node
+//   - []*Int8Node: The children of the node.
+func (tn *Int8Node) Cleanup() []*Int8Node {
+	var children []*Int8Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *Float64Node) Cleanup() []*Float64Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Float64Node) Copy() *Float64Node {
-	return &Float64Node{
+func (tn *Int8Node) Copy() *Int8Node {
+	return &Int8Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *Float64Node) Copy() *Float64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Float64Node: A slice of pointers to the children of the node.
-func (tn *Float64Node) delete_child(target *Float64Node) []*Float64Node {
+//   - []Int8Node: A slice of pointers to the children of the node.
+func (tn *Int8Node) delete_child(target *Int8Node) []*Int8Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *Float64Node) delete_child(target *Float64Node) []*Float64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*Float64Node: A slice of the children of the target node.
-func (tn *Float64Node) DeleteChild(target *Float64Node) []*Float64Node {
+//   - []*Int8Node: A slice of the children of the target node.
+func (tn *Int8Node) DeleteChild(target *Int8Node) []*Int8Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *Float64Node) DeleteChild(target *Float64Node) []*Float64Node {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *Float64Node: The first child of the node.
+//   - *Int8Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Float64Node) GetFirstChild() (*Float64Node, bool) {
+func (tn *Int8Node) GetFirstChild() (*Int8Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *Float64Node: The parent of the node.
+//   - *Int8Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Float64Node) GetParent() (*Float64Node, bool) {
+func (tn *Int8Node) GetParent() (*Int8Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *Float64Node) GetParent() (*Float64Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *Float64Node) LinkChildren(children []*Float64Node) {
-	var valid_children []*Float64Node
+func (tn *Int8Node) LinkChildren(children []*Int8Node) {
+	var valid_children []*Int8Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *Float64Node) LinkChildren(children []*Float64Node) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*Float64Node: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Int8Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *Float64Node) LinkChildren(children []*Float64Node) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *Float64Node) RemoveNode() []*Float64Node {
+func (tn *Int8Node) RemoveNode() []*Int8Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*Float64Node
+	var sub_roots []*Int8Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *Float64Node) RemoveNode() []*Float64Node {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Float64Node.AddChild function.
+// same as the behaviors of the Int8Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Float64Node) AddChildren(children []*Float64Node) {
+func (tn *Int8Node) AddChildren(children []*Int8Node) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *Float64Node) AddChildren(children []*Float64Node) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*Float64Node: A slice of pointers to the children of the node.
-func (tn *Float64Node) GetChildren() []*Float64Node {
-	var children []*Float64Node
+//   - []*Int8Node: A slice of pointers to the children of the node.
+func (tn *Int8Node) GetChildren() []*Int8Node {
+	var children []*Int8Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *Float64Node) GetChildren() []*Float64Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Float64Node) HasChild(target *Float64Node) bool {
+func (tn *Int8Node) HasChild(target *Int8Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *Float64Node) HasChild(target *Float64Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Float64Node) IsChildOf(target *Float64Node) bool {
+func (tn *Int8Node) IsChildOf(target *Int8Node) bool {
 	if target == nil {
 		return false
 	}

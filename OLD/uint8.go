@@ -2,18 +2,18 @@
 package tree
 
 import (
-	"slices"
 	"iter"
-	"strings"
+	"slices"
 	"strconv"
+	"strings"
 
-	"github.com/PlayerR9/tree/tree"
+	"github.com/PlayerR9/tree/OLD/tree"
 )
 
 // Uint8Node is a node in a tree.
 type Uint8Node struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint8Node
-	Data uint8
+	Data                                                    uint8
 }
 
 // IsLeaf implements the tree.Noder interface.
@@ -44,7 +44,7 @@ func (tn *Uint8Node) String() string {
 //
 // Returns:
 //   - *Uint8Node: A pointer to the newly created node. It is
-//   never nil.
+//     never nil.
 func NewUint8Node(data uint8) *Uint8Node {
 	return &Uint8Node{
 		Data: data,
@@ -62,7 +62,7 @@ func (tn *Uint8Node) AddChild(target *Uint8Node) {
 	if target == nil {
 		return
 	}
-	
+
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -369,7 +369,7 @@ func (tn *Uint8Node) AddChildren(children []*Uint8Node) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {

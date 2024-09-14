@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"slices"
 	"iter"
-	"strings"
+	"slices"
 	"strconv"
+	"strings"
 
-	"github.com/PlayerR9/tree/tree"
+	"github.com/PlayerR9/tree/OLD/tree"
 )
 
-// Int64Node is a node in a tree.
-type Int64Node struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int64Node
-	Data int64
+// Uint32Node is a node in a tree.
+type Uint32Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint32Node
+	Data                                                    uint32
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Int64Node) IsLeaf() bool {
+func (tn *Uint32Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Int64Node) IsSingleton() bool {
+func (tn *Uint32Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Int64Node) String() string {
+func (tn *Uint32Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("Int64Node[")
-	builder.WriteString(strconv.FormatInt(tn.Data, 10))
+	builder.WriteString("Uint32Node[")
+	builder.WriteString(strconv.FormatUint(uint64(tn.Data), 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewInt64Node creates a new node with the given data.
+// NewUint32Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Int64Node: A pointer to the newly created node. It is
-//   never nil.
-func NewInt64Node(data int64) *Int64Node {
-	return &Int64Node{
+//   - *Uint32Node: A pointer to the newly created node. It is
+//     never nil.
+func NewUint32Node(data uint32) *Uint32Node {
+	return &Uint32Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewInt64Node(data int64) *Int64Node {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *Int64Node) AddChild(target *Int64Node) {
+func (tn *Uint32Node) AddChild(target *Uint32Node) {
 	if target == nil {
 		return
 	}
-	
+
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *Int64Node) AddChild(target *Int64Node) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Int64Node]: A sequence of the children of the node.
-func (tn *Int64Node) BackwardChild() iter.Seq[*Int64Node] {
-	return func(yield func(*Int64Node) bool) {
+//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
+func (tn *Uint32Node) BackwardChild() iter.Seq[*Uint32Node] {
+	return func(yield func(*Uint32Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *Int64Node) BackwardChild() iter.Seq[*Int64Node] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Int64Node]: A sequence of the children of the node.
-func (tn *Int64Node) Child() iter.Seq[*Int64Node] {
-	return func(yield func(*Int64Node) bool) {
+//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
+func (tn *Uint32Node) Child() iter.Seq[*Uint32Node] {
+	return func(yield func(*Uint32Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *Int64Node) Child() iter.Seq[*Int64Node] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*Int64Node: The children of the node.
-func (tn *Int64Node) Cleanup() []*Int64Node {
-	var children []*Int64Node
+//   - []*Uint32Node: The children of the node.
+func (tn *Uint32Node) Cleanup() []*Uint32Node {
+	var children []*Uint32Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *Int64Node) Cleanup() []*Int64Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Int64Node) Copy() *Int64Node {
-	return &Int64Node{
+func (tn *Uint32Node) Copy() *Uint32Node {
+	return &Uint32Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *Int64Node) Copy() *Int64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Int64Node: A slice of pointers to the children of the node.
-func (tn *Int64Node) delete_child(target *Int64Node) []*Int64Node {
+//   - []Uint32Node: A slice of pointers to the children of the node.
+func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *Int64Node) delete_child(target *Int64Node) []*Int64Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*Int64Node: A slice of the children of the target node.
-func (tn *Int64Node) DeleteChild(target *Int64Node) []*Int64Node {
+//   - []*Uint32Node: A slice of the children of the target node.
+func (tn *Uint32Node) DeleteChild(target *Uint32Node) []*Uint32Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *Int64Node) DeleteChild(target *Int64Node) []*Int64Node {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *Int64Node: The first child of the node.
+//   - *Uint32Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Int64Node) GetFirstChild() (*Int64Node, bool) {
+func (tn *Uint32Node) GetFirstChild() (*Uint32Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *Int64Node: The parent of the node.
+//   - *Uint32Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Int64Node) GetParent() (*Int64Node, bool) {
+func (tn *Uint32Node) GetParent() (*Uint32Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *Int64Node) GetParent() (*Int64Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *Int64Node) LinkChildren(children []*Int64Node) {
-	var valid_children []*Int64Node
+func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
+	var valid_children []*Uint32Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *Int64Node) LinkChildren(children []*Int64Node) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*Int64Node: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Uint32Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *Int64Node) LinkChildren(children []*Int64Node) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *Int64Node) RemoveNode() []*Int64Node {
+func (tn *Uint32Node) RemoveNode() []*Uint32Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*Int64Node
+	var sub_roots []*Uint32Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *Int64Node) RemoveNode() []*Int64Node {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Int64Node.AddChild function.
+// same as the behaviors of the Uint32Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Int64Node) AddChildren(children []*Int64Node) {
+func (tn *Uint32Node) AddChildren(children []*Uint32Node) {
 	if len(children) == 0 {
 		return
 	}
-	
+
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *Int64Node) AddChildren(children []*Int64Node) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*Int64Node: A slice of pointers to the children of the node.
-func (tn *Int64Node) GetChildren() []*Int64Node {
-	var children []*Int64Node
+//   - []*Uint32Node: A slice of pointers to the children of the node.
+func (tn *Uint32Node) GetChildren() []*Uint32Node {
+	var children []*Uint32Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *Int64Node) GetChildren() []*Int64Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Int64Node) HasChild(target *Int64Node) bool {
+func (tn *Uint32Node) HasChild(target *Uint32Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *Int64Node) HasChild(target *Int64Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Int64Node) IsChildOf(target *Int64Node) bool {
+func (tn *Uint32Node) IsChildOf(target *Uint32Node) bool {
 	if target == nil {
 		return false
 	}
