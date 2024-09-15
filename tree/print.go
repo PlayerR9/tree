@@ -3,143 +3,174 @@ package tree
 import (
 	"iter"
 	"strings"
-
-	"github.com/PlayerR9/tree/tree/internal"
 )
 
-// traversor is a tree traversor.
-type traversor[N interface {
-	BackwardChild() iter.Seq[N]
-	TreeNoder
-}] struct {
-	// node is the current node.
-	node N
+// TreeStringTraverser is the tree stringer.
+type TreeStringTraverser[T TreeNoder] struct {
+	// lines is the lines of the tree stringer.
+	lines []string
 
-	// indent is the current indentation.
+	// seen is the seen map of the tree stringer.
+	seen map[T]bool
+}
+
+// String implements the fmt.Stringer interface.
+func (tst TreeStringTraverser[T]) String() string {
+	return strings.Join(tst.lines, "\n")
+}
+
+// IsSeen is a helper function that checks if the node is seen.
+//
+// Parameters:
+//   - node: The node to check.
+//
+// Returns:
+//   - bool: The result of the check.
+func (tst TreeStringTraverser[T]) IsSeen(node T) bool {
+	prev, ok := tst.seen[node]
+	return ok && prev
+}
+
+// AppendLine is a helper function that appends a line to the tree stringer.
+//
+// Parameters:
+//   - line: The line to append.
+func (tst *TreeStringTraverser[T]) AppendLine(line string) {
+	tst.lines = append(tst.lines, line)
+}
+
+// SetSeen is a helper function that sets the seen flag.
+//
+// Parameters:
+//   - node: The node to set.
+func (tst *TreeStringTraverser[T]) SetSeen(node T) {
+	tst.seen[node] = true
+}
+
+// TreeStackElem is the stack element of the tree stringer.
+type TreeStackElem[T TreeNoder] struct {
+	// global contains the global info of the tree stringer.
+	global *TreeStringTraverser[T]
+
+	// indent is the indentation string.
 	indent string
 
-	// has_sibling is true if the current node has a sibling, false otherwise.
-	has_sibling bool
+	// is_last is the flag that indicates whether the node is the last node in the level.
+	is_last bool
+
+	// same_level is the flag that indicates whether the node is in the same level.
+	same_level bool
 }
 
-// new_traversor is a helper function that creates a new traversor.
+// String implements the fmt.Stringer interface.
+func (tse TreeStackElem[T]) String() string {
+	return tse.global.String()
+}
+
+// set_is_last is a helper function that sets the is_last flag.
+func (tse *TreeStackElem[T]) set_is_last() {
+	tse.is_last = true
+}
+
+// set_same_level is a helper function that sets the same_level flag.
+func (tse *TreeStackElem[T]) set_same_level() {
+	tse.same_level = true
+}
+
+// PrintFn returns the print function of the tree stringer.
 //
 // Parameters:
-//   - node: the current node.
-//   - indent: the current indentation.
-//   - has_sibling: true if the current node has a sibling, false otherwise.
+//   - root: The root node of the tree.
 //
 // Returns:
-//   - traversor: the new traversor.
-func new_traversor[N interface {
-	BackwardChild() iter.Seq[N]
+//   - Traverser[T, *TreeStackElem[T]]: The print function of the tree stringer.
+func PrintFn[T interface {
+	Child() iter.Seq[T]
+	BackwardChild() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
 	TreeNoder
-}](node N, indent string, has_sibling bool) traversor[N] {
-	return traversor[N]{
-		node:        node,
-		indent:      indent,
-		has_sibling: has_sibling,
-	}
-}
-
-// toggle_sibling is a helper function that toggles the sibling flag.
-//
-// Parameters:
-//   - has_sibling: true if the current node has a sibling, false otherwise.
-//
-// Does nothing if the receiver is nil.
-func (t *traversor[N]) toggle_sibling(has_sibling bool) {
-	if t == nil {
-		return
+}]() Traverser[T, *TreeStackElem[T]] {
+	init_fn := func(root T) *TreeStackElem[T] {
+		return &TreeStackElem[T]{
+			global: &TreeStringTraverser[T]{
+				lines: make([]string, 0),
+				seen:  make(map[T]bool),
+			},
+			indent:     "",
+			is_last:    true,
+			same_level: false,
+		}
 	}
 
-	t.has_sibling = has_sibling
-}
+	fn := func(node T, info *TreeStackElem[T]) ([]Pair[T, *TreeStackElem[T]], error) {
+		var builder strings.Builder
 
-// printer is a tree printer.
-type printer[N interface {
-	BackwardChild() iter.Seq[N]
-	TreeNoder
-}] struct {
-	// builder is the string builder.
-	builder strings.Builder
-}
+		if info.indent != "" {
+			builder.WriteString(info.indent)
 
-// PrintTree is a function that prints the tree.
-//
-// Parameters:
-//   - root: the root node of the tree.
-//
-// Returns:
-//   - string: the string representation of the tree.
-func PrintTree[N interface {
-	BackwardChild() iter.Seq[N]
-	TreeNoder
-}](root N) string {
-	if root.IsLeaf() {
-		return root.String()
-	}
-
-	var p printer[N]
-
-	p.builder.WriteString(root.String())
-
-	var elems []traversor[N]
-
-	var stack internal.Stack[traversor[N]]
-
-	for child := range root.BackwardChild() {
-		elems = append(elems, new_traversor(child, "", true))
-	}
-
-	elems[0].toggle_sibling(false)
-
-	for _, elem := range elems {
-		stack.Push(elem)
-	}
-
-	for {
-		top, ok := stack.Pop()
-		if !ok {
-			break
+			if !node.IsLeaf() || info.is_last {
+				builder.WriteString("└── ")
+			} else {
+				builder.WriteString("├── ")
+			}
 		}
 
-		p.builder.WriteRune('\n')
+		// Prevent cycles.
+		ok := info.global.IsSeen(node)
+		if ok {
+			builder.WriteString("... WARNING: Cycle detected!")
 
-		p.builder.WriteString(top.indent)
+			info.global.AppendLine(builder.String())
 
-		if top.has_sibling {
-			p.builder.WriteString(" ├── ")
+			return nil, nil
+		}
+
+		builder.WriteString(node.String())
+		info.global.AppendLine(builder.String())
+
+		info.global.SetSeen(node)
+
+		if node.IsLeaf() {
+			return nil, nil
+		}
+
+		var indent strings.Builder
+
+		indent.WriteString(info.indent)
+
+		if info.same_level && !info.is_last {
+			indent.WriteString("│   ")
 		} else {
-			p.builder.WriteString(" └── ")
+			indent.WriteString("    ")
 		}
 
-		p.builder.WriteString(top.node.String())
+		var elems []Pair[T, *TreeStackElem[T]]
 
-		if top.node.IsLeaf() {
-			continue
+		for c := range node.Child() {
+			se := &TreeStackElem[T]{
+				global:     info.global,
+				indent:     indent.String(),
+				is_last:    false,
+				same_level: false,
+			}
+
+			elems = append(elems, NewPair(c, se))
 		}
 
-		var new_indent string
-
-		if top.has_sibling {
-			new_indent = top.indent + " │  "
-		} else {
-			new_indent = top.indent + "    "
+		if len(elems) >= 2 {
+			for i := 0; i < len(elems); i++ {
+				elems[i].Info.set_same_level()
+			}
 		}
 
-		var elems []traversor[N]
+		elems[len(elems)-1].Info.set_is_last()
 
-		for child := range top.node.BackwardChild() {
-			elems = append(elems, new_traversor(child, new_indent, true))
-		}
-
-		elems[0].toggle_sibling(false)
-
-		for _, elem := range elems {
-			stack.Push(elem)
-		}
+		return elems, nil
 	}
 
-	return p.builder.String()
+	return Traverser[T, *TreeStackElem[T]]{
+		InitFn: init_fn,
+		DoFn:   fn,
+	}
 }

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlayerR9/tree/OLD/tree"
+	"github.com/PlayerR9/tree/tree"
 )
 
 // BoolNode is a node in a tree.

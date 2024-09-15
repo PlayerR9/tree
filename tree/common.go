@@ -17,8 +17,8 @@ import (
 //   - n: The node to start the search.
 //
 // Returns:
-//   - Noder: The branching point. Nil if no branching point was found.
-//   - Noder: The parent of the branching point. Nil if n is nil.
+//   - TreeNoder: The branching point. Nil if no branching point was found.
+//   - TreeNoder: The parent of the branching point. Nil if n is nil.
 //   - bool: True if the node has a branching point, false otherwise.
 //
 // Behaviors:
@@ -31,7 +31,7 @@ func FindBranchingPoint[T interface {
 	Copy() T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](n T) (T, *T, bool) {
 	parent, ok := n.GetParent()
 	if !ok {
@@ -74,7 +74,7 @@ func DeleteBranchContaining[T interface {
 	DeleteChild(child T) []T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], n T) error {
 	if tree == nil {
 		return gcers.NewErrNilParameter("tree")
@@ -89,7 +89,7 @@ func DeleteBranchContaining[T interface {
 
 	if !hasBranching {
 		if parent != tree.root {
-			return NewErrNodeNotPartOfTree()
+			return NodeNotPartOfTree
 		}
 
 		tree.Cleanup()
@@ -129,7 +129,7 @@ func Prune[T interface {
 	DeleteChild(child T) []T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], filter func(node T) bool) bool {
 	if tree == nil {
 		return false
@@ -171,7 +171,7 @@ func ExtractBranch[T interface {
 	DeleteChild(child T) []T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], leaf T, delete bool) *Branch[T] {
 	if tree == nil {
 		return nil
@@ -229,7 +229,7 @@ func InsertBranch[T interface {
 	GetFirstChild() (T, bool)
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], branch *Branch[T]) (*Tree[T], error) {
 	if branch == nil {
 		return tree, nil
@@ -305,7 +305,7 @@ func rec_prune_first_func[T interface {
 	Cleanup() []T
 	DeleteChild(node T) []T
 	GetParent() (T, bool)
-	Noder
+	TreeNoder
 }](filter func(node T) bool, n T) (T, bool) {
 	ok := filter(n)
 
@@ -376,7 +376,7 @@ func rec_prune_func[T interface {
 	Cleanup() []T
 	DeleteChild(node T) []T
 	GetParent() (T, bool)
-	Noder
+	TreeNoder
 }](filter func(node T) bool, highest T, n T) (T, bool) {
 	ok := filter(n)
 
@@ -428,7 +428,7 @@ func PruneFunc[T interface {
 	DeleteChild(child T) []T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], filter func(node T) bool) bool {
 	if filter == nil {
 		return false
@@ -467,7 +467,7 @@ func PruneBranches[T interface {
 	DeleteChild(child T) []T
 	GetParent() (T, bool)
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](tree *Tree[T], filter func(node T) bool) bool {
 	if tree == nil || filter == nil {
 		return false
@@ -506,7 +506,7 @@ func SkipFilter[T interface {
 	GetParent() (T, bool)
 	LinkChildren(children []T)
 	RemoveNode() []T
-	Noder
+	TreeNoder
 }](tree *Tree[T], filter func(node T) bool) (forest []*Tree[T]) {
 	if tree == nil {
 		return nil

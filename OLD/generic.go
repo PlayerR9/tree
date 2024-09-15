@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/PlayerR9/tree/OLD/tree"
+	"github.com/PlayerR9/tree/tree"
 )
 
 // TreeNode is a node in a tree.

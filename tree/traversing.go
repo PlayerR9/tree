@@ -35,7 +35,7 @@ type Traverser[T interface {
 	BackwardChild() iter.Seq[T]
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I any] struct {
 	// InitFn is the function that initializes the traversal info.
 	//
@@ -72,7 +72,7 @@ func ApplyDFS[T interface {
 	Cleanup() []T
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I any](t *Tree[T], trav Traverser[T, I]) (I, error) {
 	if t == nil {
 		return *new(I), nil
@@ -114,7 +114,7 @@ func ApplyBFS[T interface {
 	Cleanup() []T
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I any](t *Tree[T], trav Traverser[T, I]) (I, error) {
 	if t == nil {
 		return *new(I), nil

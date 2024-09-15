@@ -8,7 +8,7 @@ import (
 type Branch[T interface {
 	Child() iter.Seq[T]
 	GetParent() (T, bool)
-	Noder
+	TreeNoder
 }] struct {
 	// from_node is the node from which the branch starts.
 	from_node T
@@ -51,7 +51,7 @@ func (b Branch[T]) Node() iter.Seq[T] {
 func NewBranch[T interface {
 	Child() iter.Seq[T]
 	GetParent() (T, bool)
-	Noder
+	TreeNoder
 }](node T) (*Branch[T], error) {
 	branch := &Branch[T]{
 		to_node: node,

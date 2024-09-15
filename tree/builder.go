@@ -22,7 +22,7 @@ type NextsFunc[T interface {
 	Child() iter.Seq[T]
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I interface {
 	Copy() I
 }] func(elem T, info I) ([]T, error)
@@ -34,7 +34,7 @@ type builder_stack_element[T interface {
 	Child() iter.Seq[T]
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I interface {
 	Copy() I
 }] struct {
@@ -56,7 +56,7 @@ type Builder[T interface {
 	Cleanup() []T
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I interface {
 	Copy() I
 }] struct {
@@ -67,6 +67,16 @@ type Builder[T interface {
 	f NextsFunc[T, I]
 }
 
+// NewBuilder creates a new builder that builds a tree from the given function.
+//
+// Parameters:
+//   - info: The info of the builder.
+//   - f: The function that, given an element and info, returns the next elements.
+//     (i.e., the children of the element).
+//
+// Returns:
+//   - *Builder: The builder created from the function.
+//   - error: An error if the function is nil.
 func NewBuilder[T interface {
 	AddChild(child T)
 	BackwardChild() iter.Seq[T]
@@ -74,7 +84,7 @@ func NewBuilder[T interface {
 	Cleanup() []T
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }, I interface {
 	Copy() I
 }](info I, f NextsFunc[T, I]) (*Builder[T, I], error) {
@@ -186,7 +196,7 @@ func Build[T interface {
 	Cleanup() []T
 	Copy() T
 	LinkChildren(children []T)
-	Noder
+	TreeNoder
 }](root T, fn func(elem T) ([]T, error)) (*Tree[T], error) {
 	if fn == nil {
 		return nil, gcers.NewErrInvalidUsage(
