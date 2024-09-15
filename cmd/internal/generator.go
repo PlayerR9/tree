@@ -119,14 +119,12 @@ type GenData struct {
 }
 
 // SetPackageName implements the ggen.Generater interface.
-func (g *GenData) SetPackageName(pkg_name string) bool {
+func (g *GenData) SetPackageName(pkg_name string) {
 	if g == nil {
-		return false
+		return
 	}
 
 	g.PackageName = pkg_name
-
-	return true
 }
 
 // templ is the template for the tree node.
