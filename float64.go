@@ -2,50 +2,51 @@
 package tree
 
 import (
-	"iter"
 	"slices"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// RuneNode is a node in a tree.
-type RuneNode struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *RuneNode
-	Data                                                    rune
+// Float64Node is a node in a tree.
+type Float64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Float64Node
+	Data float64
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *RuneNode) IsLeaf() bool {
+func (tn *Float64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *RuneNode) IsSingleton() bool {
+func (tn *Float64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *RuneNode) String() string {
+func (tn *Float64Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("RuneNode[")
-	builder.WriteString(string(tn.Data))
+	builder.WriteString("Float64Node[")
+	builder.WriteString(strconv.FormatFloat(tn.Data, 'f', -1, 64))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewRuneNode creates a new node with the given data.
+// NewFloat64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *RuneNode: A pointer to the newly created node. It is
-//     never nil.
-func NewRuneNode(data rune) *RuneNode {
-	return &RuneNode{
+//   - *Float64Node: A pointer to the newly created node. It is
+//   never nil.
+func NewFloat64Node(data float64) *Float64Node {
+	return &Float64Node{
 		Data: data,
 	}
 }
@@ -57,11 +58,11 @@ func NewRuneNode(data rune) *RuneNode {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *RuneNode) AddChild(target *RuneNode) {
+func (tn *Float64Node) AddChild(target *Float64Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -82,9 +83,9 @@ func (tn *RuneNode) AddChild(target *RuneNode) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*RuneNode]: A sequence of the children of the node.
-func (tn *RuneNode) BackwardChild() iter.Seq[*RuneNode] {
-	return func(yield func(*RuneNode) bool) {
+//   - iter.Seq[*Float64Node]: A sequence of the children of the node.
+func (tn *Float64Node) BackwardChild() iter.Seq[*Float64Node] {
+	return func(yield func(*Float64Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -97,9 +98,9 @@ func (tn *RuneNode) BackwardChild() iter.Seq[*RuneNode] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*RuneNode]: A sequence of the children of the node.
-func (tn *RuneNode) Child() iter.Seq[*RuneNode] {
-	return func(yield func(*RuneNode) bool) {
+//   - iter.Seq[*Float64Node]: A sequence of the children of the node.
+func (tn *Float64Node) Child() iter.Seq[*Float64Node] {
+	return func(yield func(*Float64Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -115,9 +116,9 @@ func (tn *RuneNode) Child() iter.Seq[*RuneNode] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*RuneNode: The children of the node.
-func (tn *RuneNode) Cleanup() []*RuneNode {
-	var children []*RuneNode
+//   - []*Float64Node: The children of the node.
+func (tn *Float64Node) Cleanup() []*Float64Node {
+	var children []*Float64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -147,8 +148,8 @@ func (tn *RuneNode) Cleanup() []*RuneNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *RuneNode) Copy() *RuneNode {
-	return &RuneNode{
+func (tn *Float64Node) Copy() *Float64Node {
+	return &Float64Node{
 		Data: tn.Data,
 	}
 }
@@ -160,8 +161,8 @@ func (tn *RuneNode) Copy() *RuneNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []RuneNode: A slice of pointers to the children of the node.
-func (tn *RuneNode) delete_child(target *RuneNode) []*RuneNode {
+//   - []Float64Node: A slice of pointers to the children of the node.
+func (tn *Float64Node) delete_child(target *Float64Node) []*Float64Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -204,8 +205,8 @@ func (tn *RuneNode) delete_child(target *RuneNode) []*RuneNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*RuneNode: A slice of the children of the target node.
-func (tn *RuneNode) DeleteChild(target *RuneNode) []*RuneNode {
+//   - []*Float64Node: A slice of the children of the target node.
+func (tn *Float64Node) DeleteChild(target *Float64Node) []*Float64Node {
 	if target == nil {
 		return nil
 	}
@@ -230,18 +231,18 @@ func (tn *RuneNode) DeleteChild(target *RuneNode) []*RuneNode {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *RuneNode: The first child of the node.
+//   - *Float64Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *RuneNode) GetFirstChild() (*RuneNode, bool) {
+func (tn *Float64Node) GetFirstChild() (*Float64Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *RuneNode: The parent of the node.
+//   - *Float64Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *RuneNode) GetParent() (*RuneNode, bool) {
+func (tn *Float64Node) GetParent() (*Float64Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -249,8 +250,8 @@ func (tn *RuneNode) GetParent() (*RuneNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *RuneNode) LinkChildren(children []*RuneNode) {
-	var valid_children []*RuneNode
+func (tn *Float64Node) LinkChildren(children []*Float64Node) {
+	var valid_children []*Float64Node
 
 	for _, child := range children {
 		if child == nil {
@@ -288,7 +289,7 @@ func (tn *RuneNode) LinkChildren(children []*RuneNode) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*RuneNode: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Float64Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -307,12 +308,12 @@ func (tn *RuneNode) LinkChildren(children []*RuneNode) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *RuneNode) RemoveNode() []*RuneNode {
+func (tn *Float64Node) RemoveNode() []*Float64Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*RuneNode
+	var sub_roots []*Float64Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -360,15 +361,15 @@ func (tn *RuneNode) RemoveNode() []*RuneNode {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the RuneNode.AddChild function.
+// same as the behaviors of the Float64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *RuneNode) AddChildren(children []*RuneNode) {
+func (tn *Float64Node) AddChildren(children []*Float64Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -425,9 +426,9 @@ func (tn *RuneNode) AddChildren(children []*RuneNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*RuneNode: A slice of pointers to the children of the node.
-func (tn *RuneNode) GetChildren() []*RuneNode {
-	var children []*RuneNode
+//   - []*Float64Node: A slice of pointers to the children of the node.
+func (tn *Float64Node) GetChildren() []*Float64Node {
+	var children []*Float64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -445,7 +446,7 @@ func (tn *RuneNode) GetChildren() []*RuneNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *RuneNode) HasChild(target *RuneNode) bool {
+func (tn *Float64Node) HasChild(target *Float64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -467,7 +468,7 @@ func (tn *RuneNode) HasChild(target *RuneNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *RuneNode) IsChildOf(target *RuneNode) bool {
+func (tn *Float64Node) IsChildOf(target *Float64Node) bool {
 	if target == nil {
 		return false
 	}

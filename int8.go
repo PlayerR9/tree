@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"iter"
 	"slices"
-	"strconv"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// IntNode is a node in a tree.
-type IntNode struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *IntNode
-	Data                                                    int
+// Int8Node is a node in a tree.
+type Int8Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int8Node
+	Data int8
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *IntNode) IsLeaf() bool {
+func (tn *Int8Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *IntNode) IsSingleton() bool {
+func (tn *Int8Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *IntNode) String() string {
+func (tn *Int8Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("IntNode[")
+	builder.WriteString("Int8Node[")
 	builder.WriteString(strconv.FormatInt(int64(tn.Data), 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewIntNode creates a new node with the given data.
+// NewInt8Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *IntNode: A pointer to the newly created node. It is
-//     never nil.
-func NewIntNode(data int) *IntNode {
-	return &IntNode{
+//   - *Int8Node: A pointer to the newly created node. It is
+//   never nil.
+func NewInt8Node(data int8) *Int8Node {
+	return &Int8Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewIntNode(data int) *IntNode {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *IntNode) AddChild(target *IntNode) {
+func (tn *Int8Node) AddChild(target *Int8Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *IntNode) AddChild(target *IntNode) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*IntNode]: A sequence of the children of the node.
-func (tn *IntNode) BackwardChild() iter.Seq[*IntNode] {
-	return func(yield func(*IntNode) bool) {
+//   - iter.Seq[*Int8Node]: A sequence of the children of the node.
+func (tn *Int8Node) BackwardChild() iter.Seq[*Int8Node] {
+	return func(yield func(*Int8Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *IntNode) BackwardChild() iter.Seq[*IntNode] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*IntNode]: A sequence of the children of the node.
-func (tn *IntNode) Child() iter.Seq[*IntNode] {
-	return func(yield func(*IntNode) bool) {
+//   - iter.Seq[*Int8Node]: A sequence of the children of the node.
+func (tn *Int8Node) Child() iter.Seq[*Int8Node] {
+	return func(yield func(*Int8Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *IntNode) Child() iter.Seq[*IntNode] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*IntNode: The children of the node.
-func (tn *IntNode) Cleanup() []*IntNode {
-	var children []*IntNode
+//   - []*Int8Node: The children of the node.
+func (tn *Int8Node) Cleanup() []*Int8Node {
+	var children []*Int8Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *IntNode) Cleanup() []*IntNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *IntNode) Copy() *IntNode {
-	return &IntNode{
+func (tn *Int8Node) Copy() *Int8Node {
+	return &Int8Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *IntNode) Copy() *IntNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []IntNode: A slice of pointers to the children of the node.
-func (tn *IntNode) delete_child(target *IntNode) []*IntNode {
+//   - []Int8Node: A slice of pointers to the children of the node.
+func (tn *Int8Node) delete_child(target *Int8Node) []*Int8Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *IntNode) delete_child(target *IntNode) []*IntNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*IntNode: A slice of the children of the target node.
-func (tn *IntNode) DeleteChild(target *IntNode) []*IntNode {
+//   - []*Int8Node: A slice of the children of the target node.
+func (tn *Int8Node) DeleteChild(target *Int8Node) []*Int8Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *IntNode) DeleteChild(target *IntNode) []*IntNode {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *IntNode: The first child of the node.
+//   - *Int8Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *IntNode) GetFirstChild() (*IntNode, bool) {
+func (tn *Int8Node) GetFirstChild() (*Int8Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *IntNode: The parent of the node.
+//   - *Int8Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *IntNode) GetParent() (*IntNode, bool) {
+func (tn *Int8Node) GetParent() (*Int8Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *IntNode) GetParent() (*IntNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *IntNode) LinkChildren(children []*IntNode) {
-	var valid_children []*IntNode
+func (tn *Int8Node) LinkChildren(children []*Int8Node) {
+	var valid_children []*Int8Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *IntNode) LinkChildren(children []*IntNode) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*IntNode: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Int8Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *IntNode) LinkChildren(children []*IntNode) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *IntNode) RemoveNode() []*IntNode {
+func (tn *Int8Node) RemoveNode() []*Int8Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*IntNode
+	var sub_roots []*Int8Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *IntNode) RemoveNode() []*IntNode {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the IntNode.AddChild function.
+// same as the behaviors of the Int8Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *IntNode) AddChildren(children []*IntNode) {
+func (tn *Int8Node) AddChildren(children []*Int8Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *IntNode) AddChildren(children []*IntNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*IntNode: A slice of pointers to the children of the node.
-func (tn *IntNode) GetChildren() []*IntNode {
-	var children []*IntNode
+//   - []*Int8Node: A slice of pointers to the children of the node.
+func (tn *Int8Node) GetChildren() []*Int8Node {
+	var children []*Int8Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *IntNode) GetChildren() []*IntNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *IntNode) HasChild(target *IntNode) bool {
+func (tn *Int8Node) HasChild(target *Int8Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *IntNode) HasChild(target *IntNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *IntNode) IsChildOf(target *IntNode) bool {
+func (tn *Int8Node) IsChildOf(target *Int8Node) bool {
 	if target == nil {
 		return false
 	}

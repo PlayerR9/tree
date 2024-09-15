@@ -2,10 +2,10 @@
 package tree
 
 import (
-	"iter"
 	"slices"
-	"strconv"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
@@ -13,7 +13,7 @@ import (
 // Complex128Node is a node in a tree.
 type Complex128Node struct {
 	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Complex128Node
-	Data                                                    complex128
+	Data complex128
 }
 
 // IsLeaf implements the tree.Noder interface.
@@ -44,7 +44,7 @@ func (tn *Complex128Node) String() string {
 //
 // Returns:
 //   - *Complex128Node: A pointer to the newly created node. It is
-//     never nil.
+//   never nil.
 func NewComplex128Node(data complex128) *Complex128Node {
 	return &Complex128Node{
 		Data: data,
@@ -62,7 +62,7 @@ func (tn *Complex128Node) AddChild(target *Complex128Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -369,7 +369,7 @@ func (tn *Complex128Node) AddChildren(children []*Complex128Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {

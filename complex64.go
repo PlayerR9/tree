@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"iter"
 	"slices"
-	"strconv"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// Uint32Node is a node in a tree.
-type Uint32Node struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint32Node
-	Data                                                    uint32
+// Complex64Node is a node in a tree.
+type Complex64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Complex64Node
+	Data complex64
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Uint32Node) IsLeaf() bool {
+func (tn *Complex64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Uint32Node) IsSingleton() bool {
+func (tn *Complex64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Uint32Node) String() string {
+func (tn *Complex64Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("Uint32Node[")
-	builder.WriteString(strconv.FormatUint(uint64(tn.Data), 10))
+	builder.WriteString("Complex64Node[")
+	builder.WriteString(strconv.FormatComplex(complex128(tn.Data), 'f', -1, 64))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewUint32Node creates a new node with the given data.
+// NewComplex64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *Uint32Node: A pointer to the newly created node. It is
-//     never nil.
-func NewUint32Node(data uint32) *Uint32Node {
-	return &Uint32Node{
+//   - *Complex64Node: A pointer to the newly created node. It is
+//   never nil.
+func NewComplex64Node(data complex64) *Complex64Node {
+	return &Complex64Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewUint32Node(data uint32) *Uint32Node {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *Uint32Node) AddChild(target *Uint32Node) {
+func (tn *Complex64Node) AddChild(target *Complex64Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *Uint32Node) AddChild(target *Uint32Node) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
-func (tn *Uint32Node) BackwardChild() iter.Seq[*Uint32Node] {
-	return func(yield func(*Uint32Node) bool) {
+//   - iter.Seq[*Complex64Node]: A sequence of the children of the node.
+func (tn *Complex64Node) BackwardChild() iter.Seq[*Complex64Node] {
+	return func(yield func(*Complex64Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *Uint32Node) BackwardChild() iter.Seq[*Uint32Node] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
-func (tn *Uint32Node) Child() iter.Seq[*Uint32Node] {
-	return func(yield func(*Uint32Node) bool) {
+//   - iter.Seq[*Complex64Node]: A sequence of the children of the node.
+func (tn *Complex64Node) Child() iter.Seq[*Complex64Node] {
+	return func(yield func(*Complex64Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *Uint32Node) Child() iter.Seq[*Uint32Node] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*Uint32Node: The children of the node.
-func (tn *Uint32Node) Cleanup() []*Uint32Node {
-	var children []*Uint32Node
+//   - []*Complex64Node: The children of the node.
+func (tn *Complex64Node) Cleanup() []*Complex64Node {
+	var children []*Complex64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *Uint32Node) Cleanup() []*Uint32Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Uint32Node) Copy() *Uint32Node {
-	return &Uint32Node{
+func (tn *Complex64Node) Copy() *Complex64Node {
+	return &Complex64Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *Uint32Node) Copy() *Uint32Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []Uint32Node: A slice of pointers to the children of the node.
-func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
+//   - []Complex64Node: A slice of pointers to the children of the node.
+func (tn *Complex64Node) delete_child(target *Complex64Node) []*Complex64Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*Uint32Node: A slice of the children of the target node.
-func (tn *Uint32Node) DeleteChild(target *Uint32Node) []*Uint32Node {
+//   - []*Complex64Node: A slice of the children of the target node.
+func (tn *Complex64Node) DeleteChild(target *Complex64Node) []*Complex64Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *Uint32Node) DeleteChild(target *Uint32Node) []*Uint32Node {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *Uint32Node: The first child of the node.
+//   - *Complex64Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Uint32Node) GetFirstChild() (*Uint32Node, bool) {
+func (tn *Complex64Node) GetFirstChild() (*Complex64Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *Uint32Node: The parent of the node.
+//   - *Complex64Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Uint32Node) GetParent() (*Uint32Node, bool) {
+func (tn *Complex64Node) GetParent() (*Complex64Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *Uint32Node) GetParent() (*Uint32Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
-	var valid_children []*Uint32Node
+func (tn *Complex64Node) LinkChildren(children []*Complex64Node) {
+	var valid_children []*Complex64Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*Uint32Node: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Complex64Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *Uint32Node) RemoveNode() []*Uint32Node {
+func (tn *Complex64Node) RemoveNode() []*Complex64Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*Uint32Node
+	var sub_roots []*Complex64Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *Uint32Node) RemoveNode() []*Uint32Node {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the Uint32Node.AddChild function.
+// same as the behaviors of the Complex64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *Uint32Node) AddChildren(children []*Uint32Node) {
+func (tn *Complex64Node) AddChildren(children []*Complex64Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *Uint32Node) AddChildren(children []*Uint32Node) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*Uint32Node: A slice of pointers to the children of the node.
-func (tn *Uint32Node) GetChildren() []*Uint32Node {
-	var children []*Uint32Node
+//   - []*Complex64Node: A slice of pointers to the children of the node.
+func (tn *Complex64Node) GetChildren() []*Complex64Node {
+	var children []*Complex64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *Uint32Node) GetChildren() []*Uint32Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Uint32Node) HasChild(target *Uint32Node) bool {
+func (tn *Complex64Node) HasChild(target *Complex64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *Uint32Node) HasChild(target *Uint32Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Uint32Node) IsChildOf(target *Uint32Node) bool {
+func (tn *Complex64Node) IsChildOf(target *Complex64Node) bool {
 	if target == nil {
 		return false
 	}

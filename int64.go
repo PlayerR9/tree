@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"fmt"
-	"iter"
 	"slices"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// TreeNode is a node in a tree.
-type TreeNode[T any] struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *TreeNode[T]
-	Data                                                    T
+// Int64Node is a node in a tree.
+type Int64Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Int64Node
+	Data int64
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *TreeNode[T]) IsLeaf() bool {
+func (tn *Int64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *TreeNode[T]) IsSingleton() bool {
+func (tn *Int64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *TreeNode[T]) String() string {
+func (tn *Int64Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("TreeNode[T][")
-	builder.WriteString(fmt.Sprintf("%v", tn.Data))
+	builder.WriteString("Int64Node[")
+	builder.WriteString(strconv.FormatInt(tn.Data, 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewTreeNode creates a new node with the given data.
+// NewInt64Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *TreeNode[T]: A pointer to the newly created node. It is
-//     never nil.
-func NewTreeNode[T any](data T) *TreeNode[T] {
-	return &TreeNode[T]{
+//   - *Int64Node: A pointer to the newly created node. It is
+//   never nil.
+func NewInt64Node(data int64) *Int64Node {
+	return &Int64Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewTreeNode[T any](data T) *TreeNode[T] {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *TreeNode[T]) AddChild(target *TreeNode[T]) {
+func (tn *Int64Node) AddChild(target *Int64Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *TreeNode[T]) AddChild(target *TreeNode[T]) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*TreeNode[T]]: A sequence of the children of the node.
-func (tn *TreeNode[T]) BackwardChild() iter.Seq[*TreeNode[T]] {
-	return func(yield func(*TreeNode[T]) bool) {
+//   - iter.Seq[*Int64Node]: A sequence of the children of the node.
+func (tn *Int64Node) BackwardChild() iter.Seq[*Int64Node] {
+	return func(yield func(*Int64Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *TreeNode[T]) BackwardChild() iter.Seq[*TreeNode[T]] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*TreeNode[T]]: A sequence of the children of the node.
-func (tn *TreeNode[T]) Child() iter.Seq[*TreeNode[T]] {
-	return func(yield func(*TreeNode[T]) bool) {
+//   - iter.Seq[*Int64Node]: A sequence of the children of the node.
+func (tn *Int64Node) Child() iter.Seq[*Int64Node] {
+	return func(yield func(*Int64Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *TreeNode[T]) Child() iter.Seq[*TreeNode[T]] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*TreeNode[T]: The children of the node.
-func (tn *TreeNode[T]) Cleanup() []*TreeNode[T] {
-	var children []*TreeNode[T]
+//   - []*Int64Node: The children of the node.
+func (tn *Int64Node) Cleanup() []*Int64Node {
+	var children []*Int64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *TreeNode[T]) Cleanup() []*TreeNode[T] {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *TreeNode[T]) Copy() *TreeNode[T] {
-	return &TreeNode[T]{
+func (tn *Int64Node) Copy() *Int64Node {
+	return &Int64Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *TreeNode[T]) Copy() *TreeNode[T] {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []TreeNode[T]: A slice of pointers to the children of the node.
-func (tn *TreeNode[T]) delete_child(target *TreeNode[T]) []*TreeNode[T] {
+//   - []Int64Node: A slice of pointers to the children of the node.
+func (tn *Int64Node) delete_child(target *Int64Node) []*Int64Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *TreeNode[T]) delete_child(target *TreeNode[T]) []*TreeNode[T] {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*TreeNode[T]: A slice of the children of the target node.
-func (tn *TreeNode[T]) DeleteChild(target *TreeNode[T]) []*TreeNode[T] {
+//   - []*Int64Node: A slice of the children of the target node.
+func (tn *Int64Node) DeleteChild(target *Int64Node) []*Int64Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *TreeNode[T]) DeleteChild(target *TreeNode[T]) []*TreeNode[T] {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *TreeNode[T]: The first child of the node.
+//   - *Int64Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *TreeNode[T]) GetFirstChild() (*TreeNode[T], bool) {
+func (tn *Int64Node) GetFirstChild() (*Int64Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *TreeNode[T]: The parent of the node.
+//   - *Int64Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *TreeNode[T]) GetParent() (*TreeNode[T], bool) {
+func (tn *Int64Node) GetParent() (*Int64Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *TreeNode[T]) GetParent() (*TreeNode[T], bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
-	var valid_children []*TreeNode[T]
+func (tn *Int64Node) LinkChildren(children []*Int64Node) {
+	var valid_children []*Int64Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*TreeNode[T]: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Int64Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
+func (tn *Int64Node) RemoveNode() []*Int64Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*TreeNode[T]
+	var sub_roots []*Int64Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the TreeNode.AddChild function.
+// same as the behaviors of the Int64Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *TreeNode[T]) AddChildren(children []*TreeNode[T]) {
+func (tn *Int64Node) AddChildren(children []*Int64Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *TreeNode[T]) AddChildren(children []*TreeNode[T]) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*TreeNode[T]: A slice of pointers to the children of the node.
-func (tn *TreeNode[T]) GetChildren() []*TreeNode[T] {
-	var children []*TreeNode[T]
+//   - []*Int64Node: A slice of pointers to the children of the node.
+func (tn *Int64Node) GetChildren() []*Int64Node {
+	var children []*Int64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *TreeNode[T]) GetChildren() []*TreeNode[T] {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *TreeNode[T]) HasChild(target *TreeNode[T]) bool {
+func (tn *Int64Node) HasChild(target *Int64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *TreeNode[T]) HasChild(target *TreeNode[T]) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *TreeNode[T]) IsChildOf(target *TreeNode[T]) bool {
+func (tn *Int64Node) IsChildOf(target *Int64Node) bool {
 	if target == nil {
 		return false
 	}

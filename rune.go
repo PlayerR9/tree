@@ -2,51 +2,50 @@
 package tree
 
 import (
-	"iter"
 	"slices"
-	"strconv"
+	"iter"
 	"strings"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// UintptrNode is a node in a tree.
-type UintptrNode struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *UintptrNode
-	Data                                                    uintptr
+// RuneNode is a node in a tree.
+type RuneNode struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *RuneNode
+	Data rune
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *UintptrNode) IsLeaf() bool {
+func (tn *RuneNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *UintptrNode) IsSingleton() bool {
+func (tn *RuneNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *UintptrNode) String() string {
+func (tn *RuneNode) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("UintptrNode[")
-	builder.WriteString(strconv.FormatUint(uint64(tn.Data), 10))
+	builder.WriteString("RuneNode[")
+	builder.WriteString(string(tn.Data))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewUintptrNode creates a new node with the given data.
+// NewRuneNode creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *UintptrNode: A pointer to the newly created node. It is
-//     never nil.
-func NewUintptrNode(data uintptr) *UintptrNode {
-	return &UintptrNode{
+//   - *RuneNode: A pointer to the newly created node. It is
+//   never nil.
+func NewRuneNode(data rune) *RuneNode {
+	return &RuneNode{
 		Data: data,
 	}
 }
@@ -58,11 +57,11 @@ func NewUintptrNode(data uintptr) *UintptrNode {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *UintptrNode) AddChild(target *UintptrNode) {
+func (tn *RuneNode) AddChild(target *RuneNode) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +82,9 @@ func (tn *UintptrNode) AddChild(target *UintptrNode) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*UintptrNode]: A sequence of the children of the node.
-func (tn *UintptrNode) BackwardChild() iter.Seq[*UintptrNode] {
-	return func(yield func(*UintptrNode) bool) {
+//   - iter.Seq[*RuneNode]: A sequence of the children of the node.
+func (tn *RuneNode) BackwardChild() iter.Seq[*RuneNode] {
+	return func(yield func(*RuneNode) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +97,9 @@ func (tn *UintptrNode) BackwardChild() iter.Seq[*UintptrNode] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*UintptrNode]: A sequence of the children of the node.
-func (tn *UintptrNode) Child() iter.Seq[*UintptrNode] {
-	return func(yield func(*UintptrNode) bool) {
+//   - iter.Seq[*RuneNode]: A sequence of the children of the node.
+func (tn *RuneNode) Child() iter.Seq[*RuneNode] {
+	return func(yield func(*RuneNode) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +115,9 @@ func (tn *UintptrNode) Child() iter.Seq[*UintptrNode] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*UintptrNode: The children of the node.
-func (tn *UintptrNode) Cleanup() []*UintptrNode {
-	var children []*UintptrNode
+//   - []*RuneNode: The children of the node.
+func (tn *RuneNode) Cleanup() []*RuneNode {
+	var children []*RuneNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +147,8 @@ func (tn *UintptrNode) Cleanup() []*UintptrNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *UintptrNode) Copy() *UintptrNode {
-	return &UintptrNode{
+func (tn *RuneNode) Copy() *RuneNode {
+	return &RuneNode{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +160,8 @@ func (tn *UintptrNode) Copy() *UintptrNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []UintptrNode: A slice of pointers to the children of the node.
-func (tn *UintptrNode) delete_child(target *UintptrNode) []*UintptrNode {
+//   - []RuneNode: A slice of pointers to the children of the node.
+func (tn *RuneNode) delete_child(target *RuneNode) []*RuneNode {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +204,8 @@ func (tn *UintptrNode) delete_child(target *UintptrNode) []*UintptrNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*UintptrNode: A slice of the children of the target node.
-func (tn *UintptrNode) DeleteChild(target *UintptrNode) []*UintptrNode {
+//   - []*RuneNode: A slice of the children of the target node.
+func (tn *RuneNode) DeleteChild(target *RuneNode) []*RuneNode {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +230,18 @@ func (tn *UintptrNode) DeleteChild(target *UintptrNode) []*UintptrNode {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *UintptrNode: The first child of the node.
+//   - *RuneNode: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *UintptrNode) GetFirstChild() (*UintptrNode, bool) {
+func (tn *RuneNode) GetFirstChild() (*RuneNode, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *UintptrNode: The parent of the node.
+//   - *RuneNode: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *UintptrNode) GetParent() (*UintptrNode, bool) {
+func (tn *RuneNode) GetParent() (*RuneNode, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +249,8 @@ func (tn *UintptrNode) GetParent() (*UintptrNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *UintptrNode) LinkChildren(children []*UintptrNode) {
-	var valid_children []*UintptrNode
+func (tn *RuneNode) LinkChildren(children []*RuneNode) {
+	var valid_children []*RuneNode
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +288,7 @@ func (tn *UintptrNode) LinkChildren(children []*UintptrNode) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*UintptrNode: A slice of pointers to the children of the node iff the node is the root.
+//   - []*RuneNode: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +307,12 @@ func (tn *UintptrNode) LinkChildren(children []*UintptrNode) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *UintptrNode) RemoveNode() []*UintptrNode {
+func (tn *RuneNode) RemoveNode() []*RuneNode {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*UintptrNode
+	var sub_roots []*RuneNode
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +360,15 @@ func (tn *UintptrNode) RemoveNode() []*UintptrNode {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the UintptrNode.AddChild function.
+// same as the behaviors of the RuneNode.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *UintptrNode) AddChildren(children []*UintptrNode) {
+func (tn *RuneNode) AddChildren(children []*RuneNode) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +425,9 @@ func (tn *UintptrNode) AddChildren(children []*UintptrNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*UintptrNode: A slice of pointers to the children of the node.
-func (tn *UintptrNode) GetChildren() []*UintptrNode {
-	var children []*UintptrNode
+//   - []*RuneNode: A slice of pointers to the children of the node.
+func (tn *RuneNode) GetChildren() []*RuneNode {
+	var children []*RuneNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +445,7 @@ func (tn *UintptrNode) GetChildren() []*UintptrNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *UintptrNode) HasChild(target *UintptrNode) bool {
+func (tn *RuneNode) HasChild(target *RuneNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +467,7 @@ func (tn *UintptrNode) HasChild(target *UintptrNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *UintptrNode) IsChildOf(target *UintptrNode) bool {
+func (tn *RuneNode) IsChildOf(target *RuneNode) bool {
 	if target == nil {
 		return false
 	}

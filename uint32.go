@@ -2,51 +2,51 @@
 package tree
 
 import (
-	"iter"
 	"slices"
-	"strconv"
+	"iter"
 	"strings"
+	"strconv"
 
 	"github.com/PlayerR9/tree/tree"
 )
 
-// BoolNode is a node in a tree.
-type BoolNode struct {
-	Parent, FirstChild, NextSibling, LastChild, PrevSibling *BoolNode
-	Data                                                    bool
+// Uint32Node is a node in a tree.
+type Uint32Node struct {
+	Parent, FirstChild, NextSibling, LastChild, PrevSibling *Uint32Node
+	Data uint32
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *BoolNode) IsLeaf() bool {
+func (tn *Uint32Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *BoolNode) IsSingleton() bool {
+func (tn *Uint32Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *BoolNode) String() string {
+func (tn *Uint32Node) String() string {
 	var builder strings.Builder
 
-	builder.WriteString("BoolNode[")
-	builder.WriteString(strconv.FormatBool(tn.Data))
+	builder.WriteString("Uint32Node[")
+	builder.WriteString(strconv.FormatUint(uint64(tn.Data), 10))
 	builder.WriteRune(']')
 
 	return builder.String()
 }
 
-// NewBoolNode creates a new node with the given data.
+// NewUint32Node creates a new node with the given data.
 //
 // Parameters:
 //   - Data: The Data of the node.
 //
 // Returns:
-//   - *BoolNode: A pointer to the newly created node. It is
-//     never nil.
-func NewBoolNode(data bool) *BoolNode {
-	return &BoolNode{
+//   - *Uint32Node: A pointer to the newly created node. It is
+//   never nil.
+func NewUint32Node(data uint32) *Uint32Node {
+	return &Uint32Node{
 		Data: data,
 	}
 }
@@ -58,11 +58,11 @@ func NewBoolNode(data bool) *BoolNode {
 //   - child: The child to add.
 //
 // If child is nil, it does nothing.
-func (tn *BoolNode) AddChild(target *BoolNode) {
+func (tn *Uint32Node) AddChild(target *Uint32Node) {
 	if target == nil {
 		return
 	}
-
+	
 	target.NextSibling = nil
 	target.PrevSibling = nil
 
@@ -83,9 +83,9 @@ func (tn *BoolNode) AddChild(target *BoolNode) {
 // last child to the first one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*BoolNode]: A sequence of the children of the node.
-func (tn *BoolNode) BackwardChild() iter.Seq[*BoolNode] {
-	return func(yield func(*BoolNode) bool) {
+//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
+func (tn *Uint32Node) BackwardChild() iter.Seq[*Uint32Node] {
+	return func(yield func(*Uint32Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
 				return
@@ -98,9 +98,9 @@ func (tn *BoolNode) BackwardChild() iter.Seq[*BoolNode] {
 // first child to the last one) and yields them one by one.
 //
 // Returns:
-//   - iter.Seq[*BoolNode]: A sequence of the children of the node.
-func (tn *BoolNode) Child() iter.Seq[*BoolNode] {
-	return func(yield func(*BoolNode) bool) {
+//   - iter.Seq[*Uint32Node]: A sequence of the children of the node.
+func (tn *Uint32Node) Child() iter.Seq[*Uint32Node] {
+	return func(yield func(*Uint32Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
 				return
@@ -116,9 +116,9 @@ func (tn *BoolNode) Child() iter.Seq[*BoolNode] {
 // goroutine is still using them.
 //
 // Returns:
-//   - []*BoolNode: The children of the node.
-func (tn *BoolNode) Cleanup() []*BoolNode {
-	var children []*BoolNode
+//   - []*Uint32Node: The children of the node.
+func (tn *Uint32Node) Cleanup() []*Uint32Node {
+	var children []*Uint32Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -148,8 +148,8 @@ func (tn *BoolNode) Cleanup() []*BoolNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *BoolNode) Copy() *BoolNode {
-	return &BoolNode{
+func (tn *Uint32Node) Copy() *Uint32Node {
+	return &Uint32Node{
 		Data: tn.Data,
 	}
 }
@@ -161,8 +161,8 @@ func (tn *BoolNode) Copy() *BoolNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []BoolNode: A slice of pointers to the children of the node.
-func (tn *BoolNode) delete_child(target *BoolNode) []*BoolNode {
+//   - []Uint32Node: A slice of pointers to the children of the node.
+func (tn *Uint32Node) delete_child(target *Uint32Node) []*Uint32Node {
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -205,8 +205,8 @@ func (tn *BoolNode) delete_child(target *BoolNode) []*BoolNode {
 //   - target: The child to remove.
 //
 // Returns:
-//   - []*BoolNode: A slice of the children of the target node.
-func (tn *BoolNode) DeleteChild(target *BoolNode) []*BoolNode {
+//   - []*Uint32Node: A slice of the children of the target node.
+func (tn *Uint32Node) DeleteChild(target *Uint32Node) []*Uint32Node {
 	if target == nil {
 		return nil
 	}
@@ -231,18 +231,18 @@ func (tn *BoolNode) DeleteChild(target *BoolNode) []*BoolNode {
 // GetFirstChild returns the first child of the node.
 //
 // Returns:
-//   - *BoolNode: The first child of the node.
+//   - *Uint32Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *BoolNode) GetFirstChild() (*BoolNode, bool) {
+func (tn *Uint32Node) GetFirstChild() (*Uint32Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
 // GetParent returns the parent of the node.
 //
 // Returns:
-//   - *BoolNode: The parent of the node.
+//   - *Uint32Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *BoolNode) GetParent() (*BoolNode, bool) {
+func (tn *Uint32Node) GetParent() (*Uint32Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,8 +250,8 @@ func (tn *BoolNode) GetParent() (*BoolNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
-func (tn *BoolNode) LinkChildren(children []*BoolNode) {
-	var valid_children []*BoolNode
+func (tn *Uint32Node) LinkChildren(children []*Uint32Node) {
+	var valid_children []*Uint32Node
 
 	for _, child := range children {
 		if child == nil {
@@ -289,7 +289,7 @@ func (tn *BoolNode) LinkChildren(children []*BoolNode) {
 // trees if the root node is removed.
 //
 // Returns:
-//   - []*BoolNode: A slice of pointers to the children of the node iff the node is the root.
+//   - []*Uint32Node: A slice of pointers to the children of the node iff the node is the root.
 //
 // Example:
 //
@@ -308,12 +308,12 @@ func (tn *BoolNode) LinkChildren(children []*BoolNode) {
 //	├── 4
 //	├── 5
 //	└── 6
-func (tn *BoolNode) RemoveNode() []*BoolNode {
+func (tn *Uint32Node) RemoveNode() []*Uint32Node {
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
 
-	var sub_roots []*BoolNode
+	var sub_roots []*Uint32Node
 
 	if parent == nil {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -361,15 +361,15 @@ func (tn *BoolNode) RemoveNode() []*BoolNode {
 
 // AddChildren is a convenience function to add multiple children to the node at once.
 // It is more efficient than adding them one by one. Therefore, the behaviors are the
-// same as the behaviors of the BoolNode.AddChild function.
+// same as the behaviors of the Uint32Node.AddChild function.
 //
 // Parameters:
 //   - children: The children to add.
-func (tn *BoolNode) AddChildren(children []*BoolNode) {
+func (tn *Uint32Node) AddChildren(children []*Uint32Node) {
 	if len(children) == 0 {
 		return
 	}
-
+	
 	var top int
 
 	for i := 0; i < len(children); i++ {
@@ -426,9 +426,9 @@ func (tn *BoolNode) AddChildren(children []*BoolNode) {
 // nodes will modify the tree.
 //
 // Returns:
-//   - []*BoolNode: A slice of pointers to the children of the node.
-func (tn *BoolNode) GetChildren() []*BoolNode {
-	var children []*BoolNode
+//   - []*Uint32Node: A slice of pointers to the children of the node.
+func (tn *Uint32Node) GetChildren() []*Uint32Node {
+	var children []*Uint32Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
 		children = append(children, c)
@@ -446,7 +446,7 @@ func (tn *BoolNode) GetChildren() []*BoolNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *BoolNode) HasChild(target *BoolNode) bool {
+func (tn *Uint32Node) HasChild(target *Uint32Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,7 +468,7 @@ func (tn *BoolNode) HasChild(target *BoolNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *BoolNode) IsChildOf(target *BoolNode) bool {
+func (tn *Uint32Node) IsChildOf(target *Uint32Node) bool {
 	if target == nil {
 		return false
 	}
