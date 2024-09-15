@@ -171,6 +171,7 @@ func (tn *{{ .TypeSig }}) String() string {
 	builder.WriteString("{{ .TypeSig }}[")
 
 	{{- range $key, $value := .Stringer }}
+	{{- if ne $key 0 }}builder.WriteRune(','){{ end }}
 	builder.WriteString({{ $value }})
 	{{- end }}
 	builder.WriteRune(']')
