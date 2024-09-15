@@ -17,17 +17,17 @@ type TreeNode[T any] struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *TreeNode[T]) IsLeaf() bool {
+func (tn TreeNode[T]) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *TreeNode[T]) IsSingleton() bool {
+func (tn TreeNode[T]) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *TreeNode[T]) String() string {
+func (tn TreeNode[T]) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("TreeNode[T][")
@@ -55,11 +55,11 @@ func NewTreeNode[T any](data T) *TreeNode[T] {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *TreeNode[T]) AddChild(target *TreeNode[T]) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -84,7 +84,7 @@ func (tn *TreeNode[T]) AddChild(target *TreeNode[T]) {
 //
 // Returns:
 //   - iter.Seq[*TreeNode[T]]: A sequence of the children of the node.
-func (tn *TreeNode[T]) BackwardChild() iter.Seq[*TreeNode[T]] {
+func (tn TreeNode[T]) BackwardChild() iter.Seq[*TreeNode[T]] {
 	return func(yield func(*TreeNode[T]) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -99,7 +99,7 @@ func (tn *TreeNode[T]) BackwardChild() iter.Seq[*TreeNode[T]] {
 //
 // Returns:
 //   - iter.Seq[*TreeNode[T]]: A sequence of the children of the node.
-func (tn *TreeNode[T]) Child() iter.Seq[*TreeNode[T]] {
+func (tn TreeNode[T]) Child() iter.Seq[*TreeNode[T]] {
 	return func(yield func(*TreeNode[T]) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -117,7 +117,13 @@ func (tn *TreeNode[T]) Child() iter.Seq[*TreeNode[T]] {
 //
 // Returns:
 //   - []*TreeNode[T]: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *TreeNode[T]) Cleanup() []*TreeNode[T] {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*TreeNode[T]
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -148,7 +154,7 @@ func (tn *TreeNode[T]) Cleanup() []*TreeNode[T] {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *TreeNode[T]) Copy() *TreeNode[T] {
+func (tn TreeNode[T]) Copy() *TreeNode[T] {
 	return &TreeNode[T]{
 		Data: tn.Data,
 	}
@@ -163,6 +169,10 @@ func (tn *TreeNode[T]) Copy() *TreeNode[T] {
 // Returns:
 //   - []TreeNode[T]: A slice of pointers to the children of the node.
 func (tn *TreeNode[T]) delete_child(target *TreeNode[T]) []*TreeNode[T] {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -207,7 +217,7 @@ func (tn *TreeNode[T]) delete_child(target *TreeNode[T]) []*TreeNode[T] {
 // Returns:
 //   - []*TreeNode[T]: A slice of the children of the target node.
 func (tn *TreeNode[T]) DeleteChild(target *TreeNode[T]) []*TreeNode[T] {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -233,7 +243,7 @@ func (tn *TreeNode[T]) DeleteChild(target *TreeNode[T]) []*TreeNode[T] {
 // Returns:
 //   - *TreeNode[T]: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *TreeNode[T]) GetFirstChild() (*TreeNode[T], bool) {
+func (tn TreeNode[T]) GetFirstChild() (*TreeNode[T], bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -242,7 +252,7 @@ func (tn *TreeNode[T]) GetFirstChild() (*TreeNode[T], bool) {
 // Returns:
 //   - *TreeNode[T]: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *TreeNode[T]) GetParent() (*TreeNode[T], bool) {
+func (tn TreeNode[T]) GetParent() (*TreeNode[T], bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,7 +260,13 @@ func (tn *TreeNode[T]) GetParent() (*TreeNode[T], bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*TreeNode[T]
 
 	for _, child := range children {
@@ -309,6 +325,10 @@ func (tn *TreeNode[T]) LinkChildren(children []*TreeNode[T]) {
 //	├── 5
 //	└── 6
 func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -366,7 +386,7 @@ func (tn *TreeNode[T]) RemoveNode() []*TreeNode[T] {
 // Parameters:
 //   - children: The children to add.
 func (tn *TreeNode[T]) AddChildren(children []*TreeNode[T]) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -427,7 +447,7 @@ func (tn *TreeNode[T]) AddChildren(children []*TreeNode[T]) {
 //
 // Returns:
 //   - []*TreeNode[T]: A slice of pointers to the children of the node.
-func (tn *TreeNode[T]) GetChildren() []*TreeNode[T] {
+func (tn TreeNode[T]) GetChildren() []*TreeNode[T] {
 	var children []*TreeNode[T]
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -446,7 +466,7 @@ func (tn *TreeNode[T]) GetChildren() []*TreeNode[T] {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *TreeNode[T]) HasChild(target *TreeNode[T]) bool {
+func (tn TreeNode[T]) HasChild(target *TreeNode[T]) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,14 +488,14 @@ func (tn *TreeNode[T]) HasChild(target *TreeNode[T]) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *TreeNode[T]) IsChildOf(target *TreeNode[T]) bool {
+func (tn TreeNode[T]) IsChildOf(target *TreeNode[T]) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true

@@ -155,17 +155,17 @@ type {{ .TypeName }}{{ .Generics }} struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *{{ .TypeSig }}) IsLeaf() bool {
+func (tn {{ .TypeSig }}) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *{{ .TypeSig }}) IsSingleton() bool {
+func (tn {{ .TypeSig }}) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *{{ .TypeSig }}) String() string {
+func (tn {{ .TypeSig }}) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("{{ .TypeSig }}[")
@@ -214,11 +214,11 @@ func New{{ .TypeName }}{{ .Generics }}({{ .ParamList }}) *{{ .TypeSig }} {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *{{ .TypeSig }}) AddChild(target *{{ .TypeSig }}) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -243,7 +243,7 @@ func (tn *{{ .TypeSig }}) AddChild(target *{{ .TypeSig }}) {
 //
 // Returns:
 //   - iter.Seq[*{{ .TypeSig }}]: A sequence of the children of the node.
-func (tn *{{ .TypeSig }}) BackwardChild() iter.Seq[*{{ .TypeSig }}] {
+func (tn {{ .TypeSig }}) BackwardChild() iter.Seq[*{{ .TypeSig }}] {
 	return func(yield func(*{{ .TypeSig }}) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -258,7 +258,7 @@ func (tn *{{ .TypeSig }}) BackwardChild() iter.Seq[*{{ .TypeSig }}] {
 //
 // Returns:
 //   - iter.Seq[*{{ .TypeSig }}]: A sequence of the children of the node.
-func (tn *{{ .TypeSig }}) Child() iter.Seq[*{{ .TypeSig }}] {
+func (tn {{ .TypeSig }}) Child() iter.Seq[*{{ .TypeSig }}] {
 	return func(yield func(*{{ .TypeSig }}) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -276,7 +276,13 @@ func (tn *{{ .TypeSig }}) Child() iter.Seq[*{{ .TypeSig }}] {
 //
 // Returns:
 //   - []*{{ .TypeSig }}: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *{{ .TypeSig }}) Cleanup() []*{{ .TypeSig }} {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*{{ .TypeSig }}
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -307,7 +313,7 @@ func (tn *{{ .TypeSig }}) Cleanup() []*{{ .TypeSig }} {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *{{ .TypeSig }}) Copy() *{{ .TypeSig }} {
+func (tn {{ .TypeSig }}) Copy() *{{ .TypeSig }} {
 	return &{{ .TypeSig }}{
 		{{- range $key, $value := .Fields }}
 		{{ $key }}: tn.{{ $key }},
@@ -324,6 +330,10 @@ func (tn *{{ .TypeSig }}) Copy() *{{ .TypeSig }} {
 // Returns:
 //   - []{{ .TypeSig }}: A slice of pointers to the children of the node.
 func (tn *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []*{{ .TypeSig }} {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -368,7 +378,7 @@ func (tn *{{ .TypeSig }}) delete_child(target *{{ .TypeSig }}) []*{{ .TypeSig }}
 // Returns:
 //   - []*{{ .TypeSig }}: A slice of the children of the target node.
 func (tn *{{ .TypeSig }}) DeleteChild(target *{{ .TypeSig }}) []*{{ .TypeSig }} {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -394,7 +404,7 @@ func (tn *{{ .TypeSig }}) DeleteChild(target *{{ .TypeSig }}) []*{{ .TypeSig }} 
 // Returns:
 //   - *{{ .TypeSig }}: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *{{ .TypeSig }}) GetFirstChild() (*{{ .TypeSig }}, bool) {
+func (tn {{ .TypeSig }}) GetFirstChild() (*{{ .TypeSig }}, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -403,7 +413,7 @@ func (tn *{{ .TypeSig }}) GetFirstChild() (*{{ .TypeSig }}, bool) {
 // Returns:
 //   - *{{ .TypeSig }}: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *{{ .TypeSig }}) GetParent() (*{{ .TypeSig }}, bool) {
+func (tn {{ .TypeSig }}) GetParent() (*{{ .TypeSig }}, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -411,7 +421,13 @@ func (tn *{{ .TypeSig }}) GetParent() (*{{ .TypeSig }}, bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *{{ .TypeSig }}) LinkChildren(children []*{{ .TypeSig }}) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*{{ .TypeSig }}
 
 	for _, child := range children {
@@ -470,6 +486,10 @@ func (tn *{{ .TypeSig }}) LinkChildren(children []*{{ .TypeSig }}) {
 //	├── 5
 //	└── 6
 func (tn *{{ .TypeSig }}) RemoveNode() []*{{ .TypeSig }} {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -527,7 +547,7 @@ func (tn *{{ .TypeSig }}) RemoveNode() []*{{ .TypeSig }} {
 // Parameters:
 //   - children: The children to add.
 func (tn *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }}) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -588,7 +608,7 @@ func (tn *{{ .TypeSig }}) AddChildren(children []*{{ .TypeSig }}) {
 //
 // Returns:
 //   - []*{{ .TypeSig }}: A slice of pointers to the children of the node.
-func (tn *{{ .TypeSig }}) GetChildren() []*{{ .TypeSig }} {
+func (tn {{ .TypeSig }}) GetChildren() []*{{ .TypeSig }} {
 	var children []*{{ .TypeSig }}
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -607,7 +627,7 @@ func (tn *{{ .TypeSig }}) GetChildren() []*{{ .TypeSig }} {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
+func (tn {{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -629,14 +649,14 @@ func (tn *{{ .TypeSig }}) HasChild(target *{{ .TypeSig }}) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *{{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
+func (tn {{ .TypeSig }}) IsChildOf(target *{{ .TypeSig }}) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true

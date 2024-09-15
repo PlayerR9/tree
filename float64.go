@@ -17,17 +17,17 @@ type Float64Node struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Float64Node) IsLeaf() bool {
+func (tn Float64Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Float64Node) IsSingleton() bool {
+func (tn Float64Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Float64Node) String() string {
+func (tn Float64Node) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("Float64Node[")
@@ -55,11 +55,11 @@ func NewFloat64Node(data float64) *Float64Node {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *Float64Node) AddChild(target *Float64Node) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -84,7 +84,7 @@ func (tn *Float64Node) AddChild(target *Float64Node) {
 //
 // Returns:
 //   - iter.Seq[*Float64Node]: A sequence of the children of the node.
-func (tn *Float64Node) BackwardChild() iter.Seq[*Float64Node] {
+func (tn Float64Node) BackwardChild() iter.Seq[*Float64Node] {
 	return func(yield func(*Float64Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -99,7 +99,7 @@ func (tn *Float64Node) BackwardChild() iter.Seq[*Float64Node] {
 //
 // Returns:
 //   - iter.Seq[*Float64Node]: A sequence of the children of the node.
-func (tn *Float64Node) Child() iter.Seq[*Float64Node] {
+func (tn Float64Node) Child() iter.Seq[*Float64Node] {
 	return func(yield func(*Float64Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -117,7 +117,13 @@ func (tn *Float64Node) Child() iter.Seq[*Float64Node] {
 //
 // Returns:
 //   - []*Float64Node: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *Float64Node) Cleanup() []*Float64Node {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*Float64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -148,7 +154,7 @@ func (tn *Float64Node) Cleanup() []*Float64Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Float64Node) Copy() *Float64Node {
+func (tn Float64Node) Copy() *Float64Node {
 	return &Float64Node{
 		Data: tn.Data,
 	}
@@ -163,6 +169,10 @@ func (tn *Float64Node) Copy() *Float64Node {
 // Returns:
 //   - []Float64Node: A slice of pointers to the children of the node.
 func (tn *Float64Node) delete_child(target *Float64Node) []*Float64Node {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -207,7 +217,7 @@ func (tn *Float64Node) delete_child(target *Float64Node) []*Float64Node {
 // Returns:
 //   - []*Float64Node: A slice of the children of the target node.
 func (tn *Float64Node) DeleteChild(target *Float64Node) []*Float64Node {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -233,7 +243,7 @@ func (tn *Float64Node) DeleteChild(target *Float64Node) []*Float64Node {
 // Returns:
 //   - *Float64Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Float64Node) GetFirstChild() (*Float64Node, bool) {
+func (tn Float64Node) GetFirstChild() (*Float64Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -242,7 +252,7 @@ func (tn *Float64Node) GetFirstChild() (*Float64Node, bool) {
 // Returns:
 //   - *Float64Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Float64Node) GetParent() (*Float64Node, bool) {
+func (tn Float64Node) GetParent() (*Float64Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,7 +260,13 @@ func (tn *Float64Node) GetParent() (*Float64Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *Float64Node) LinkChildren(children []*Float64Node) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*Float64Node
 
 	for _, child := range children {
@@ -309,6 +325,10 @@ func (tn *Float64Node) LinkChildren(children []*Float64Node) {
 //	├── 5
 //	└── 6
 func (tn *Float64Node) RemoveNode() []*Float64Node {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -366,7 +386,7 @@ func (tn *Float64Node) RemoveNode() []*Float64Node {
 // Parameters:
 //   - children: The children to add.
 func (tn *Float64Node) AddChildren(children []*Float64Node) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -427,7 +447,7 @@ func (tn *Float64Node) AddChildren(children []*Float64Node) {
 //
 // Returns:
 //   - []*Float64Node: A slice of pointers to the children of the node.
-func (tn *Float64Node) GetChildren() []*Float64Node {
+func (tn Float64Node) GetChildren() []*Float64Node {
 	var children []*Float64Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -446,7 +466,7 @@ func (tn *Float64Node) GetChildren() []*Float64Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Float64Node) HasChild(target *Float64Node) bool {
+func (tn Float64Node) HasChild(target *Float64Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,14 +488,14 @@ func (tn *Float64Node) HasChild(target *Float64Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Float64Node) IsChildOf(target *Float64Node) bool {
+func (tn Float64Node) IsChildOf(target *Float64Node) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true

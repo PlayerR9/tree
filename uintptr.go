@@ -17,17 +17,17 @@ type UintptrNode struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *UintptrNode) IsLeaf() bool {
+func (tn UintptrNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *UintptrNode) IsSingleton() bool {
+func (tn UintptrNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *UintptrNode) String() string {
+func (tn UintptrNode) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("UintptrNode[")
@@ -55,11 +55,11 @@ func NewUintptrNode(data uintptr) *UintptrNode {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *UintptrNode) AddChild(target *UintptrNode) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -84,7 +84,7 @@ func (tn *UintptrNode) AddChild(target *UintptrNode) {
 //
 // Returns:
 //   - iter.Seq[*UintptrNode]: A sequence of the children of the node.
-func (tn *UintptrNode) BackwardChild() iter.Seq[*UintptrNode] {
+func (tn UintptrNode) BackwardChild() iter.Seq[*UintptrNode] {
 	return func(yield func(*UintptrNode) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -99,7 +99,7 @@ func (tn *UintptrNode) BackwardChild() iter.Seq[*UintptrNode] {
 //
 // Returns:
 //   - iter.Seq[*UintptrNode]: A sequence of the children of the node.
-func (tn *UintptrNode) Child() iter.Seq[*UintptrNode] {
+func (tn UintptrNode) Child() iter.Seq[*UintptrNode] {
 	return func(yield func(*UintptrNode) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -117,7 +117,13 @@ func (tn *UintptrNode) Child() iter.Seq[*UintptrNode] {
 //
 // Returns:
 //   - []*UintptrNode: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *UintptrNode) Cleanup() []*UintptrNode {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*UintptrNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -148,7 +154,7 @@ func (tn *UintptrNode) Cleanup() []*UintptrNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *UintptrNode) Copy() *UintptrNode {
+func (tn UintptrNode) Copy() *UintptrNode {
 	return &UintptrNode{
 		Data: tn.Data,
 	}
@@ -163,6 +169,10 @@ func (tn *UintptrNode) Copy() *UintptrNode {
 // Returns:
 //   - []UintptrNode: A slice of pointers to the children of the node.
 func (tn *UintptrNode) delete_child(target *UintptrNode) []*UintptrNode {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -207,7 +217,7 @@ func (tn *UintptrNode) delete_child(target *UintptrNode) []*UintptrNode {
 // Returns:
 //   - []*UintptrNode: A slice of the children of the target node.
 func (tn *UintptrNode) DeleteChild(target *UintptrNode) []*UintptrNode {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -233,7 +243,7 @@ func (tn *UintptrNode) DeleteChild(target *UintptrNode) []*UintptrNode {
 // Returns:
 //   - *UintptrNode: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *UintptrNode) GetFirstChild() (*UintptrNode, bool) {
+func (tn UintptrNode) GetFirstChild() (*UintptrNode, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -242,7 +252,7 @@ func (tn *UintptrNode) GetFirstChild() (*UintptrNode, bool) {
 // Returns:
 //   - *UintptrNode: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *UintptrNode) GetParent() (*UintptrNode, bool) {
+func (tn UintptrNode) GetParent() (*UintptrNode, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,7 +260,13 @@ func (tn *UintptrNode) GetParent() (*UintptrNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *UintptrNode) LinkChildren(children []*UintptrNode) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*UintptrNode
 
 	for _, child := range children {
@@ -309,6 +325,10 @@ func (tn *UintptrNode) LinkChildren(children []*UintptrNode) {
 //	├── 5
 //	└── 6
 func (tn *UintptrNode) RemoveNode() []*UintptrNode {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -366,7 +386,7 @@ func (tn *UintptrNode) RemoveNode() []*UintptrNode {
 // Parameters:
 //   - children: The children to add.
 func (tn *UintptrNode) AddChildren(children []*UintptrNode) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -427,7 +447,7 @@ func (tn *UintptrNode) AddChildren(children []*UintptrNode) {
 //
 // Returns:
 //   - []*UintptrNode: A slice of pointers to the children of the node.
-func (tn *UintptrNode) GetChildren() []*UintptrNode {
+func (tn UintptrNode) GetChildren() []*UintptrNode {
 	var children []*UintptrNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -446,7 +466,7 @@ func (tn *UintptrNode) GetChildren() []*UintptrNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *UintptrNode) HasChild(target *UintptrNode) bool {
+func (tn UintptrNode) HasChild(target *UintptrNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,14 +488,14 @@ func (tn *UintptrNode) HasChild(target *UintptrNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *UintptrNode) IsChildOf(target *UintptrNode) bool {
+func (tn UintptrNode) IsChildOf(target *UintptrNode) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true

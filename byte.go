@@ -16,17 +16,17 @@ type ByteNode struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *ByteNode) IsLeaf() bool {
+func (tn ByteNode) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *ByteNode) IsSingleton() bool {
+func (tn ByteNode) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *ByteNode) String() string {
+func (tn ByteNode) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("ByteNode[")
@@ -54,11 +54,11 @@ func NewByteNode(data byte) *ByteNode {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *ByteNode) AddChild(target *ByteNode) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -83,7 +83,7 @@ func (tn *ByteNode) AddChild(target *ByteNode) {
 //
 // Returns:
 //   - iter.Seq[*ByteNode]: A sequence of the children of the node.
-func (tn *ByteNode) BackwardChild() iter.Seq[*ByteNode] {
+func (tn ByteNode) BackwardChild() iter.Seq[*ByteNode] {
 	return func(yield func(*ByteNode) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -98,7 +98,7 @@ func (tn *ByteNode) BackwardChild() iter.Seq[*ByteNode] {
 //
 // Returns:
 //   - iter.Seq[*ByteNode]: A sequence of the children of the node.
-func (tn *ByteNode) Child() iter.Seq[*ByteNode] {
+func (tn ByteNode) Child() iter.Seq[*ByteNode] {
 	return func(yield func(*ByteNode) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -116,7 +116,13 @@ func (tn *ByteNode) Child() iter.Seq[*ByteNode] {
 //
 // Returns:
 //   - []*ByteNode: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *ByteNode) Cleanup() []*ByteNode {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*ByteNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -147,7 +153,7 @@ func (tn *ByteNode) Cleanup() []*ByteNode {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *ByteNode) Copy() *ByteNode {
+func (tn ByteNode) Copy() *ByteNode {
 	return &ByteNode{
 		Data: tn.Data,
 	}
@@ -162,6 +168,10 @@ func (tn *ByteNode) Copy() *ByteNode {
 // Returns:
 //   - []ByteNode: A slice of pointers to the children of the node.
 func (tn *ByteNode) delete_child(target *ByteNode) []*ByteNode {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -206,7 +216,7 @@ func (tn *ByteNode) delete_child(target *ByteNode) []*ByteNode {
 // Returns:
 //   - []*ByteNode: A slice of the children of the target node.
 func (tn *ByteNode) DeleteChild(target *ByteNode) []*ByteNode {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -232,7 +242,7 @@ func (tn *ByteNode) DeleteChild(target *ByteNode) []*ByteNode {
 // Returns:
 //   - *ByteNode: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *ByteNode) GetFirstChild() (*ByteNode, bool) {
+func (tn ByteNode) GetFirstChild() (*ByteNode, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -241,7 +251,7 @@ func (tn *ByteNode) GetFirstChild() (*ByteNode, bool) {
 // Returns:
 //   - *ByteNode: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *ByteNode) GetParent() (*ByteNode, bool) {
+func (tn ByteNode) GetParent() (*ByteNode, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -249,7 +259,13 @@ func (tn *ByteNode) GetParent() (*ByteNode, bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *ByteNode) LinkChildren(children []*ByteNode) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*ByteNode
 
 	for _, child := range children {
@@ -308,6 +324,10 @@ func (tn *ByteNode) LinkChildren(children []*ByteNode) {
 //	├── 5
 //	└── 6
 func (tn *ByteNode) RemoveNode() []*ByteNode {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -365,7 +385,7 @@ func (tn *ByteNode) RemoveNode() []*ByteNode {
 // Parameters:
 //   - children: The children to add.
 func (tn *ByteNode) AddChildren(children []*ByteNode) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -426,7 +446,7 @@ func (tn *ByteNode) AddChildren(children []*ByteNode) {
 //
 // Returns:
 //   - []*ByteNode: A slice of pointers to the children of the node.
-func (tn *ByteNode) GetChildren() []*ByteNode {
+func (tn ByteNode) GetChildren() []*ByteNode {
 	var children []*ByteNode
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -445,7 +465,7 @@ func (tn *ByteNode) GetChildren() []*ByteNode {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *ByteNode) HasChild(target *ByteNode) bool {
+func (tn ByteNode) HasChild(target *ByteNode) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -467,14 +487,14 @@ func (tn *ByteNode) HasChild(target *ByteNode) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *ByteNode) IsChildOf(target *ByteNode) bool {
+func (tn ByteNode) IsChildOf(target *ByteNode) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true

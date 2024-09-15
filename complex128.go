@@ -17,17 +17,17 @@ type Complex128Node struct {
 }
 
 // IsLeaf implements the tree.Noder interface.
-func (tn *Complex128Node) IsLeaf() bool {
+func (tn Complex128Node) IsLeaf() bool {
 	return tn.FirstChild == nil
 }
 
 // IsSingleton implements the tree.Noder interface.
-func (tn *Complex128Node) IsSingleton() bool {
+func (tn Complex128Node) IsSingleton() bool {
 	return tn.FirstChild != nil && tn.FirstChild == tn.LastChild
 }
 
 // String implements the tree.Noder interface.
-func (tn *Complex128Node) String() string {
+func (tn Complex128Node) String() string {
 	var builder strings.Builder
 
 	builder.WriteString("Complex128Node[")
@@ -55,11 +55,11 @@ func NewComplex128Node(data complex128) *Complex128Node {
 // of the target, it does not add its relatives.
 //
 // Parameters:
-//   - child: The child to add.
+//   - target: The child to add.
 //
-// If child is nil, it does nothing.
+// If the receiver or the target are nil, it does nothing.
 func (tn *Complex128Node) AddChild(target *Complex128Node) {
-	if target == nil {
+	if tn == nil || target == nil {
 		return
 	}
 	
@@ -84,7 +84,7 @@ func (tn *Complex128Node) AddChild(target *Complex128Node) {
 //
 // Returns:
 //   - iter.Seq[*Complex128Node]: A sequence of the children of the node.
-func (tn *Complex128Node) BackwardChild() iter.Seq[*Complex128Node] {
+func (tn Complex128Node) BackwardChild() iter.Seq[*Complex128Node] {
 	return func(yield func(*Complex128Node) bool) {
 		for c := tn.LastChild; c != nil; c = c.PrevSibling {
 			if !yield(c) {
@@ -99,7 +99,7 @@ func (tn *Complex128Node) BackwardChild() iter.Seq[*Complex128Node] {
 //
 // Returns:
 //   - iter.Seq[*Complex128Node]: A sequence of the children of the node.
-func (tn *Complex128Node) Child() iter.Seq[*Complex128Node] {
+func (tn Complex128Node) Child() iter.Seq[*Complex128Node] {
 	return func(yield func(*Complex128Node) bool) {
 		for c := tn.FirstChild; c != nil; c = c.NextSibling {
 			if !yield(c) {
@@ -117,7 +117,13 @@ func (tn *Complex128Node) Child() iter.Seq[*Complex128Node] {
 //
 // Returns:
 //   - []*Complex128Node: The children of the node.
+//
+// If the receiver is nil, it returns nil.
 func (tn *Complex128Node) Cleanup() []*Complex128Node {
+	if tn == nil {
+		return nil
+	}
+
 	var children []*Complex128Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -148,7 +154,7 @@ func (tn *Complex128Node) Cleanup() []*Complex128Node {
 // Copy creates a shally copy of the node.
 //
 // Although this function never returns nil, it does not copy any pointers.
-func (tn *Complex128Node) Copy() *Complex128Node {
+func (tn Complex128Node) Copy() *Complex128Node {
 	return &Complex128Node{
 		Data: tn.Data,
 	}
@@ -163,6 +169,10 @@ func (tn *Complex128Node) Copy() *Complex128Node {
 // Returns:
 //   - []Complex128Node: A slice of pointers to the children of the node.
 func (tn *Complex128Node) delete_child(target *Complex128Node) []*Complex128Node {
+	if tn == nil {
+		return nil
+	}
+
 	ok := tn.HasChild(target)
 	if !ok {
 		return nil
@@ -207,7 +217,7 @@ func (tn *Complex128Node) delete_child(target *Complex128Node) []*Complex128Node
 // Returns:
 //   - []*Complex128Node: A slice of the children of the target node.
 func (tn *Complex128Node) DeleteChild(target *Complex128Node) []*Complex128Node {
-	if target == nil {
+	if tn == nil || target == nil {
 		return nil
 	}
 
@@ -233,7 +243,7 @@ func (tn *Complex128Node) DeleteChild(target *Complex128Node) []*Complex128Node 
 // Returns:
 //   - *Complex128Node: The first child of the node.
 //   - bool: True if the node has a child, false otherwise.
-func (tn *Complex128Node) GetFirstChild() (*Complex128Node, bool) {
+func (tn Complex128Node) GetFirstChild() (*Complex128Node, bool) {
 	return tn.FirstChild, tn.FirstChild == nil
 }
 
@@ -242,7 +252,7 @@ func (tn *Complex128Node) GetFirstChild() (*Complex128Node, bool) {
 // Returns:
 //   - *Complex128Node: The parent of the node.
 //   - bool: True if the node has a parent, false otherwise.
-func (tn *Complex128Node) GetParent() (*Complex128Node, bool) {
+func (tn Complex128Node) GetParent() (*Complex128Node, bool) {
 	return tn.Parent, tn.Parent == nil
 }
 
@@ -250,7 +260,13 @@ func (tn *Complex128Node) GetParent() (*Complex128Node, bool) {
 //
 // Parameters:
 //   - children: The children to link.
+//
+// Does nothing if the receiver is nil.
 func (tn *Complex128Node) LinkChildren(children []*Complex128Node) {
+	if tn == nil {
+		return
+	}
+
 	var valid_children []*Complex128Node
 
 	for _, child := range children {
@@ -309,6 +325,10 @@ func (tn *Complex128Node) LinkChildren(children []*Complex128Node) {
 //	├── 5
 //	└── 6
 func (tn *Complex128Node) RemoveNode() []*Complex128Node {
+	if tn == nil {
+		return nil
+	}
+
 	prev := tn.PrevSibling
 	next := tn.NextSibling
 	parent := tn.Parent
@@ -366,7 +386,7 @@ func (tn *Complex128Node) RemoveNode() []*Complex128Node {
 // Parameters:
 //   - children: The children to add.
 func (tn *Complex128Node) AddChildren(children []*Complex128Node) {
-	if len(children) == 0 {
+	if tn == nil || len(children) == 0 {
 		return
 	}
 	
@@ -427,7 +447,7 @@ func (tn *Complex128Node) AddChildren(children []*Complex128Node) {
 //
 // Returns:
 //   - []*Complex128Node: A slice of pointers to the children of the node.
-func (tn *Complex128Node) GetChildren() []*Complex128Node {
+func (tn Complex128Node) GetChildren() []*Complex128Node {
 	var children []*Complex128Node
 
 	for c := tn.FirstChild; c != nil; c = c.NextSibling {
@@ -446,7 +466,7 @@ func (tn *Complex128Node) GetChildren() []*Complex128Node {
 //
 // Returns:
 //   - bool: True if the node has the child, false otherwise.
-func (tn *Complex128Node) HasChild(target *Complex128Node) bool {
+func (tn Complex128Node) HasChild(target *Complex128Node) bool {
 	if target == nil || tn.FirstChild == nil {
 		return false
 	}
@@ -468,14 +488,14 @@ func (tn *Complex128Node) HasChild(target *Complex128Node) bool {
 //
 // Returns:
 //   - bool: True if the node is a child of the parent, false otherwise.
-func (tn *Complex128Node) IsChildOf(target *Complex128Node) bool {
+func (tn Complex128Node) IsChildOf(target *Complex128Node) bool {
 	if target == nil {
 		return false
 	}
 
 	parents := tree.GetNodeAncestors(target)
 
-	for node := tn; node.Parent != nil; node = node.Parent {
+	for node := &tn; node.Parent != nil; node = node.Parent {
 		ok := slices.Contains(parents, node.Parent)
 		if ok {
 			return true
