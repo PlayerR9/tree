@@ -286,6 +286,7 @@ func (tn *Complex128Node) LinkChildren(children []*Complex128Node) {
 	valid_children[len(valid_children)-1].NextSibling = nil
 
 	if len(valid_children) == 1 {
+		tn.FirstChild, tn.LastChild = valid_children[0], valid_children[0]
 		return
 	}
 
