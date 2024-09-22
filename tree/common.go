@@ -6,7 +6,7 @@ import (
 	"iter"
 	"slices"
 
-	gcers "github.com/PlayerR9/go-commons/errors"
+	gcers "github.com/PlayerR9/errors"
 	gcslc "github.com/PlayerR9/go-commons/slices"
 )
 

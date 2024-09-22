@@ -1,10 +1,9 @@
 package tree
 
 import (
-	"errors"
 	"iter"
 
-	gcers "github.com/PlayerR9/go-commons/errors"
+	gcers "github.com/PlayerR9/errors"
 )
 
 // NextsFunc is a function that returns the next elements.
@@ -200,7 +199,7 @@ func Build[T interface {
 }](root T, fn func(elem T) ([]T, error)) (*Tree[T], error) {
 	if fn == nil {
 		return nil, gcers.NewErrInvalidUsage(
-			errors.New("no next function is set"),
+			"no next function is set",
 			"Please call Builder.SetNextFunc() before building the tree",
 		)
 	}
