@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	gcgen "github.com/PlayerR9/go-commons/generator"
+	gcgen "github.com/PlayerR9/go-generator"
 )
 
 var (

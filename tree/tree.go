@@ -149,7 +149,7 @@ func (t *Tree[T]) Size() int {
 // Returns:
 //   - error: An error of type *ErrMissingRoot if the tree does not have a root.
 func (t *Tree[T]) SetChildren(children []*Tree[T]) error {
-	children = gcslc.FilterNilValues(children)
+	children = gcslc.FilterZeroValues(children)
 	if len(children) == 0 {
 		return nil
 	}

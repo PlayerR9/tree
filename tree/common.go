@@ -531,7 +531,7 @@ func SkipFilter[T interface {
 		seen[leaf] = true
 
 		// Remove any node that has been seen from the frontier.
-		frontier = gcslc.SliceFilter(frontier, f)
+		frontier = gcslc.FilterSlice(frontier, f)
 
 		ok := filter(leaf)
 
