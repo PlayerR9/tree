@@ -6,12 +6,18 @@ import (
 )
 
 // Pair is a pair of a node and its info.
-type Pair[A, B any] struct {
+type Pair[T interface {
+	Child() iter.Seq[T]
+	BackwardChild() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
+	TreeNoder
+}] struct {
 	// Node is the node of the pair.
-	Node A
+	Node T
 
 	// Info is the info of the pair.
-	Info B
+	Info any
 }
 
 // NewPair creates a new pair of a node and its info.
@@ -21,9 +27,15 @@ type Pair[A, B any] struct {
 //   - info: The info of the pair.
 //
 // Returns:
-//   - Pair[A, B]: The new pair.
-func NewPair[A, B any](node A, info B) Pair[A, B] {
-	return Pair[A, B]{
+//   - Pair[T]: The new pair.
+func NewPair[T interface {
+	Child() iter.Seq[T]
+	BackwardChild() iter.Seq[T]
+	Copy() T
+	LinkChildren(children []T)
+	TreeNoder
+}](node T, info any) Pair[T] {
+	return Pair[T]{
 		Node: node,
 		Info: info,
 	}
@@ -36,15 +48,15 @@ type Traverser[T interface {
 	Copy() T
 	LinkChildren(children []T)
 	TreeNoder
-}, I any] struct {
+}] struct {
 	// InitFn is the function that initializes the traversal info.
 	//
 	// Parameters:
 	//   - root: The root node of the tree.
 	//
 	// Returns:
-	//   - I: The initial traversal info.
-	InitFn func(root T) I
+	//   - any: The initial traversal info.
+	InitFn func(root T) any
 
 	// DoFn is the function that performs the traversal logic.
 	//
@@ -53,9 +65,9 @@ type Traverser[T interface {
 	//   - info: The traversal info.
 	//
 	// Returns:
-	//   - []Pair[T, I]: The next traversal info.
+	//   - []Pair[T]: The next traversal info.
 	//   - error: The error that might occur during the traversal.
-	DoFn func(node T, info I) ([]Pair[T, I], error)
+	DoFn func(node T, info any) ([]Pair[T], error)
 }
 
 // ApplyDFS applies the DFS traversal logic to the tree.
@@ -65,6 +77,7 @@ type Traverser[T interface {
 //   - trav: The traverser that holds the traversal logic.
 //
 // Returns:
+//   - I: The final traversal info.
 //   - error: The error that might occur during the traversal.
 func ApplyDFS[T interface {
 	BackwardChild() iter.Seq[T]
@@ -73,14 +86,14 @@ func ApplyDFS[T interface {
 	Copy() T
 	LinkChildren(children []T)
 	TreeNoder
-}, I any](t *Tree[T], trav Traverser[T, I]) (I, error) {
+}](t *Tree[T], trav Traverser[T]) (any, error) {
 	if t == nil {
-		return *new(I), nil
+		return nil, nil
 	}
 
 	info := trav.InitFn(t.root)
 
-	stack := []Pair[T, I]{NewPair(t.root, info)}
+	stack := []Pair[T]{NewPair(t.root, info)}
 
 	for len(stack) > 0 {
 		top := stack[len(stack)-1]
@@ -107,6 +120,7 @@ func ApplyDFS[T interface {
 //   - trav: The traverser that holds the traversal logic.
 //
 // Returns:
+//   - I: The final traversal info.
 //   - error: The error that might occur during the traversal.
 func ApplyBFS[T interface {
 	BackwardChild() iter.Seq[T]
@@ -115,14 +129,14 @@ func ApplyBFS[T interface {
 	Copy() T
 	LinkChildren(children []T)
 	TreeNoder
-}, I any](t *Tree[T], trav Traverser[T, I]) (I, error) {
+}](t *Tree[T], trav Traverser[T]) (any, error) {
 	if t == nil {
-		return *new(I), nil
+		return nil, nil
 	}
 
 	info := trav.InitFn(t.root)
 
-	queue := []Pair[T, I]{NewPair(t.root, info)}
+	queue := []Pair[T]{NewPair(t.root, info)}
 
 	for len(queue) > 0 {
 		top := queue[0]

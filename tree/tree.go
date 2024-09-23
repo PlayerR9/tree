@@ -65,14 +65,15 @@ func (t *Tree[T]) DeepCopy() *Tree[T] {
 //	| // ...
 //	// ...
 func (t Tree[T]) String() string {
-	trav := PrintFn[T]()
+	trav := print_fn[T]()
 
 	info, err := ApplyDFS(&t, trav)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	return info.String()
+	inf := info.(*_TreePrinterTrav[T])
+	return inf.String()
 }
 
 // NewTree creates a new tree from the given root.

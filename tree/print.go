@@ -5,52 +5,13 @@ import (
 	"strings"
 )
 
-// TreeStringTraverser is the tree stringer.
-type TreeStringTraverser[T TreeNoder] struct {
-	// lines is the lines of the tree stringer.
-	lines []string
-
+// _TreePrinterTrav is the stack element of the tree stringer.
+type _TreePrinterTrav[T TreeNoder] struct {
 	// seen is the seen map of the tree stringer.
-	seen map[T]bool
-}
+	seen map[T]struct{}
 
-// String implements the fmt.Stringer interface.
-func (tst TreeStringTraverser[T]) String() string {
-	return strings.Join(tst.lines, "\n")
-}
-
-// IsSeen is a helper function that checks if the node is seen.
-//
-// Parameters:
-//   - node: The node to check.
-//
-// Returns:
-//   - bool: The result of the check.
-func (tst TreeStringTraverser[T]) IsSeen(node T) bool {
-	prev, ok := tst.seen[node]
-	return ok && prev
-}
-
-// AppendLine is a helper function that appends a line to the tree stringer.
-//
-// Parameters:
-//   - line: The line to append.
-func (tst *TreeStringTraverser[T]) AppendLine(line string) {
-	tst.lines = append(tst.lines, line)
-}
-
-// SetSeen is a helper function that sets the seen flag.
-//
-// Parameters:
-//   - node: The node to set.
-func (tst *TreeStringTraverser[T]) SetSeen(node T) {
-	tst.seen[node] = true
-}
-
-// TreeStackElem is the stack element of the tree stringer.
-type TreeStackElem[T TreeNoder] struct {
-	// global contains the global info of the tree stringer.
-	global *TreeStringTraverser[T]
+	// builder is the builder of the tree stringer.
+	builder *strings.Builder
 
 	// indent is the indentation string.
 	indent string
@@ -63,73 +24,76 @@ type TreeStackElem[T TreeNoder] struct {
 }
 
 // String implements the fmt.Stringer interface.
-func (tse TreeStackElem[T]) String() string {
-	return tse.global.String()
+func (tse _TreePrinterTrav[T]) String() string {
+	str := tse.builder.String()
+	return strings.TrimSuffix(str, "\n")
 }
 
 // set_is_last is a helper function that sets the is_last flag.
-func (tse *TreeStackElem[T]) set_is_last() {
+//
+// Assumes that the receiver is not nil.
+func (tse *_TreePrinterTrav[T]) set_is_last() {
 	tse.is_last = true
 }
 
 // set_same_level is a helper function that sets the same_level flag.
-func (tse *TreeStackElem[T]) set_same_level() {
+//
+// Assumes that the receiver is not nil.
+func (tse *_TreePrinterTrav[T]) set_same_level() {
 	tse.same_level = true
 }
 
-// PrintFn returns the print function of the tree stringer.
+// print_fn returns the print function of the tree stringer.
 //
 // Parameters:
 //   - root: The root node of the tree.
 //
 // Returns:
-//   - Traverser[T, *TreeStackElem[T]]: The print function of the tree stringer.
-func PrintFn[T interface {
+//   - Traverser[T]: The print function of the tree stringer.
+func print_fn[T interface {
 	Child() iter.Seq[T]
 	BackwardChild() iter.Seq[T]
 	Copy() T
 	LinkChildren(children []T)
 	TreeNoder
-}]() Traverser[T, *TreeStackElem[T]] {
-	init_fn := func(root T) *TreeStackElem[T] {
-		return &TreeStackElem[T]{
-			global: &TreeStringTraverser[T]{
-				lines: make([]string, 0),
-				seen:  make(map[T]bool),
-			},
+}]() Traverser[T] {
+	init_fn := func(root T) any {
+		var builder strings.Builder
+
+		return &_TreePrinterTrav[T]{
+			seen:       make(map[T]struct{}),
+			builder:    &builder,
 			indent:     "",
 			is_last:    true,
 			same_level: false,
 		}
 	}
 
-	fn := func(node T, info *TreeStackElem[T]) ([]Pair[T, *TreeStackElem[T]], error) {
-		var builder strings.Builder
+	fn := func(node T, info any) ([]Pair[T], error) {
+		inf := info.(*_TreePrinterTrav[T])
 
-		if info.indent != "" {
-			builder.WriteString(info.indent)
+		if inf.indent != "" {
+			inf.builder.WriteString(inf.indent)
 
-			if !node.IsLeaf() || info.is_last {
-				builder.WriteString("└── ")
+			if !node.IsLeaf() || inf.is_last {
+				inf.builder.WriteString("└── ")
 			} else {
-				builder.WriteString("├── ")
+				inf.builder.WriteString("├── ")
 			}
 		}
 
 		// Prevent cycles.
-		ok := info.global.IsSeen(node)
+		_, ok := inf.seen[node]
 		if ok {
-			builder.WriteString("... WARNING: Cycle detected!")
-
-			info.global.AppendLine(builder.String())
+			inf.builder.WriteString("... WARNING: Cycle detected!\n")
 
 			return nil, nil
 		}
 
-		builder.WriteString(node.String())
-		info.global.AppendLine(builder.String())
+		inf.builder.WriteString(node.String())
+		inf.builder.WriteRune('\n')
 
-		info.global.SetSeen(node)
+		inf.seen[node] = struct{}{}
 
 		if node.IsLeaf() {
 			return nil, nil
@@ -137,19 +101,20 @@ func PrintFn[T interface {
 
 		var indent strings.Builder
 
-		indent.WriteString(info.indent)
+		indent.WriteString(inf.indent)
 
-		if info.same_level && !info.is_last {
+		if inf.same_level && !inf.is_last {
 			indent.WriteString("│   ")
 		} else {
 			indent.WriteString("    ")
 		}
 
-		var elems []Pair[T, *TreeStackElem[T]]
+		var elems []Pair[T]
 
 		for c := range node.Child() {
-			se := &TreeStackElem[T]{
-				global:     info.global,
+			se := &_TreePrinterTrav[T]{
+				seen:       inf.seen,
+				builder:    inf.builder,
 				indent:     indent.String(),
 				is_last:    false,
 				same_level: false,
@@ -160,16 +125,16 @@ func PrintFn[T interface {
 
 		if len(elems) >= 2 {
 			for i := 0; i < len(elems); i++ {
-				elems[i].Info.set_same_level()
+				elems[i].Info.(*_TreePrinterTrav[T]).set_same_level()
 			}
 		}
 
-		elems[len(elems)-1].Info.set_is_last()
+		elems[len(elems)-1].Info.(*_TreePrinterTrav[T]).set_is_last()
 
 		return elems, nil
 	}
 
-	return Traverser[T, *TreeStackElem[T]]{
+	return Traverser[T]{
 		InitFn: init_fn,
 		DoFn:   fn,
 	}
