@@ -3,7 +3,7 @@ package tree
 import (
 	"iter"
 
-	gcers "github.com/PlayerR9/errors"
+	gcers "github.com/PlayerR9/go-errors"
 )
 
 // NextsFunc is a function that returns the next elements.

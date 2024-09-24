@@ -1,9 +1,9 @@
-github.com/PlayerR9/errors v0.1.1 h1:Djq/buQGVmIoSOaMtyZQjzHnm1U21CHAlMN2MNh01eU=
-github.com/PlayerR9/errors v0.1.1/go.mod h1:vM52FOVFTyAAbyUWeP9CJVNHWRy8YAHyYic58wy6U2Y=
-github.com/PlayerR9/go-commons v0.1.23 h1:jWfvkxgMznqGSyji7YwmkCsK0F1aX1thHB4i5B40ABs=
-github.com/PlayerR9/go-commons v0.1.23/go.mod h1:22a8BoGMBV7+31FavcYlQR2yV9uELk/6md/ueS/JWFs=
-github.com/PlayerR9/go-generator v0.1.14 h1:7VCupCrfvpQCcmzRceLXByt45l3O8RUY8SBcufDzQq8=
-github.com/PlayerR9/go-generator v0.1.14/go.mod h1:MGCl6F4t1GzKVPN514LvTzuktvCqDDepTWyHTqIhhvs=
+github.com/PlayerR9/go-commons v0.1.24 h1:y/ioONkn5jtDsp5CrSE0Lh5/pwZBF1KfDUMBz0c/tF0=
+github.com/PlayerR9/go-commons v0.1.24/go.mod h1:BquFuE/lBdzuRDd9x/FPM/jD0nAuhcLe+lMHC84qnYE=
+github.com/PlayerR9/go-errors v0.1.2 h1:CqaS+uq/EqPJMMxv8CjVCJoBWW6sb+H+Cnc/2+7Nfog=
+github.com/PlayerR9/go-errors v0.1.2/go.mod h1:2VwKJC6VmrxsPABDs5MV6W1zEz5mxuHFb11hc6WKkBI=
+github.com/PlayerR9/go-generator v0.1.15 h1:mrkIHt/9ltMUSp5SOaCUg/G6oL02ZUbuKgwuKsMfyQQ=
+github.com/PlayerR9/go-generator v0.1.15/go.mod h1:vgk/DgyUfL/Zsklt3ZXjSnru+50WfJ/zJosov0CkX3k=
 github.com/PlayerR9/go-sets v0.1.0 h1:wdvHYCoAnVpLcdnr1u7Ehzk4cXqoeL4u8MnwCxEs1J8=
 github.com/PlayerR9/go-sets v0.1.0/go.mod h1:xmc/P+AhdGdjt6TdQO/J/fWmmetK8Y/egLrX5cfAZLY=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

@@ -6,8 +6,8 @@ import (
 	"iter"
 	"slices"
 
-	gcers "github.com/PlayerR9/errors"
 	gcslc "github.com/PlayerR9/go-commons/slices"
+	gcers "github.com/PlayerR9/go-errors"
 )
 
 // FindBranchingPoint returns the first node in the path from n to the root
