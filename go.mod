@@ -3,9 +3,9 @@ module github.com/PlayerR9/tree
 go 1.23.1
 
 require (
-	github.com/PlayerR9/go-commons v0.1.24
-	github.com/PlayerR9/go-errors v0.1.2
-	github.com/PlayerR9/go-generator v0.1.15
+	github.com/PlayerR9/go-commons v0.1.25
+	github.com/PlayerR9/go-errors v0.1.3
+	github.com/PlayerR9/go-generator v0.1.16
 )
 
 require (
